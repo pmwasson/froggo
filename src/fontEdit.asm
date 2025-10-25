@@ -409,16 +409,6 @@ prev_shape:
 :
 
     ;------------------
-    ; B = Beam
-    ;------------------
-    cmp         #$80 + 'B'
-    bne         :+
-    jsr         inline_print
-    .byte       "Test",13,0
-    jsr         testBeam
-    jmp         reset_loop
-:
-    ;------------------
     ; ? = HELP
     ;------------------
     cmp         #$80 + '?'
@@ -1499,7 +1489,6 @@ loopPage:
 ; Utilities
 ;-----------------------------------------------------------------------------
 .include        "inline_print.asm"
-.include        "beam.asm"
 
 ;-----------------------------------------------------------------------------
 ; Globals
@@ -1782,7 +1771,7 @@ copyBuffer:
 ;-----------------------------------------------------------------------------
 .align 256
 tileSheet:
-.include        "font1.asm"
+.include        "font.asm"
 
 .align 256
 mapData:

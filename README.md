@@ -1,2 +1,2 @@
-# portal2e
- 2D game inspired by Portal
+# Froggo
+Endless fog hopping
