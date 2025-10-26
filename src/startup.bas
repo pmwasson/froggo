@@ -14,5 +14,5 @@
 300 PRINT "                [Z] DOWN"
 310 PRINT
 320 PRINT "              [ESC] EXIT"
-400 GET A$ : POKE -16303,0
+400 GET A$ : REM POKE -16303,0
 410 PRINT CHR$(4) ; "-GAME"

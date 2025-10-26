@@ -253,7 +253,7 @@ mapLoop:
     jsr         drawRow
 
     ; score
-    lda         #0
+    lda         #1
     sta         tileY
     lda         #MAP_INDEX_SCORE
     jsr         drawRow
@@ -314,10 +314,10 @@ mapTiles:
             .byte $5D,$5D
 
             ; index 80 - SCORE
-            MapText     "SCORE: 0000         "
+            MapText     "    SCORE: 00000    "
 
             ; index 100 - CREDITS 1
-            MapText     " ===== FROGGO ===== "
+            MapText     "====== FROGGO ======"
 
             ; index 120 - CREDITS 2
             MapText     " PAUL WASSON - 2025 "
@@ -513,7 +513,7 @@ quitParams:
 
 playerX:        .byte       MAP_LEFT+TILE_WIDTH
 playerY:        .byte       MAP_BOTTOM-TILE_HEIGHT*2
-playerTile:     .byte       $76
+playerTile:     .byte       $6E
 
 roadOffset:     .word       $0000
 roadSpeed:      .word       $0033
