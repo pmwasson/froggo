@@ -38,6 +38,7 @@ STATE_DONE_UP               = 3
 STATE_START_DOWN            = 4
 STATE_MOVE_DOWN             = 5
 STATE_DONE_DOWN             = 6
+STATE_DEAD                  = $FF
 
 PLAYER_INIT_X               = MAP_LEFT+TILE_WIDTH
 PLAYER_INIT_Y               = MAP_BOTTOM-TILE_HEIGHT*2
@@ -47,6 +48,7 @@ MOVE_DELAY                  = 20
 
 TILE_GRASS                  = $46
 TILE_PLAYER_GREEN_IDLE      = $6E
+TILE_PLAYER_GREEN_DEAD      = $6F
 TILE_PLAYER_GREEN_UP_1      = $62
 TILE_PLAYER_GREEN_UP_2      = $6A
 TILE_PLAYER_GREEN_DOWN_1    = $63
@@ -88,13 +90,6 @@ switchTo1:
     ; Check for user input
     ;---------------------------
 
-    ; only process keypress if player is idle
-    lda         playerState
-    cmp         #STATE_IDLE
-    beq         :+
-    jmp         game_loop
-:
-
 
     ; wait for keypress
     lda         KBD
@@ -102,6 +97,22 @@ switchTo1:
     jmp         game_loop
 :
     bit         KBDSTRB
+
+    cmp         #KEY_ESC
+    bne         :+
+    jmp         quit
+:
+    cmp         #KEY_TAB
+    bne         :+
+    jmp         monitor
+:
+
+    ; only process movement keypress if player is idle
+    ldx         playerState
+    cpx         #STATE_IDLE
+    beq         :+
+    jmp         game_loop   ; not in idle, so no movement
+:
 
     cmp         #KEY_A
     bne         :+
@@ -119,16 +130,12 @@ switchTo1:
     bne         :+
     jmp         goLeft
 :
-
-    cmp         #KEY_ESC
+    cmp         #KEY_X
     bne         :+
-    jmp         quit
+    lda         #STATE_DEAD
+    sta         playerState
+    jmp         game_loop
 :
-    cmp         #KEY_TAB
-    bne         :+
-    jmp         monitor
-:
-
     jmp         game_loop
 
 goUp:
@@ -174,6 +181,14 @@ goLeft:
     sta         tileX
     lda         playerY
     sta         tileY
+
+    lda         playerState
+    cmp         #STATE_DEAD
+    bne         :+
+    lda         #TILE_PLAYER_GREEN_DEAD
+    jsr         drawTile
+    rts
+:
 
     lda         playerState
     cmp         #STATE_IDLE
