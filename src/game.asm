@@ -14,22 +14,43 @@
 ; Constants
 ;-----------------------------------------------------------------------------
 
-TILE_WIDTH          = 2
-TILE_HEIGHT         = 1
+TILE_WIDTH                  = 2
+TILE_HEIGHT                 = 1
 
-MAP_LEFT            = 0
-MAP_RIGHT           = 40
-MAP_TOP             = 4
-MAP_BOTTOM          = 20
+MAP_LEFT                    = 0
+MAP_RIGHT                   = 40
+MAP_TOP                     = 4
+MAP_BOTTOM                  = 20
 
-MAP_INDEX_MIDDLE    = 0
-MAP_INDEX_TOP       = 20
-MAP_INDEX_BOTTOM    = 40
-MAP_INDEX_SCORE     = 60
-MAP_INDEX_CREDITS1  = 80
-MAP_INDEX_CREDITS2  = 100
+MAP_INDEX_MIDDLE            = 0
+MAP_INDEX_TOP               = 20
+MAP_INDEX_BOTTOM            = 40
+MAP_INDEX_SCORE             = 60
+MAP_INDEX_CREDITS1          = 80
+MAP_INDEX_CREDITS2          = 100
 
-ROAD_X              = 6 * TILE_WIDTH
+ROAD_X                      = 6 * TILE_WIDTH
+
+STATE_IDLE                  = 0
+STATE_START_UP              = 1
+STATE_MOVE_UP               = 2
+STATE_DONE_UP               = 3
+STATE_START_DOWN            = 4
+STATE_MOVE_DOWN             = 5
+STATE_DONE_DOWN             = 6
+
+PLAYER_INIT_X               = MAP_LEFT+TILE_WIDTH
+PLAYER_INIT_Y               = MAP_BOTTOM-TILE_HEIGHT*2
+PLAYER_INIT_STATE           = STATE_IDLE
+
+MOVE_DELAY                  = 20
+
+TILE_GRASS                  = $46
+TILE_PLAYER_GREEN_IDLE      = $6E
+TILE_PLAYER_GREEN_UP_1      = $62
+TILE_PLAYER_GREEN_UP_2      = $6A
+TILE_PLAYER_GREEN_DOWN_1    = $63
+TILE_PLAYER_GREEN_DOWN_2    = $6B
 
 ;-----------------------------------------------------------------------------
 ; Main program
@@ -38,24 +59,12 @@ ROAD_X              = 6 * TILE_WIDTH
 .proc main
 
     jsr         initDisplay
-
-    ; display map on both pages
-    lda         #$20
-    sta         drawPage
-    jsr         drawMap
-    lda         #$00
-    sta         drawPage
-    jsr         drawMap
-
-    ; start with showing page1 and drawing on page2
-    lda         #$20
-    sta         drawPage
+    jsr         initState
 
 game_loop:
 
     jsr         drawRoad
-    jsr         drawPlayer
-
+    jsr         updatePlayer
 
     ; Flip display page
     ;---------------------------
@@ -78,6 +87,14 @@ switchTo1:
 
     ; Check for user input
     ;---------------------------
+
+    ; only process keypress if player is idle
+    lda         playerState
+    cmp         #STATE_IDLE
+    beq         :+
+    jmp         game_loop
+:
+
 
     ; wait for keypress
     lda         KBD
@@ -115,12 +132,165 @@ switchTo1:
     jmp         game_loop
 
 goUp:
+    ; check if at top
+    lda         playerY
+    cmp         #MAP_TOP+TILE_HEIGHT
+    beq         :+
+    lda         #STATE_START_UP
+    sta         playerState
+    lda         #0
+    sta         count
+:
+    jmp         game_loop
+
 goDown:
+    ; check if at top
+    lda         playerY
+    cmp         #MAP_BOTTOM-TILE_HEIGHT*2
+    beq         :+
+    lda         #STATE_START_DOWN
+    sta         playerState
+    lda         #0
+    sta         count
+:
+    jmp         game_loop
+
 goRight:
 goLeft:
     jmp         game_loop
 
 
+.endproc
+
+
+;-----------------------------------------------------------------------------
+; Update Player
+;-----------------------------------------------------------------------------
+.proc updatePlayer
+
+    inc         count
+
+    lda         playerX
+    sta         tileX
+    lda         playerY
+    sta         tileY
+
+    lda         playerState
+    cmp         #STATE_IDLE
+    bne         :+
+    lda         #TILE_PLAYER_GREEN_IDLE
+    jsr         drawTile
+    rts
+:
+    cmp         #STATE_START_UP
+    bne         :+
+    lda         count
+    and         #1
+    beq         noNoiseUp
+    sta         SPEAKER
+noNoiseUp:
+    lda         #TILE_PLAYER_GREEN_UP_2
+    jsr         drawTile
+    dec         tileY
+    lda         #TILE_PLAYER_GREEN_UP_1
+    jsr         drawTile
+    sta         SPEAKER
+    lda         count
+    cmp         #MOVE_DELAY
+    bmi         doneUp
+    lda         #STATE_MOVE_UP
+    sta         playerState
+doneUp:
+    rts
+:
+    cmp         #STATE_MOVE_UP
+    bne         :+
+    lda         #TILE_GRASS
+    jsr         drawTile
+    dec         tileY
+    lda         #TILE_PLAYER_GREEN_IDLE
+    jsr         drawTile
+    dec         playerY
+    lda         #STATE_DONE_UP
+    sta         playerState
+    rts
+:
+    cmp         #STATE_DONE_UP
+    bne         :+
+    lda         #TILE_PLAYER_GREEN_IDLE
+    jsr         drawTile
+    inc         tileY
+    lda         #TILE_GRASS
+    jsr         drawTile
+    lda         #STATE_IDLE
+    sta         playerState
+    rts
+:
+
+    cmp         #STATE_START_DOWN
+    bne         :+
+    lda         count
+    and         #1
+    beq         noNoiseDown
+    sta         SPEAKER
+noNoiseDown:
+    lda         #TILE_PLAYER_GREEN_DOWN_1
+    jsr         drawTile
+    inc         tileY
+    lda         #TILE_PLAYER_GREEN_DOWN_2
+    jsr         drawTile
+    sta         SPEAKER
+    lda         count
+    cmp         #MOVE_DELAY
+    bmi         doneDown
+    lda         #STATE_MOVE_DOWN
+    sta         playerState
+doneDown:
+    rts
+:
+    cmp         #STATE_MOVE_DOWN
+    bne         :+
+    lda         #TILE_GRASS
+    jsr         drawTile
+    inc         tileY
+    lda         #TILE_PLAYER_GREEN_IDLE
+    jsr         drawTile
+    inc         playerY
+    lda         #STATE_DONE_DOWN
+    sta         playerState
+    rts
+:
+    cmp         #STATE_DONE_DOWN
+    bne         :+
+    lda         #TILE_PLAYER_GREEN_IDLE
+    jsr         drawTile
+    dec         tileY
+    lda         #TILE_GRASS
+    jsr         drawTile
+    lda         #STATE_IDLE
+    sta         playerState
+    rts
+:
+    brk
+
+.endproc
+
+
+;-----------------------------------------------------------------------------
+; Sound "Move"
+;-----------------------------------------------------------------------------
+
+.proc soundMove
+    ldy         #$14
+loop:
+    sta         SPEAKER
+    ldx         #$5A
+pause:
+    dex
+    bne         pause
+    dey
+    bne         loop
+    rts
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -203,22 +373,6 @@ drawColumn1Page1:   drawColumn  $4001,buffer1
 ;drawColumn7Page1:   drawColumn  $4000,buffer7
 ;drawColumn8Page1:   drawColumn  $4000,buffer8
 ;drawColumn9Page1:   drawColumn  $4000,buffer9
-
-
-;-----------------------------------------------------------------------------
-; Draw Player
-;-----------------------------------------------------------------------------
-.proc drawPlayer
-
-    lda         playerX
-    sta         tileX
-    lda         playerY
-    sta         tileY
-    lda         playerTile
-    jsr         drawTile
-    rts
-
-.endproc
 
 ;-----------------------------------------------------------------------------
 ; Draw Map
@@ -397,28 +551,56 @@ drawLoop:
 .endproc
 
 ;-----------------------------------------------------------------------------
+; initState
+;-----------------------------------------------------------------------------
+
+.proc initState
+    lda         #PLAYER_INIT_X
+    sta         playerX
+    lda         #PLAYER_INIT_Y
+    sta         playerY
+    lda         #PLAYER_INIT_STATE
+    sta         playerState
+    rts
+.endproc
+
+;-----------------------------------------------------------------------------
 ; initDisplay - Initialize display
 ;-----------------------------------------------------------------------------
 
 .proc initDisplay
     ; assuming title is being displayed, so show page1 graphics while clearing 2
-    sta             MIXCLR
-    sta             LOWSCR
-    sta             HIRES
-    sta             TXTCLR
+    sta         MIXCLR
+    sta         LOWSCR
+    sta         HIRES
+    sta         TXTCLR
 
     ; clear page2
-    lda             #$00
-    sta             colorOdd
-    sta             colorEven
-    lda             #$20
-    sta             drawPage
-    jsr             clearScreen
+    lda         #$00
+    sta         colorOdd
+    sta         colorEven
+    lda         #$20
+    sta         drawPage
+    jsr         clearScreen
 
     ; clear page1
-    lda             #$00
-    sta             drawPage
-    jsr             clearScreen
+    lda         #$00
+    sta         drawPage
+    jsr         clearScreen
+
+    ; display map on both pages
+    lda         #$20
+    sta         drawPage
+    jsr         drawMap
+    lda         #$00
+    sta         drawPage
+    jsr         drawMap
+
+    ; start with showing page1 and drawing on page2
+    lda         #$20
+    sta         drawPage
+
+    rts
 
 .endproc
 
@@ -511,9 +693,10 @@ quitParams:
 ; Globals
 ;-----------------------------------------------------------------------------
 
+count:          .byte       0
 playerX:        .byte       MAP_LEFT+TILE_WIDTH
 playerY:        .byte       MAP_BOTTOM-TILE_HEIGHT*2
-playerTile:     .byte       $6E
+playerState:    .byte       STATE_IDLE
 
 roadOffset:     .word       $0000
 roadSpeed:      .word       $0033
