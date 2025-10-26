@@ -14,252 +14,51 @@
 ; Constants
 ;-----------------------------------------------------------------------------
 
-SCROLL_MASK     =   $FE
+TILE_WIDTH          = 2
+TILE_HEIGHT         = 1
+
+MAP_LEFT            = 0
+MAP_RIGHT           = 40
+MAP_TOP             = 4
+MAP_BOTTOM          = 20
+
+MAP_INDEX_MIDDLE    = 0
+MAP_INDEX_TOP       = 20
+MAP_INDEX_BOTTOM    = 40
+MAP_INDEX_SCORE     = 60
+MAP_INDEX_CREDITS1  = 80
+MAP_INDEX_CREDITS2  = 100
+
+ROAD_X              = 6 * TILE_WIDTH
 
 ;-----------------------------------------------------------------------------
 ; Main program
 ;-----------------------------------------------------------------------------
 
-.macro writeScreen adrs,row
-    sta     adrs+((row)&7)*$400+(((row)>>3)&7)*$80+(((row)>>6)&7)*$28
-.endmacro
-
 .proc main
 
-    jsr             HGR
+    jsr         initDisplay
 
-drawLoop:
+    ; display map on both pages
+    lda         #$20
+    sta         drawPage
+    jsr         drawMap
+    lda         #$00
+    sta         drawPage
+    jsr         drawMap
 
-    lda             offset1
-    and             #SCROLL_MASK
-    tay
-.repeat 128,row
-    lda             buffer0+row*2,y
-    writeScreen     $2000, row+16
-    lda             buffer0+row*2+1,y
-    writeScreen     $2001, row+16
-.endrepeat
-    inc             offset1
-    inc             offset1
-
-    lda             offset2
-    and             #SCROLL_MASK
-    tay
-.repeat 128,row
-    lda             buffer0+row*2,y
-    writeScreen     $2002, row+16
-    lda             buffer0+row*2+1,y
-    writeScreen     $2003, row+16
-.endrepeat
-    inc             offset2
-
-    lda             offset3
-    and             #SCROLL_MASK
-    tay
-.repeat 128,row
-    lda             buffer1+row*2,y
-    writeScreen     $2004, row+16
-    lda             buffer1+row*2+1,y
-    writeScreen     $2005, row+16
-.endrepeat
-    dec             offset3
-    dec             offset3
-
-    lda             offset4
-    and             #SCROLL_MASK
-    tay
-.repeat 128,row
-    lda             buffer0+row*2,y
-    writeScreen     $2006, row+16
-    lda             buffer0+row*2+1,y
-    writeScreen     $2007, row+16
-.endrepeat
-    clc
-    lda             offset4
-    adc             #4
-    sta             offset4
-
-;    ldx             #0
-;:
-;    dex
-;    bne     :-
-
-    ; wait for keypress
-    lda             KBD
-    bmi             :+
-    jmp             drawLoop
-:
-    bit             KBDSTRB
-    cmp             #KEY_ESC
-    bne             :+
-    jmp             quit
-:
-    sta             SPEAKER
-    jmp             drawLoop
-
-offset1:    .byte   0
-offset2:    .byte   12
-offset3:    .byte   64
-offset4:    .byte   0
-
-.align 256
-
-; 256 bytes, x2
-buffer0:
-.repeat 2
-
-; car1 blue (16)
-    .byte $D0,$82,$DC,$86,$DC,$86,$D0,$82
-    .byte $D0,$82,$DC,$86,$DC,$86,$D0,$82
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; car2 (32)
-    .byte $40,$01,$70,$07,$74,$0B,$34,$0B
-    .byte $30,$07,$30,$07,$30,$07,$30,$07
-    .byte $30,$07,$30,$07,$30,$07,$30,$07
-    .byte $34,$0B,$74,$0B,$70,$07,$40,$01
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-;; truck down (48)
-;    .byte $00,$00,$FC,$9F,$FD,$AF,$FD,$AF
-;    .byte $FD,$AF,$FD,$AF,$FC,$9F,$FC,$9F
-;    .byte $FC,$9F,$FC,$9F,$FC,$9F,$FD,$AF
-;    .byte $FD,$AF,$FD,$AF,$FD,$AF,$FC,$9F
-;    .byte $00,$00,$FC,$9F,$FD,$AF,$FD,$AF
-;    .byte $8D,$AE,$8D,$AE,$FC,$9F,$00,$00
-
-; truck up (48)
-    .byte $00,$00,$FC,$9F,$8D,$AE,$8D,$AE
-    .byte $FD,$AF,$FD,$AF,$FC,$9F,$00,$00
-    .byte $FC,$9F,$FD,$AF,$FD,$AF,$FD,$AF
-    .byte $FD,$AF,$FC,$9F,$FC,$9F,$FC,$9F
-    .byte $FC,$9F,$FC,$9F,$FD,$AF,$FD,$AF
-    .byte $FD,$AF,$FD,$AF,$FC,$9F,$80,$80
-
-; ----
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; car1 red (16)
-    .byte $A0,$85,$AC,$9D,$AC,$9D,$A0,$85
-    .byte $A0,$85,$AC,$9D,$AC,$9D,$A0,$85
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-.endrepeat
-
-; 256 bytes, x2
-buffer1:
-.repeat 2
-
-; car1 blue (16)
-    .byte $D0,$82,$DC,$86,$DC,$86,$D0,$82
-    .byte $D0,$82,$DC,$86,$DC,$86,$D0,$82
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; car2 (32)
-    .byte $40,$01,$70,$07,$74,$0B,$34,$0B
-    .byte $30,$07,$30,$07,$30,$07,$30,$07
-    .byte $30,$07,$30,$07,$30,$07,$30,$07
-    .byte $34,$0B,$74,$0B,$70,$07,$40,$01
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; truck down (48)
-    .byte $00,$00,$FC,$9F,$FD,$AF,$FD,$AF
-    .byte $FD,$AF,$FD,$AF,$FC,$9F,$FC,$9F
-    .byte $FC,$9F,$FC,$9F,$FC,$9F,$FD,$AF
-    .byte $FD,$AF,$FD,$AF,$FD,$AF,$FC,$9F
-    .byte $00,$00,$FC,$9F,$FD,$AF,$FD,$AF
-    .byte $8D,$AE,$8D,$AE,$FC,$9F,$00,$00
-
-;; truck up (48)
-;    .byte $00,$00,$FC,$9F,$8D,$AE,$8D,$AE
-;    .byte $FD,$AF,$FD,$AF,$FC,$9F,$00,$00
-;    .byte $FC,$9F,$FD,$AF,$FD,$AF,$FD,$AF
-;    .byte $FD,$AF,$FC,$9F,$FC,$9F,$FC,$9F
-;    .byte $FC,$9F,$FC,$9F,$FD,$AF,$FD,$AF
-;    .byte $FD,$AF,$FD,$AF,$FC,$9F,$80,$80
-
-; ----
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; car1 red (16)
-    .byte $A0,$85,$AC,$9D,$AC,$9D,$A0,$85
-    .byte $A0,$85,$AC,$9D,$AC,$9D,$A0,$85
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-; blank (16)
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-    .byte $00,$00,$00,$00,$00,$00,$00,$00
-
-.endrepeat
-
-.endproc
-
-.proc game
-
+    ; start with showing page1 and drawing on page2
+    lda         #$20
+    sta         drawPage
 
 game_loop:
 
-; Switch display
+    jsr         drawRoad
+    jsr         drawPlayer
+
+
+    ; Flip display page
+    ;---------------------------
 
     lda         PAGE2           ; bit 7 = page2 displayed
     bmi         switchTo1
@@ -277,19 +76,253 @@ switchTo1:
     lda         #$20            ; update high screen
     sta         drawPage
 
+    ; Check for user input
+    ;---------------------------
+
     ; wait for keypress
     lda         KBD
     bmi         :+
     jmp         game_loop
 :
     bit         KBDSTRB
+
+    cmp         #KEY_A
+    bne         :+
+    jmp         goUp
+:
+    cmp         #KEY_Z
+    bne         :+
+    jmp         goDown
+:
+    cmp         #KEY_RIGHT
+    bne         :+
+    jmp         goRight
+:
+    cmp         #KEY_LEFT
+    bne         :+
+    jmp         goLeft
+:
+
     cmp         #KEY_ESC
-    beq         :+
+    bne         :+
     jmp         quit
 :
+    cmp         #KEY_TAB
+    bne         :+
     jmp         monitor
+:
+
+    jmp         game_loop
+
+goUp:
+goDown:
+goRight:
+goLeft:
+    jmp         game_loop
+
 
 .endproc
+
+;-----------------------------------------------------------------------------
+; Draw Road
+;-----------------------------------------------------------------------------
+
+.proc drawRoad
+
+    ldx         #ROAD_X
+
+    clc
+    lda         roadOffset+0
+    adc         roadSpeed +0
+    sta         roadOffset+0
+    lda         roadOffset+1
+    adc         roadSpeed +1
+    sta         roadOffset+1
+
+    and         #$7f
+    tay
+
+    lda         PAGE2           ; bit 7 = page2 displayed
+    bmi         draw1           ; display2, draw 1
+
+;draw2:
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
+    rts
+
+draw1:
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
+    rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; drawColumn#Page#
+;
+;   Draw a scrolling column per display page
+;   X - display column
+;   Y - scroll offset
+;
+;   Each column has a dedicated buffer (shared between pages)
+;-----------------------------------------------------------------------------
+
+COLUMN_ROWS             = 126
+COLUMN_STARTING_ROW     = 33
+; convert row # to row address
+.macro writeScreen adrs,row
+    sta     adrs+((row)&7)*$400+(((row)>>3)&7)*$80+(((row)>>6)&7)*$28,x
+.endmacro
+
+.macro drawColumn adrs,buffer
+.repeat COLUMN_ROWS,row
+    lda             buffer+row,y
+    writeScreen     adrs, row+COLUMN_STARTING_ROW
+.endrepeat
+    rts
+.endmacro
+
+drawColumn0Page0:   drawColumn  $2000,buffer0
+drawColumn1Page0:   drawColumn  $2001,buffer1
+;drawColumn2Page0:   drawColumn  $2000,buffer2
+;drawColumn3Page0:   drawColumn  $2000,buffer3
+;drawColumn4Page0:   drawColumn  $2000,buffer4
+;drawColumn5Page0:   drawColumn  $2000,buffer5
+;drawColumn6Page0:   drawColumn  $2000,buffer6
+;drawColumn7Page0:   drawColumn  $2000,buffer7
+;drawColumn8Page0:   drawColumn  $2000,buffer8
+;drawColumn9Page0:   drawColumn  $2000,buffer9
+
+drawColumn0Page1:   drawColumn  $4000,buffer0
+drawColumn1Page1:   drawColumn  $4001,buffer1
+;drawColumn2Page1:   drawColumn  $4000,buffer2
+;drawColumn3Page1:   drawColumn  $4000,buffer3
+;drawColumn4Page1:   drawColumn  $4000,buffer4
+;drawColumn5Page1:   drawColumn  $4000,buffer5
+;drawColumn6Page1:   drawColumn  $4000,buffer6
+;drawColumn7Page1:   drawColumn  $4000,buffer7
+;drawColumn8Page1:   drawColumn  $4000,buffer8
+;drawColumn9Page1:   drawColumn  $4000,buffer9
+
+
+;-----------------------------------------------------------------------------
+; Draw Player
+;-----------------------------------------------------------------------------
+.proc drawPlayer
+
+    lda         playerX
+    sta         tileX
+    lda         playerY
+    sta         tileY
+    lda         playerTile
+    jsr         drawTile
+    rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Draw Map
+;-----------------------------------------------------------------------------
+
+.proc drawMap
+    lda         #MAP_TOP
+    sta         tileY
+
+    ; top row
+    lda         #MAP_INDEX_TOP
+    sta         index
+    jsr         drawRow
+    lda         #MAP_TOP+TILE_HEIGHT
+    sta         tileY
+
+    ; middle rows
+mapLoop:
+    lda         #MAP_INDEX_MIDDLE
+    sta         index
+    jsr         drawRow
+    lda         tileY
+    clc
+    adc         #TILE_HEIGHT
+    sta         tileY
+    cmp         #MAP_BOTTOM-TILE_HEIGHT
+    bne         mapLoop
+
+    ; bottom row
+    lda         #MAP_INDEX_BOTTOM
+    sta         index
+    jsr         drawRow
+
+    ; score
+    lda         #0
+    sta         tileY
+    lda         #MAP_INDEX_SCORE
+    jsr         drawRow
+
+    ; credits
+    lda         #22
+    sta         tileY
+    lda         #MAP_INDEX_CREDITS1
+    jsr         drawRow
+    lda         #23
+    sta         tileY
+    lda         #MAP_INDEX_CREDITS2
+    jsr         drawRow
+
+    rts
+
+
+;-------------------------
+drawRow:
+    lda         #MAP_LEFT
+    sta         tileX
+rowLoop:
+    ldx         index
+    lda         mapTiles,x
+    jsr         drawTile
+
+    inc         index
+    lda         tileX
+    clc
+    adc         #TILE_WIDTH
+    sta         tileX
+    cmp         #MAP_RIGHT
+    bne         rowLoop
+    rts
+
+index:      .byte   0
+
+mapTiles:
+            ; index 0 - MIDDLE (default)
+            .byte $46,$46,$46               ; grass
+            .byte $47,$57,$57,$57,$57,$45   ; road
+            .byte $46,$46,$46               ; grass
+            .byte $4D,$4E,$4E,$4E,$4E,$4F   ; water
+            .byte $46,$46                   ; grass
+
+            ; index 20 - TOP
+            .byte $55,$55,$55               ; grass
+            .byte $47,$57,$57,$57,$57,$45   ; road
+            .byte $55,$55,$55               ; grass
+            .byte $4D,$56,$56,$56,$56,$4F   ; water
+            .byte $55,$55                   ; grass
+
+            ; index 40 - BOTTOM
+            .byte $5D,$5D,$5D               ; grass
+            .byte $47,$57,$57,$57,$57,$45   ; road
+            .byte $5D,$5D,$5D               ; grass
+            .byte $4D,$5E,$5E,$5E,$5E,$4F   ; water
+            .byte $5D,$5D
+
+            ; index 80 - SCORE
+            MapText     "SCORE: 0000         "
+
+            ; index 100 - CREDITS 1
+            MapText     " ===== FROGGO ===== "
+
+            ; index 120 - CREDITS 2
+            MapText     " PAUL WASSON - 2025 "
+.endproc
+
 
 ;-----------------------------------------------------------------------------
 ; initTile
@@ -321,7 +354,7 @@ switchTo1:
 ; drawTile -- draw 2-byte x 8 row tile
 ;
 ;   tileY - row to start drawing 0..23
-;   tileX - column to start drawing 0..19
+;   tileX - column to start drawing 0..39
 ;-----------------------------------------------------------------------------
 
 .proc drawTile
@@ -330,7 +363,6 @@ switchTo1:
 
     ldx         tileY
     lda         tileX
-    asl                         ; x2
     clc
     adc         lineOffset,x
     sta         screenPtr0
@@ -365,9 +397,35 @@ drawLoop:
 .endproc
 
 ;-----------------------------------------------------------------------------
+; initDisplay - Initialize display
+;-----------------------------------------------------------------------------
+
+.proc initDisplay
+    ; assuming title is being displayed, so show page1 graphics while clearing 2
+    sta             MIXCLR
+    sta             LOWSCR
+    sta             HIRES
+    sta             TXTCLR
+
+    ; clear page2
+    lda             #$00
+    sta             colorOdd
+    sta             colorEven
+    lda             #$20
+    sta             drawPage
+    jsr             clearScreen
+
+    ; clear page1
+    lda             #$00
+    sta             drawPage
+    jsr             clearScreen
+
+.endproc
+
+;-----------------------------------------------------------------------------
 ; Clear Screen
 ;
-;   Clear screen to color in X, preserving screen holes
+;   Clear screen to color in colorEven/Odd, preserving screen holes
 ;
 ;-----------------------------------------------------------------------------
 .proc clearScreen
@@ -383,11 +441,12 @@ drawLoop:
 
 loop:
     ldy     #$77            ; preserve screen holes
-    lda     #0
 loopPage:
+    lda     colorOdd
     sta     (screenPtr0),y
     sta     (tilePtr0),y
     dey
+    lda     colorEven
     sta     (screenPtr0),y
     sta     (tilePtr0),y
     dey
@@ -452,6 +511,13 @@ quitParams:
 ; Globals
 ;-----------------------------------------------------------------------------
 
+playerX:        .byte       MAP_LEFT+TILE_WIDTH
+playerY:        .byte       MAP_BOTTOM-TILE_HEIGHT*2
+playerTile:     .byte       $76
+
+roadOffset:     .word       $0000
+roadSpeed:      .word       $0033
+
 lineOffset:
     .byte       <$2000
     .byte       <$2080
@@ -504,6 +570,29 @@ linePage:
     .byte       >$2350
     .byte       >$23D0
 
+;-----------------------------------------------------------------------------
+; Data
+;-----------------------------------------------------------------------------
+.align 256
+
+buffer0:        .res 128-8
+                .byte $D0,$DC,$DC,$D0,$D0,$DC,$DC,$D0
+                .res 128-8
+                .byte $D0,$DC,$DC,$D0,$D0,$DC,$DC,$D0
+
+buffer1:        .res 128-8
+                .byte $82,$86,$86,$82,$82,$86,$86,$82
+                .res 128-8
+                .byte $82,$86,$86,$82,$82,$86,$86,$82
+
+;buffer2:        .res 256
+;buffer3:        .res 256
+;buffer4:        .res 256
+;buffer5:        .res 256
+;buffer6:        .res 256
+;buffer7:        .res 256
+;buffer8:        .res 256
+;buffer9:        .res 256
 
 ;-----------------------------------------------------------------------------
 ; Assets
