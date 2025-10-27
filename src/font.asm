@@ -138,5 +138,5 @@
 .byte $2A,$57,$6A,$5F,$7F,$5F,$7F,$57,$3F,$55,$6B,$5D,$2A,$57,$2A,$55   ;7B - Frog green right2
 .byte $AA,$D5,$AA,$D5,$AA,$F5,$AA,$FD,$BA,$FF,$EE,$F7,$AE,$D5,$AA,$D5   ;7C - Frog orange right1
 .byte $AA,$D7,$EA,$DF,$FF,$DF,$FF,$D7,$BF,$D5,$EB,$DD,$AA,$D7,$AA,$D5   ;7D - Frog orange right2
-.byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00   ;7E
-.byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00   ;7F
+.byte $30,$56,$4C,$59,$7C,$5F,$03,$60,$7F,$7F,$7F,$7F,$7C,$5F,$0F,$7D   ;7E - Frog black/green idle
+.byte $3A,$07,$4E,$19,$7E,$1F,$03,$60,$7F,$7F,$7F,$7F,$7E,$1F,$2F,$79   ;7F - Frog green/black idle

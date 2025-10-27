@@ -19,10 +19,6 @@ cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\fontEdit.asm apple2.lib  -o fontEd
 :: Start with a blank prodos disk
 copy ..\disk\template_prodos.dsk froggo.dsk  || exit
 
-:: Basic system for title
-java -jar C:\jar\AppleCommander.jar -p  froggo.dsk basic.system sys < ..\disk\BASIC.SYSTEM  || exit
-java -jar C:\jar\AppleCommander.jar -bas froggo.dsk startup < ..\src\startup.bas  || exit
-
 :: Game
 java -jar C:\jar\AppleCommander.jar -p  froggo.dsk game.system sys < C:\cc65\target\apple2\util\loader.system || exit
 java -jar C:\jar\AppleCommander.jar -as froggo.dsk game bin < game.apple2  || exit
@@ -32,7 +28,11 @@ java -jar C:\jar\AppleCommander.jar -p  froggo.dsk fedit.system sys < C:\cc65\ta
 java -jar C:\jar\AppleCommander.jar -as froggo.dsk fedit bin < fontEdit.apple2  || exit
 
 :: Data
-java -jar C:\jar\AppleCommander.jar -p  froggo.dsk froggo.hgr  bin < froggo.bin    || exit
+java -jar C:\jar\AppleCommander.jar -p  froggo.dsk data/froggo.hgr  bin < froggo.bin    || exit
+
+:: Basic system for title
+java -jar C:\jar\AppleCommander.jar -p  froggo.dsk basic.system sys < ..\disk\BASIC.SYSTEM  || exit
+java -jar C:\jar\AppleCommander.jar -bas froggo.dsk startup < ..\src\startup.bas  || exit
 
 :: Copy results out of the build directory
 copy froggo.dsk ..\disk || exit

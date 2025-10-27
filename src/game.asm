@@ -14,6 +14,18 @@
 ; Constants
 ;-----------------------------------------------------------------------------
 
+; Constants for draw loop unrolling
+MAX_COLUMNS                 = 16
+COLUMN_CODE_START           = $2000     ; page0 $2000..$5048, page1 $5049..$8091
+COLUMN_BUFFER_START         = $8100     ;       $8100..$90FF
+
+INSTRUCTION_BPL             = $10
+INSTRUCTION_LDA_Y           = $B9
+INSTRUCTION_LDX             = $AE
+INSTRUCTION_LDY             = $AC
+INSTRUCTION_RTS             = $60
+INSTRUCTION_STA_X           = $9D
+
 TILE_WIDTH                  = 2
 TILE_HEIGHT                 = 1
 
@@ -29,7 +41,7 @@ MAP_INDEX_SCORE             = 60
 MAP_INDEX_CREDITS1          = 80
 MAP_INDEX_CREDITS2          = 100
 
-ROAD_X                      = 6 * TILE_WIDTH
+ROAD_X                      = 4 * TILE_WIDTH
 
 STATE_IDLE                  = 0
 STATE_START_UP              = 1
@@ -44,7 +56,7 @@ PLAYER_INIT_X               = MAP_LEFT+TILE_WIDTH
 PLAYER_INIT_Y               = MAP_BOTTOM-TILE_HEIGHT*2
 PLAYER_INIT_STATE           = STATE_IDLE
 
-MOVE_DELAY                  = 20
+MOVE_DELAY                  = 3
 
 TILE_GRASS                  = $46
 TILE_PLAYER_GREEN_IDLE      = $6E
@@ -60,6 +72,7 @@ TILE_PLAYER_GREEN_DOWN_2    = $6B
 
 .proc main
 
+    jsr         initCode
     jsr         initDisplay
     jsr         initState
 
@@ -331,13 +344,101 @@ pause:
     bmi         draw1           ; display2, draw 1
 
 ;draw2:
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
+    inx
+    inx
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
+    inx
+    inx
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
+    inx
+    inx
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
+    inx
+    inx
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
+    inx
+    inx
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
+    inx
+    inx
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
+    inx
+    inx
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
+    inx
+    inx
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
+    inx
+    inx
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
+    inx
+    inx
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
+    inx
+    inx
+    jsr         drawColumn0Page1
+    jsr         drawColumn1Page1
     rts
 
 draw1:
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
+    inx
+    inx
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
+    inx
+    inx
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
+    inx
+    inx
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
+    inx
+    inx
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
+    inx
+    inx
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
+    inx
+    inx
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
+    inx
+    inx
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
+    inx
+    inx
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
+    inx
+    inx
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
+    inx
+    inx
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
+    inx
+    inx
+    jsr         drawColumn0Page0
+    jsr         drawColumn1Page0
     rts
 
 .endproc
@@ -352,8 +453,8 @@ draw1:
 ;   Each column has a dedicated buffer (shared between pages)
 ;-----------------------------------------------------------------------------
 
-COLUMN_ROWS             = 126
-COLUMN_STARTING_ROW     = 33
+COLUMN_ROWS             = 128
+COLUMN_STARTING_ROW     = 32
 ; convert row # to row address
 .macro writeScreen adrs,row
     sta     adrs+((row)&7)*$400+(((row)>>3)&7)*$80+(((row)>>6)&7)*$28,x
@@ -626,35 +727,223 @@ drawLoop:
 ;
 ;-----------------------------------------------------------------------------
 .proc clearScreen
-    lda     #$00
-    sta     screenPtr0
-    lda     #$80
-    sta     tilePtr0
+    lda         #$00
+    sta         screenPtr0
+    lda         #$80
+    sta         tilePtr0
     clc
-    lda     #$20
-    adc     drawPage
-    sta     screenPtr1
-    sta     tilePtr1
+    lda         #$20
+    adc         drawPage
+    sta         screenPtr1
+    sta         tilePtr1
 
 loop:
-    ldy     #$77            ; preserve screen holes
+    ldy         #$77            ; preserve screen holes
 loopPage:
-    lda     colorOdd
-    sta     (screenPtr0),y
-    sta     (tilePtr0),y
+    lda         colorOdd
+    sta         (screenPtr0),y
+    sta         (tilePtr0),y
     dey
-    lda     colorEven
-    sta     (screenPtr0),y
-    sta     (tilePtr0),y
+    lda         colorEven
+    sta         (screenPtr0),y
+    sta         (tilePtr0),y
     dey
-    bpl     loopPage
+    bpl         loopPage
 
-    inc     tilePtr1
-    inc     screenPtr1
-    lda     screenPtr1
-    and     #$1f
-    bne     loop
+    inc         tilePtr1
+    inc         screenPtr1
+    lda         screenPtr1
+    and         #$1f
+    bne         loop
 
+    rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Init code
+;
+;  Write unrolled column drawing routines to aux memory
+;-----------------------------------------------------------------------------
+
+.proc initCode
+
+; Reuse zero page addresses
+
+columnCount     := tileX
+pageCount       := tileY
+codePtr0        := tilePtr0
+codePtr1        := tilePtr1
+bufferPtr0      := mapPtr0
+bufferPtr1      := mapPtr1
+
+
+    ; Use zero page for storage so can read/write even if only writing aux
+    sta         CLR80COL        ; Use RAMWRT for aux mem
+    sta         RAMWRTON        ; Write to AUX
+
+    ; Init code pointer
+    lda         #<COLUMN_CODE_START
+    sta         codePtr0
+    lda         #>COLUMN_CODE_START
+    sta         codePtr1
+
+    lda         #0
+    sta         pageCount
+    sta         drawPage
+
+page_loop:
+    ; Init buffer pointer (shared between pages)
+    lda         #$00            ; Assuming page aligned
+    sta         bufferPtr0
+    lda         #>COLUMN_BUFFER_START
+    sta         bufferPtr1
+
+    lda         #0
+    sta         columnCount
+
+column_loop:
+    ldx         #COLUMN_STARTING_ROW
+
+    ldy         #0
+
+    ; If an even column, load x,y from last byte of buffer pair
+    lda         columnCount
+    and         #1
+    bne         write_loop      ; skip if odd
+
+    ; **    LDX BUFFER+$FF
+    ; **    BPL NO_EXIT
+    ; **    RTS
+    ; ** NO_EXIT:
+    ; **    LDY BUFFER+$1FF
+    ; **    ...
+
+    lda         #INSTRUCTION_LDX
+    sta         (codePtr0),y
+    iny
+    lda         #$FF            ; end of buffer
+    sta         (codePtr0),y
+    iny
+    lda         bufferPtr1
+    sta         (codePtr0),y
+    iny
+
+    lda         #INSTRUCTION_BPL
+    sta         (codePtr0),y
+    iny
+    lda         #$01            ; skip 1 byte (RTS)
+    sta         (codePtr0),y
+    iny
+
+    lda         #INSTRUCTION_RTS
+    sta         (codePtr0),y
+    iny
+
+    lda         #INSTRUCTION_LDY
+    sta         (codePtr0),y
+    iny
+    lda         #$FF            ; end of buffer
+    sta         (codePtr0),y
+    iny
+    lda         bufferPtr1
+    clc
+    adc         #1
+    sta         (codePtr0),y
+    iny
+
+    ; increment code pointer
+    clc
+    tya
+    adc         codePtr0
+    sta         codePtr0
+    lda         codePtr1
+    adc         #0
+    sta         codePtr1
+
+write_loop:
+    ldy         #0
+
+    ; ** LDA BUFFER+ROW,Y
+    ; ** STA SCREEN_ADRS,X
+
+    lda         #INSTRUCTION_LDA_Y
+    sta         (codePtr0),y
+    iny
+    lda         bufferPtr0
+    sta         (codePtr0),y
+    iny
+    lda         bufferPtr1
+    sta         (codePtr0),y
+    iny
+
+    lda         #INSTRUCTION_STA_X
+    sta         (codePtr0),y
+    iny
+    lda         columnCount         ; If column odd, +1
+    and         #1
+    clc
+    adc         fullLineOffset,x
+    sta         (codePtr0),y
+    iny
+    lda         fullLinePage,x
+    adc         drawPage
+    sta         (codePtr0),y
+    iny
+
+    ; increment code pointer
+    clc
+    tya
+    adc         codePtr0
+    sta         codePtr0
+    lda         codePtr1
+    adc         #0
+    sta         codePtr1
+
+    ; increment buffer pointer
+    inc         bufferPtr0          ; will deal with upper byte later
+
+    inx
+    cpx         #COLUMN_STARTING_ROW+COLUMN_ROWS
+    bne         write_loop
+
+    ; move to next buffer
+    lda         #0
+    sta         bufferPtr0
+    inc         bufferPtr1
+
+    inc         columnCount
+    lda         columnCount
+    cmp         #MAX_COLUMNS
+    beq         doneColumns
+    jmp         column_loop
+
+doneColumns:
+    ; ** RTS
+    ldy         #0
+    lda         #INSTRUCTION_RTS
+    sta         (codePtr0),y
+    iny
+
+    clc
+    tya
+    adc         codePtr0
+    sta         codePtr0
+    lda         codePtr1
+    adc         #0
+    sta         codePtr1
+
+    lda         #$20
+    sta         drawPage
+
+    inc         pageCount
+    lda         pageCount
+    cmp         #2
+    beq         donePage
+    jmp         page_loop
+
+donePage:
+    sta         RAMWRTOFF           ; Write to Main
     rts
 
 .endproc
@@ -714,7 +1003,37 @@ playerY:        .byte       MAP_BOTTOM-TILE_HEIGHT*2
 playerState:    .byte       STATE_IDLE
 
 roadOffset:     .word       $0000
-roadSpeed:      .word       $0033
+roadSpeed:      .word       $0180
+
+.align 256
+
+; pack lookup tables on page (192 + 24 + 24 = 240)
+
+fullLineOffset:
+    .byte       <$2000, <$2400, <$2800, <$2C00, <$3000, <$3400, <$3800, <$3C00
+    .byte       <$2080, <$2480, <$2880, <$2C80, <$3080, <$3480, <$3880, <$3C80
+    .byte       <$2100, <$2500, <$2900, <$2D00, <$3100, <$3500, <$3900, <$3D00
+    .byte       <$2180, <$2580, <$2980, <$2D80, <$3180, <$3580, <$3980, <$3D80
+    .byte       <$2200, <$2600, <$2A00, <$2E00, <$3200, <$3600, <$3A00, <$3E00
+    .byte       <$2280, <$2680, <$2A80, <$2E80, <$3280, <$3680, <$3A80, <$3E80
+    .byte       <$2300, <$2700, <$2B00, <$2F00, <$3300, <$3700, <$3B00, <$3F00
+    .byte       <$2380, <$2780, <$2B80, <$2F80, <$3380, <$3780, <$3B80, <$3F80
+    .byte       <$2028, <$2428, <$2828, <$2C28, <$3028, <$3428, <$3828, <$3C28
+    .byte       <$20A8, <$24A8, <$28A8, <$2CA8, <$30A8, <$34A8, <$38A8, <$3CA8
+    .byte       <$2128, <$2528, <$2928, <$2D28, <$3128, <$3528, <$3928, <$3D28
+    .byte       <$21A8, <$25A8, <$29A8, <$2DA8, <$31A8, <$35A8, <$39A8, <$3DA8
+    .byte       <$2228, <$2628, <$2A28, <$2E28, <$3228, <$3628, <$3A28, <$3E28
+    .byte       <$22A8, <$26A8, <$2AA8, <$2EA8, <$32A8, <$36A8, <$3AA8, <$3EA8
+    .byte       <$2328, <$2728, <$2B28, <$2F28, <$3328, <$3728, <$3B28, <$3F28
+    .byte       <$23A8, <$27A8, <$2BA8, <$2FA8, <$33A8, <$37A8, <$3BA8, <$3FA8
+    .byte       <$2050, <$2450, <$2850, <$2C50, <$3050, <$3450, <$3850, <$3C50
+    .byte       <$20D0, <$24D0, <$28D0, <$2CD0, <$30D0, <$34D0, <$38D0, <$3CD0
+    .byte       <$2150, <$2550, <$2950, <$2D50, <$3150, <$3550, <$3950, <$3D50
+    .byte       <$21D0, <$25D0, <$29D0, <$2DD0, <$31D0, <$35D0, <$39D0, <$3DD0
+    .byte       <$2250, <$2650, <$2A50, <$2E50, <$3250, <$3650, <$3A50, <$3E50
+    .byte       <$22D0, <$26D0, <$2AD0, <$2ED0, <$32D0, <$36D0, <$3AD0, <$3ED0
+    .byte       <$2350, <$2750, <$2B50, <$2F50, <$3350, <$3750, <$3B50, <$3F50
+    .byte       <$23D0, <$27D0, <$2BD0, <$2FD0, <$33D0, <$37D0, <$3BD0, <$3FD0
 
 lineOffset:
     .byte       <$2000
@@ -767,6 +1086,37 @@ linePage:
     .byte       >$22D0
     .byte       >$2350
     .byte       >$23D0
+
+.align 256
+
+fullLinePage:
+    .byte       >$2000, >$2400, >$2800, >$2C00, >$3000, >$3400, >$3800, >$3C00
+    .byte       >$2080, >$2480, >$2880, >$2C80, >$3080, >$3480, >$3880, >$3C80
+    .byte       >$2100, >$2500, >$2900, >$2D00, >$3100, >$3500, >$3900, >$3D00
+    .byte       >$2180, >$2580, >$2980, >$2D80, >$3180, >$3580, >$3980, >$3D80
+    .byte       >$2200, >$2600, >$2A00, >$2E00, >$3200, >$3600, >$3A00, >$3E00
+    .byte       >$2280, >$2680, >$2A80, >$2E80, >$3280, >$3680, >$3A80, >$3E80
+    .byte       >$2300, >$2700, >$2B00, >$2F00, >$3300, >$3700, >$3B00, >$3F00
+    .byte       >$2380, >$2780, >$2B80, >$2F80, >$3380, >$3780, >$3B80, >$3F80
+    .byte       >$2028, >$2428, >$2828, >$2C28, >$3028, >$3428, >$3828, >$3C28
+    .byte       >$20A8, >$24A8, >$28A8, >$2CA8, >$30A8, >$34A8, >$38A8, >$3CA8
+    .byte       >$2128, >$2528, >$2928, >$2D28, >$3128, >$3528, >$3928, >$3D28
+    .byte       >$21A8, >$25A8, >$29A8, >$2DA8, >$31A8, >$35A8, >$39A8, >$3DA8
+    .byte       >$2228, >$2628, >$2A28, >$2E28, >$3228, >$3628, >$3A28, >$3E28
+    .byte       >$22A8, >$26A8, >$2AA8, >$2EA8, >$32A8, >$36A8, >$3AA8, >$3EA8
+    .byte       >$2328, >$2728, >$2B28, >$2F28, >$3328, >$3728, >$3B28, >$3F28
+    .byte       >$23A8, >$27A8, >$2BA8, >$2FA8, >$33A8, >$37A8, >$3BA8, >$3FA8
+    .byte       >$2050, >$2450, >$2850, >$2C50, >$3050, >$3450, >$3850, >$3C50
+    .byte       >$20D0, >$24D0, >$28D0, >$2CD0, >$30D0, >$34D0, >$38D0, >$3CD0
+    .byte       >$2150, >$2550, >$2950, >$2D50, >$3150, >$3550, >$3950, >$3D50
+    .byte       >$21D0, >$25D0, >$29D0, >$2DD0, >$31D0, >$35D0, >$39D0, >$3DD0
+    .byte       >$2250, >$2650, >$2A50, >$2E50, >$3250, >$3650, >$3A50, >$3E50
+    .byte       >$22D0, >$26D0, >$2AD0, >$2ED0, >$32D0, >$36D0, >$3AD0, >$3ED0
+    .byte       >$2350, >$2750, >$2B50, >$2F50, >$3350, >$3750, >$3B50, >$3F50
+    .byte       >$23D0, >$27D0, >$2BD0, >$2FD0, >$33D0, >$37D0, >$3BD0, >$3FD0
+
+
+
 
 ;-----------------------------------------------------------------------------
 ; Data
