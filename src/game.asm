@@ -17,7 +17,9 @@
 ; Constants for draw loop unrolling
 MAX_COLUMNS                 = 16
 COLUMN_CODE_START           = $2000     ; page0 $2000..$5048, page1 $5049..$8091
+COLUMN_CODE_START_PAGE2     = $5049
 COLUMN_BUFFER_START         = $8100     ;       $8100..$90FF
+DISPATCH_LOCATION           = $C00
 
 INSTRUCTION_BPL             = $10
 INSTRUCTION_LDA_Y           = $B9
@@ -71,6 +73,8 @@ TILE_PLAYER_GREEN_DOWN_2    = $6B
 ;-----------------------------------------------------------------------------
 
 .proc main
+
+    jsr         testParallax
 
     jsr         initCode
     jsr         initDisplay
@@ -182,6 +186,231 @@ goLeft:
 
 .endproc
 
+;-----------------------------------------------------------------------------
+; Testing generated parallax code
+;-----------------------------------------------------------------------------
+.proc testParallax
+
+offset0Mask     =   $FF     ; 1 out of 256
+offset1Mask     =   $0F     ; 1 out of 16
+offset2Mask     =   $03     ; 1 out of 4
+offset3Mask     =   $00     ; every time
+
+    sta         MIXCLR
+    sta         LOWSCR
+    sta         HIRES
+    sta         TXTCLR
+
+    ; draw once since never changes
+    jsr         parallaxConsantColorRowsScreen0
+    jsr         parallaxConsantColorRowsScreen1
+
+    sta         HISCR
+
+    lda         #$00
+    sta         drawPage
+    jsr         drawTitle
+    lda         #$20
+    sta         drawPage
+    jsr         drawTitle
+
+loop:
+
+    ; display hi, draw lo
+    sta         HISCR
+
+    jsr         incTime
+    jsr         parallaxGroup0Screen0
+    jsr         parallaxGroup1Screen0
+    jsr         parallaxGroup2Screen0
+    jsr         parallaxGroup3Screen0
+
+    ; display lo, draw hi
+    sta         LOWSCR
+
+    jsr         incTime
+    jsr         parallaxGroup0Screen1
+    jsr         parallaxGroup1Screen1
+    jsr         parallaxGroup2Screen1
+    jsr         parallaxGroup3Screen1
+
+    lda         KBD
+    bpl         loop
+    bit         KBDSTRB
+
+    cmp         #KEY_ESC
+    bne         :+
+    rts
+:
+    lda         direction
+    eor         #1
+    sta         direction
+
+    jmp         loop
+
+incTime:
+    inc         time
+    lda         direction
+    beq         incOffset0
+    jmp         decOffset0
+
+incOffset0:
+    lda         time
+    and         #offset0Mask
+    bne         incOffset1
+    inc         index0
+    ldx         index0
+    cpx         #49
+    bne         :+
+    ldx         #0
+    stx         index0
+:
+    lda         shiftOffsets,x
+    sta         parallaxGroup0Offset
+
+incOffset1:
+    lda         time
+    and         #offset1Mask
+    bne         incOffset2
+    inc         index1
+    ldx         index1
+    cpx         #49
+    bne         :+
+    ldx         #0
+    stx         index1
+:
+    lda         shiftOffsets,x
+    sta         parallaxGroup1Offset
+
+incOffset2:
+    lda         time
+    and         #offset2Mask
+    bne         incOffset3
+    inc         index2
+    ldx         index2
+    cpx         #49
+    bne         :+
+    ldx         #0
+    stx         index2
+:
+    lda         shiftOffsets,x
+    sta         parallaxGroup2Offset
+
+incOffset3:
+    lda         time
+    and         #offset3Mask
+    bne         incOffset4
+    inc         index3
+    ldx         index3
+    cpx         #49
+    bne         :+
+    ldx         #0
+    stx         index3
+:
+    lda         shiftOffsets,x
+    sta         parallaxGroup3Offset
+
+incOffset4:
+    rts
+
+decOffset0:
+    lda         time
+    and         #offset0Mask
+    bne         decOffset1
+    dec         index0
+    ldx         index0
+    bpl         :+
+    ldx         #48
+    stx         index0
+:
+    lda         shiftOffsets,x
+    sta         parallaxGroup0Offset
+
+decOffset1:
+    lda         time
+    and         #offset1Mask
+    bne         decOffset2
+    dec         index1
+    ldx         index1
+    bpl         :+
+    ldx         #48
+    stx         index1
+:
+    lda         shiftOffsets,x
+    sta         parallaxGroup1Offset
+
+decOffset2:
+    lda         time
+    and         #offset2Mask
+    bne         decOffset3
+    dec         index2
+    ldx         index2
+    bpl         :+
+    ldx         #48
+    stx         index2
+:
+    lda         shiftOffsets,x
+    sta         parallaxGroup2Offset
+
+decOffset3:
+    lda         time
+    and         #offset3Mask
+    bne         decOffset4
+    dec         index3
+    ldx         index3
+    bpl         :+
+    ldx         #48
+    stx         index3
+:
+    lda         shiftOffsets,x
+    sta         parallaxGroup3Offset
+
+decOffset4:
+    rts
+
+
+drawTitle:
+    lda         #0
+    sta         index
+    lda         #14
+    sta         tileY
+    lda         #12
+    sta         tileX
+titleLoop:
+    ldx         index
+    lda         parallaxTitle,x
+    bne         :+
+    rts
+:
+    jsr         drawTile
+
+    inc         index
+    lda         tileX
+    clc
+    adc         #TILE_WIDTH
+    sta         tileX
+    jmp         titleLoop
+
+time:           .byte 0
+direction:      .byte 0
+index0:         .byte 0
+index1:         .byte 0
+index2:         .byte 0
+index3:         .byte 0
+
+shiftOffsets:  ;+0   +2   +4   +6   +8   +10  +12 (*14)
+    .byte       0,   28,  56,  84,  113, 141, 169
+    .byte       2,   30,  58,  86,  115, 143, 171
+    .byte       4,   32,  60,  88,  117, 145, 173
+    .byte       6,   34,  62,  90,  119, 147, 175
+    .byte       8,   36,  64,  92,  121, 149, 177
+    .byte       10,  38,  66,  94,  123, 151, 179
+    .byte       12,  40,  68,  96,  125, 153, 181
+
+index:          .byte   0
+parallaxTitle:  MapText "PARALLAX"
+                .byte   0
+.endproc
 
 ;-----------------------------------------------------------------------------
 ; Update Player
@@ -374,22 +603,7 @@ pause:
     inx
     jsr         drawColumn0Page1
     jsr         drawColumn1Page1
-    inx
-    inx
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
-    inx
-    inx
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
-    inx
-    inx
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
-    inx
-    inx
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
+
     rts
 
 draw1:
@@ -423,22 +637,7 @@ draw1:
     inx
     jsr         drawColumn0Page0
     jsr         drawColumn1Page0
-    inx
-    inx
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
-    inx
-    inx
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
-    inx
-    inx
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
-    inx
-    inx
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
+
     rts
 
 .endproc
@@ -777,6 +976,9 @@ codePtr1        := tilePtr1
 bufferPtr0      := mapPtr0
 bufferPtr1      := mapPtr1
 
+    jsr         HOME
+    jsr         inline_print
+    String      "Installing AUX code..."
 
     ; Use zero page for storage so can read/write even if only writing aux
     sta         CLR80COL        ; Use RAMWRT for aux mem
@@ -943,10 +1145,47 @@ doneColumns:
     jmp         page_loop
 
 donePage:
+
+    ; Dispatch
+    jsr         copyDispatch        ; copy to aux
     sta         RAMWRTOFF           ; Write to Main
+    jsr         copyDispatch        ; copy to main
+
     rts
 
+copyDispatch:
+    ldx         #0
+copyLoop:
+    lda         dispatchStart,x
+    sta         DISPATCH_LOCATION,x
+    inx
+    cpx         #dispatchEnd-dispatchStart
+    bne         copyLoop
+    rts
+
+dispatchStart:
+    ; This code is being used as data to be copied to lower memory
+    ; location in both main and aux memory to call the aux code.
+    ; It must be relocatable.
+
+    ; Determine what page to draw on
+    lda         PAGE2           ; bit 7 = page2 displayed
+    bmi         draw1
+draw2:
+    sta         RAMRDON         ; read from aux (including instructions)
+    jsr         COLUMN_CODE_START_PAGE2
+    sta         RAMRDOFF
+    rts
+draw1:
+    sta         RAMRDON         ; read from aux (including instructions)
+    jsr         COLUMN_CODE_START
+    sta         RAMRDOFF
+    rts
+dispatchEnd:
+
 .endproc
+
+
 
 ;-----------------------------------------------------------------------------
 ; Monitor
@@ -992,6 +1231,11 @@ quitParams:
     .word       0               ; Reserved pointer for future use (what future?)
 
 .endproc
+
+;-----------------------------------------------------------------------------
+; Utilities
+;-----------------------------------------------------------------------------
+.include        "inline_print.asm"
 
 ;-----------------------------------------------------------------------------
 ; Globals
@@ -1145,6 +1389,9 @@ buffer1:        .res 128-8
 ;-----------------------------------------------------------------------------
 ; Assets
 ;-----------------------------------------------------------------------------
+
+.include        "..\build\parallaxData.asm"
+
 .align 256
 tileSheet:
 .include        "font.asm"
