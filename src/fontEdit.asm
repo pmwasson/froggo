@@ -185,11 +185,23 @@ down_good:
     bne         :+
     inc         shapeIndex
     lda         shapeIndex
-    cmp         #TILE_COUNT
-    bne         next_shape
-    lda         #0
+    and         #TILE_COUNT-1       ; assume power of 2
     sta         shapeIndex
-next_shape:
+    jsr         inline_print
+    String      "Next shape: "
+    jmp         finish_shape
+:
+
+    ;------------------
+    ; + = Next+
+    ;------------------
+    cmp         #$80 | '+'
+    bne         :+
+    lda         shapeIndex
+    clc
+    adc         #8
+    and         #TILE_COUNT-1       ; assume power of 2
+    sta         shapeIndex
     jsr         inline_print
     String      "Next shape: "
     jmp         finish_shape
@@ -201,10 +213,24 @@ next_shape:
     cmp         #$80 | '-'
     bne         :+
     dec         shapeIndex
-    bpl         prev_shape
-    lda         #TILE_COUNT-1
+    lda         shapeIndex
+    and         #TILE_COUNT-1       ; assume power of 2
     sta         shapeIndex
-prev_shape:
+    jsr         inline_print
+    String      "Previous shape: "
+    jmp         finish_shape
+:
+
+    ;------------------
+    ; _ = Previous+
+    ;------------------
+    cmp         #$80 | '_'
+    bne         :+
+    lda         shapeIndex
+    sec
+    sbc         #8
+    and         #TILE_COUNT-1       ; assume power of 2
+    sta         shapeIndex
     jsr         inline_print
     String      "Previous shape: "
     jmp         finish_shape

@@ -75,8 +75,12 @@ TILE_PLAYER_GREEN_UP_2      = $6A
 TILE_PLAYER_GREEN_DOWN_1    = $63
 TILE_PLAYER_GREEN_DOWN_2    = $6B
 
+TILE_WATER                  = $4E
 TILE_CAR1_BLUE              = $44
 TILE_CAR1_RED               = $53
+TILE_LOG_A                  = $42
+TILE_LOG_B                  = $4A
+TILE_LOG_C                  = $52
 
 ;-----------------------------------------------------------------------------
 ; Main program
@@ -123,8 +127,28 @@ TILE_CAR1_RED               = $53
     lda         #TILE_CAR1_RED
     jsr         copyTileToBuffers
 
-    lda         #2
-    sta         activeColumns
+
+    lda         #4
+    sta         tileX
+    lda         #0
+    sta         tileY
+
+waterLoop:
+    lda         tileY
+    lsr
+    lsr
+    lsr                             ; /8
+    tax
+    lda         waterColumn,x
+    jsr         copyTileToBuffers
+    lda         tileY
+    clc
+    adc         #8
+    sta         tileY
+    cmp         #$80
+    bne         waterLoop
+
+    jsr         setActiveBuffers
 
 game_loop:
 
@@ -380,12 +404,12 @@ pause:
 
 incOffsetLoop:
     clc
-    lda         roadOffset0,x
-    adc         roadSpeed0,x
-    sta         roadOffset0,x
-    lda         roadOffset1,x
-    adc         roadSpeed1,x
-    sta         roadOffset1,x
+    lda         bufferOffset0,x
+    adc         bufferSpeed0,x
+    sta         bufferOffset0,x
+    lda         bufferOffset1,x
+    adc         bufferSpeed1,x
+    sta         bufferOffset1,x
     inx
     cpx         activeColumns
     bne         incOffsetLoop
@@ -400,7 +424,7 @@ incOffsetLoop:
     ldy         #0
     sta         RAMWRTON        ; write to AUX
 writeOffsetLoop:
-    lda         roadOffset1,x
+    lda         bufferOffset1,x
     and         #$7f
     sta         (bufferPtr0),y
     inc         bufferPtr0+1
@@ -498,14 +522,14 @@ mapTiles:
             .byte $55,$55,$55               ; grass
             .byte $47,$57,$57,$57,$57,$45   ; road
             .byte $55,$55,$55               ; grass
-            .byte $4D,$56,$56,$56,$56,$4F   ; water
+            .byte $4D,$4E,$4E,$4E,$4E,$4F   ; water
             .byte $55,$55                   ; grass
 
             ; index 40 - BOTTOM
             .byte $5D,$5D,$5D               ; grass
             .byte $47,$57,$57,$57,$57,$45   ; road
             .byte $5D,$5D,$5D               ; grass
-            .byte $4D,$5E,$5E,$5E,$5E,$4F   ; water
+            .byte $4D,$4E,$4E,$4E,$4E,$4F   ; water
             .byte $5D,$5D
 
             ; index 80 - SCORE
@@ -988,11 +1012,6 @@ zeroLoop:
     iny
     bne         zeroLoop
 
-    lda         bufferConfig,x
-    ldy         #$FF
-    sta         (bufferPtr0),y
-    lda         #0
-
     inc         bufferPtr0+1
     inx
     cpx         #MAX_COLUMNS
@@ -1000,6 +1019,37 @@ zeroLoop:
 
     sta         RAMWRTOFF       ; Write to MAIN
 
+    rts
+
+.endproc
+
+
+;-----------------------------------------------------------------------------
+; Set Active Buffers
+;-----------------------------------------------------------------------------
+
+.proc setActiveBuffers
+
+    ldx         #0
+
+    ; point to first even buffer
+    lda         #$FF
+    sta         bufferPtr0
+    lda         #>COLUMN_BUFFER_START
+    sta         bufferPtr0+1
+
+    ldx         #0
+    ldy         #0
+    sta         RAMWRTON        ; write to AUX
+writeXLoop:
+    lda         bufferX,x
+    sta         (bufferPtr0),y
+    inc         bufferPtr0+1
+    inc         bufferPtr0+1
+    inx
+    cpx         #MAX_COLUMNS
+    bne         writeXLoop
+    sta         RAMWRTOFF       ; write to MAIN
     rts
 
 .endproc
@@ -1063,22 +1113,16 @@ playerX:        .byte       MAP_LEFT+TILE_WIDTH
 playerY:        .byte       MAP_BOTTOM-TILE_HEIGHT*2
 playerState:    .byte       STATE_IDLE
 
-activeColumns:  .byte       2
+activeColumns:  .byte       3
 
-roadOffset0:    .byte       $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-roadOffset1:    .byte       $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-roadSpeed0:     .byte       $40,$60,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-roadSpeed1:     .byte       $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+bufferX:        .byte         8, 10, 26,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+bufferOffset0:  .byte       $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+bufferOffset1:  .byte       $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+bufferSpeed0:   .byte       $40,$A0,$0F,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+bufferSpeed1:   .byte       $00,$FF,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 
-bufferConfig:   ; even bytes column X, odd byte column offset
-                .byte       8,0
-                .byte       10,0
-                .byte       $FF,0
-                .byte       $FF,0
-                .byte       $FF,0
-                .byte       $FF,0
-                .byte       $FF,0
-                .byte       $FF,0
+waterColumn:    .byte       TILE_LOG_A,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER
+                .byte       TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
 
 .align 256
 
