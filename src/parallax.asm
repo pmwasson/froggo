@@ -252,7 +252,7 @@ sound:
     adc         #>soundData
     sta         loadSound+2
     lda         time+1
-    cmp         #4*8
+    cmp         #4*5
     bne         loadSound
     lda         #0
     sta         music
@@ -286,7 +286,7 @@ parallaxTitle:  MapText "PARALLAX"
 
 .align 256
 soundData:
-    .byte   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+    .byte   0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     .byte   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     .byte   1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0
     .byte   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
