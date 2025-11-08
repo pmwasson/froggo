@@ -15,11 +15,12 @@
 ;-----------------------------------------------------------------------------
 
 ; reuse zero page addresses
-bufferPtr0                  := mapPtr0      ; and mapPtr1
-bufferPtr1                  := scriptPtr0   ; and scriptPt1
+bufferPtr0                  := mapPtr0      ; and +1
+bufferPtr1                  := maskPtr0     ; and +1
 
 ; Constants for draw loop unrolling
 MAX_COLUMNS                 = 16
+MAX_COLUMN_PAIRS            = MAX_COLUMNS/2
 COLUMN_CODE_START           = $2000     ; page0 $2000..$5048, page1 $5049..$8091
 COLUMN_CODE_START_PAGE2     = $5049
 COLUMN_BUFFER_START         = $8100     ;       $8100..$90FF
@@ -75,12 +76,24 @@ TILE_PLAYER_GREEN_UP_2      = $6A
 TILE_PLAYER_GREEN_DOWN_1    = $63
 TILE_PLAYER_GREEN_DOWN_2    = $6B
 
+TILE_GRASS_ROAD             = $47
+TILE_ROAD                   = $57
+TILE_ROAD_GRASS             = $45
+TILE_GRASS_WATER            = $4D
 TILE_WATER                  = $4E
+TILE_WATER_GRASS            = $4F
+
 TILE_CAR1_BLUE              = $44
 TILE_CAR1_RED               = $53
+
 TILE_LOG_A                  = $42
 TILE_LOG_B                  = $4A
 TILE_LOG_C                  = $52
+
+TILE_TREE_A                 = $4C
+TILE_TREE_B                 = $54
+TILE_ROCK                   = $58
+TILE_COIN                   = $5F
 
 ;-----------------------------------------------------------------------------
 ; Main program
@@ -90,65 +103,66 @@ TILE_LOG_C                  = $52
 
     jsr         initCode
     jsr         initBuffers
-    jsr         initDisplay
     jsr         initState
+    jsr         loadLevel
+    jsr         initDisplay
 
-    ; set up buffers
-    lda         #0
-    sta         tileX
-    sta         tileY
-    lda         #TILE_CAR1_BLUE
-    jsr         copyTileToBuffers
-
-    lda         #20
-    sta         tileY
-    lda         #TILE_CAR1_BLUE
-    jsr         copyTileToBuffers
-
-    lda         #40
-    sta         tileY
-    lda         #TILE_CAR1_BLUE
-    jsr         copyTileToBuffers
-
-    lda         #2
-    sta         tileX
-    lda         #15
-    sta         tileY
-    lda         #TILE_CAR1_RED
-    jsr         copyTileToBuffers
-
-    lda         #45
-    sta         tileY
-    lda         #TILE_CAR1_RED
-    jsr         copyTileToBuffers
-
-    lda         #75
-    sta         tileY
-    lda         #TILE_CAR1_RED
-    jsr         copyTileToBuffers
-
-
-    lda         #4
-    sta         tileX
-    lda         #0
-    sta         tileY
-
-waterLoop:
-    lda         tileY
-    lsr
-    lsr
-    lsr                             ; /8
-    tax
-    lda         waterColumn,x
-    jsr         copyTileToBuffers
-    lda         tileY
-    clc
-    adc         #8
-    sta         tileY
-    cmp         #$80
-    bne         waterLoop
-
-    jsr         setActiveBuffers
+;    ; set up buffers
+;    lda         #0
+;    sta         tileX
+;    sta         tileY
+;    lda         #TILE_CAR1_BLUE
+;    jsr         copyTileToBuffers
+;
+;    lda         #20
+;    sta         tileY
+;    lda         #TILE_CAR1_BLUE
+;    jsr         copyTileToBuffers
+;
+;    lda         #40
+;    sta         tileY
+;    lda         #TILE_CAR1_BLUE
+;    jsr         copyTileToBuffers
+;
+;    lda         #2
+;    sta         tileX
+;    lda         #15
+;    sta         tileY
+;    lda         #TILE_CAR1_RED
+;    jsr         copyTileToBuffers
+;
+;    lda         #45
+;    sta         tileY
+;    lda         #TILE_CAR1_RED
+;    jsr         copyTileToBuffers
+;
+;    lda         #75
+;    sta         tileY
+;    lda         #TILE_CAR1_RED
+;    jsr         copyTileToBuffers
+;
+;
+;    lda         #4
+;    sta         tileX
+;    lda         #0
+;    sta         tileY
+;
+;waterLoop:
+;    lda         tileY
+;    lsr
+;    lsr
+;    lsr                             ; /8
+;    tax
+;    lda         waterColumn,x
+;    jsr         copyTileToBuffers
+;    lda         tileY
+;    clc
+;    adc         #8
+;    sta         tileY
+;    cmp         #$80
+;    bne         waterLoop
+;
+;    jsr         setActiveBuffers
 
 game_loop:
 
@@ -447,56 +461,15 @@ writeOffsetLoop:
     lda         #MAP_TOP
     sta         tileY
 
-    ; top row
-    lda         #MAP_INDEX_TOP
-    sta         index
-    jsr         drawRow
-    lda         #MAP_TOP+TILE_HEIGHT
-    sta         tileY
-
-    ; middle rows
 mapLoop:
-    lda         #MAP_INDEX_MIDDLE
+    lda         #0
     sta         index
-    jsr         drawRow
-    lda         tileY
-    clc
-    adc         #TILE_HEIGHT
-    sta         tileY
-    cmp         #MAP_BOTTOM-TILE_HEIGHT
-    bne         mapLoop
-
-    ; bottom row
-    lda         #MAP_INDEX_BOTTOM
-    sta         index
-    jsr         drawRow
-
-    ; score
-    lda         #1
-    sta         tileY
-    lda         #MAP_INDEX_SCORE
-    jsr         drawRow
-
-    ; credits
-    lda         #22
-    sta         tileY
-    lda         #MAP_INDEX_CREDITS1
-    jsr         drawRow
-    lda         #23
-    sta         tileY
-    lda         #MAP_INDEX_CREDITS2
-    jsr         drawRow
-
-    rts
-
-;-------------------------
-
 drawRow:
     lda         #MAP_LEFT
     sta         tileX
 rowLoop:
-    ldx         index
-    lda         mapTiles,x
+    ldy         index
+    lda         bgTiles,y
     jsr         drawTile
 
     inc         index
@@ -506,40 +479,44 @@ rowLoop:
     sta         tileX
     cmp         #MAP_RIGHT
     bne         rowLoop
+
+    inc         tileY
+    lda         tileY
+    cmp         #MAP_BOTTOM
+    bne         mapLoop
+
+    ; draw misc tiles
+    ldy         #0
+    sty         index
+
+tileLoop:
+    ldy         index
+    lda         (scriptPtr0),y
+    beq         doneDrawMap
+    sta         tileX
+    iny
+    lda         (scriptPtr0),y
+    sta         tileY
+    iny
+    lda         (scriptPtr0),y
+    iny
+    sty         index
+    jsr         drawTile
+    jmp         tileLoop
+
+doneDrawMap:
     rts
 
-index:      .byte   0
+index:          .byte   0
 
-mapTiles:
-            ; index 0 - MIDDLE (default)
-            .byte $46,$46,$46               ; grass
-            .byte $47,$57,$57,$57,$57,$45   ; road
-            .byte $46,$46,$46               ; grass
-            .byte $4D,$4E,$4E,$4E,$4E,$4F   ; water
-            .byte $46,$46                   ; grass
-
-            ; index 20 - TOP
-            .byte $55,$55,$55               ; grass
-            .byte $47,$57,$57,$57,$57,$45   ; road
-            .byte $55,$55,$55               ; grass
-            .byte $4D,$4E,$4E,$4E,$4E,$4F   ; water
-            .byte $55,$55                   ; grass
-
-            ; index 40 - BOTTOM
-            .byte $5D,$5D,$5D               ; grass
-            .byte $47,$57,$57,$57,$57,$45   ; road
-            .byte $5D,$5D,$5D               ; grass
-            .byte $4D,$4E,$4E,$4E,$4E,$4F   ; water
-            .byte $5D,$5D
-
-            ; index 80 - SCORE
-            MapText     "    SCORE: 00000    "
-
-            ; index 100 - CREDITS 1
-            MapText     "====== FROGGO ======"
-
-            ; index 120 - CREDITS 2
-            MapText     " PAUL WASSON - 2025 "
+;            ; index 80 - SCORE
+;            MapText     "    SCORE: 00000    "
+;
+;            ; index 100 - CREDITS 1
+;            MapText     "====== FROGGO ======"
+;
+;            ; index 120 - CREDITS 2
+;            MapText     " PAUL WASSON - 2025 "
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -780,7 +757,6 @@ pageCount       := tileY
 codePtr0        := tilePtr0
 codePtr1        := tilePtr1
 
-    jsr         HOME
     jsr         inline_print
     String      "Installing AUX code..."
 
@@ -1047,10 +1023,89 @@ writeXLoop:
     inc         bufferPtr0+1
     inc         bufferPtr0+1
     inx
-    cpx         #MAX_COLUMNS
+    cpx         #MAX_COLUMN_PAIRS
     bne         writeXLoop
     sta         RAMWRTOFF       ; write to MAIN
     rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Load Level
+;-----------------------------------------------------------------------------
+; Format:
+; [2]                           - link to next level
+; [20]                          - background tiles (repeated for every row)
+; [8]                           - column pair x coordinate ($FF for inactive)
+; [8]                           - column pair speed (low byte)
+; [8]                           - column pair speed (high byte)
+; [1]                           - active columns (must be even)
+; [16] x active-column-pairs    - tiles to copy to column-pair
+; [1]                           - $00 [end of column data]
+; [3] x misc-tile-count         - x,y,tile to draw on screen
+; [1]                           - $00 [end of tile list]
+;-----------------------------------------------------------------------------
+
+.proc loadLevel
+    ; point to first level
+    lda         #<levelData
+    sta         scriptPtr0
+    lda         #>levelData
+    sta         scriptPtr1
+
+    ldy         #2
+configLoop:
+    lda         (scriptPtr0),y
+    sta         bgTiles-2,y
+    iny
+    cpy         #2+20+3*8
+    bne         configLoop
+
+    lda         (scriptPtr0),y
+    sta         activeColumns
+    iny
+    sty         index
+
+    lda         #0
+    sta         tileX
+columnLoop:
+    lda         #0
+    sta         tileY
+tileLoop:
+    ldy         index
+    lda         (scriptPtr0),y
+    beq         doneWithColumns
+    jsr         copyTileToBuffers
+
+    inc         index
+
+    lda         tileY
+    clc
+    adc         #8
+    sta         tileY
+    cmp         #128
+    bne         tileLoop
+
+    inc         tileX
+    inc         tileX
+    jmp         columnLoop
+doneWithColumns:
+
+    ; set pointer to point to misc tiles for draw map
+    iny
+    tya
+    clc
+    adc         scriptPtr0
+    sta         scriptPtr0
+    lda         scriptPtr1
+    adc         #0
+    sta         scriptPtr1
+
+    jsr         setActiveBuffers
+
+    rts
+
+index:          .byte   0
 
 .endproc
 
@@ -1112,17 +1167,74 @@ count:          .byte       0
 playerX:        .byte       MAP_LEFT+TILE_WIDTH
 playerY:        .byte       MAP_BOTTOM-TILE_HEIGHT*2
 playerState:    .byte       STATE_IDLE
+activeColumns:  .byte       0
 
-activeColumns:  .byte       3
+; Current level data (expecting order of bgTiles, bufferX, bufferSpeed0&1)
+bgTiles:        .res        20
+bufferX:        .res        8
+bufferSpeed0:   .res        8
+bufferSpeed1:   .res        8
+bufferOffset0:  .res        8
+bufferOffset1:  .res        8
 
-bufferX:        .byte         8, 10, 26,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-bufferOffset0:  .byte       $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-bufferOffset1:  .byte       $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-bufferSpeed0:   .byte       $40,$A0,$0F,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-bufferSpeed1:   .byte       $00,$FF,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 
-waterColumn:    .byte       TILE_LOG_A,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER
-                .byte       TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+levelData:
+; Level 1
+levelData1:
+    .word   levelData2                                                          ; link to next level
+    ; Background
+    .byte   TILE_GRASS,TILE_GRASS,TILE_GRASS,TILE_GRASS_ROAD                    ; [4] grass->road
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD                             ; [4] road (8..15)
+    .byte   TILE_ROAD_GRASS,TILE_GRASS,TILE_GRASS,TILE_GRASS,TILE_GRASS_WATER   ; [5] road->grass->water
+    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER                         ; [4] water (26,33)
+    .byte   TILE_WATER_GRASS,TILE_GRASS,TILE_GRASS                              ; [3] water->grass
+    ; Scrolling columns
+    .byte     8, 10, 12, 14, 26, 28, 30, 32                                     ; column pair offset, locations ($FF for inactive)
+    .byte   $80,$70,$60,$50,$40,$30,$20,$10                                     ; column pair speed (lower)
+    .byte   $01,$01,$01,$01,$01,$01,$01,$01                                     ; column pair speed (upper)
+    .byte     8                                                                 ; active column pairs
+
+    ; column pair 0
+    .byte   TILE_CAR1_BLUE,TILE_ROAD,TILE_CAR1_BLUE,TILE_ROAD,TILE_CAR1_BLUE,TILE_ROAD,TILE_ROAD,TILE_ROAD
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+
+    ; column pair 1
+    .byte   TILE_CAR1_RED,TILE_ROAD,TILE_CAR1_RED,TILE_ROAD,TILE_CAR1_RED,TILE_ROAD,TILE_ROAD,TILE_ROAD
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+
+    ; column pair 2
+    .byte   TILE_CAR1_BLUE,TILE_ROAD,TILE_CAR1_BLUE,TILE_ROAD,TILE_CAR1_BLUE,TILE_ROAD,TILE_ROAD,TILE_ROAD
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+
+    ; column pair 3
+    .byte   TILE_CAR1_RED,TILE_ROAD,TILE_CAR1_RED,TILE_ROAD,TILE_CAR1_RED,TILE_ROAD,TILE_ROAD,TILE_ROAD
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+
+    ; column pair 4
+    .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER
+    .byte   TILE_WATER,TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+
+    ; column pair 5
+    .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER
+    .byte   TILE_WATER,TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+
+    ; column pair 6
+    .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER
+    .byte   TILE_WATER,TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+
+    ; column pair 7
+    .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER
+    .byte   TILE_WATER,TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+
+    .byte   0                                                                   ; end of column data
+
+    ; Misc tiles [x,y,tile] (end with 0)
+    .byte   2,5,TILE_TREE_A,2,6,TILE_TREE_B
+    .byte   22,12,TILE_TREE_A,22,13,TILE_TREE_B
+    .byte   38,6,TILE_TREE_A,38,7,TILE_TREE_B
+    .byte   0                                                                   ; end of tile list
+
+levelData2:
 
 .align 256
 
