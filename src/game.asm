@@ -14,12 +14,19 @@
 ; Constants
 ;-----------------------------------------------------------------------------
 
+; reuse zero page addresses
+bufferPtr0                  := mapPtr0      ; and mapPtr1
+bufferPtr1                  := scriptPtr0   ; and scriptPt1
+
 ; Constants for draw loop unrolling
 MAX_COLUMNS                 = 16
 COLUMN_CODE_START           = $2000     ; page0 $2000..$5048, page1 $5049..$8091
 COLUMN_CODE_START_PAGE2     = $5049
 COLUMN_BUFFER_START         = $8100     ;       $8100..$90FF
-DISPATCH_LOCATION           = $C00
+DISPATCH_CODE               = $C00
+
+COLUMN_ROWS                 = 128
+COLUMN_STARTING_ROW         = 32
 
 INSTRUCTION_BPL             = $10
 INSTRUCTION_LDA_Y           = $B9
@@ -68,6 +75,9 @@ TILE_PLAYER_GREEN_UP_2      = $6A
 TILE_PLAYER_GREEN_DOWN_1    = $63
 TILE_PLAYER_GREEN_DOWN_2    = $6B
 
+TILE_CAR1_BLUE              = $44
+TILE_CAR1_RED               = $53
+
 ;-----------------------------------------------------------------------------
 ; Main program
 ;-----------------------------------------------------------------------------
@@ -75,8 +85,46 @@ TILE_PLAYER_GREEN_DOWN_2    = $6B
 .proc main
 
     jsr         initCode
+    jsr         initBuffers
     jsr         initDisplay
     jsr         initState
+
+    ; set up buffers
+    lda         #0
+    sta         tileX
+    sta         tileY
+    lda         #TILE_CAR1_BLUE
+    jsr         copyTileToBuffers
+
+    lda         #20
+    sta         tileY
+    lda         #TILE_CAR1_BLUE
+    jsr         copyTileToBuffers
+
+    lda         #40
+    sta         tileY
+    lda         #TILE_CAR1_BLUE
+    jsr         copyTileToBuffers
+
+    lda         #2
+    sta         tileX
+    lda         #15
+    sta         tileY
+    lda         #TILE_CAR1_RED
+    jsr         copyTileToBuffers
+
+    lda         #45
+    sta         tileY
+    lda         #TILE_CAR1_RED
+    jsr         copyTileToBuffers
+
+    lda         #75
+    sta         tileY
+    lda         #TILE_CAR1_RED
+    jsr         copyTileToBuffers
+
+    lda         #2
+    sta         activeColumns
 
 game_loop:
 
@@ -328,138 +376,44 @@ pause:
 
 .proc drawRoad
 
-    ldx         #ROAD_X
+    ldx         #0
 
+incOffsetLoop:
     clc
-    lda         roadOffset+0
-    adc         roadSpeed +0
-    sta         roadOffset+0
-    lda         roadOffset+1
-    adc         roadSpeed +1
-    sta         roadOffset+1
+    lda         roadOffset0,x
+    adc         roadSpeed0,x
+    sta         roadOffset0,x
+    lda         roadOffset1,x
+    adc         roadSpeed1,x
+    sta         roadOffset1,x
+    inx
+    cpx         activeColumns
+    bne         incOffsetLoop
 
+    ; point to first odd buffer
+    lda         #$FF
+    sta         bufferPtr0
+    lda         #>COLUMN_BUFFER_START+1
+    sta         bufferPtr0+1
+
+    ldx         #0
+    ldy         #0
+    sta         RAMWRTON        ; write to AUX
+writeOffsetLoop:
+    lda         roadOffset1,x
     and         #$7f
-    tay
+    sta         (bufferPtr0),y
+    inc         bufferPtr0+1
+    inc         bufferPtr0+1
+    inx
+    cpx         activeColumns
+    bne         writeOffsetLoop
+    sta         RAMWRTOFF       ; write to MAIN
 
-    lda         PAGE2           ; bit 7 = page2 displayed
-    bmi         draw1           ; display2, draw 1
-
-;draw2:
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
-    inx
-    inx
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
-    inx
-    inx
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
-    inx
-    inx
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
-    inx
-    inx
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
-    inx
-    inx
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
-    inx
-    inx
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
-    inx
-    inx
-    jsr         drawColumn0Page1
-    jsr         drawColumn1Page1
-
-    rts
-
-draw1:
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
-    inx
-    inx
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
-    inx
-    inx
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
-    inx
-    inx
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
-    inx
-    inx
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
-    inx
-    inx
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
-    inx
-    inx
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
-    inx
-    inx
-    jsr         drawColumn0Page0
-    jsr         drawColumn1Page0
-
+    jsr         DISPATCH_CODE
     rts
 
 .endproc
-
-;-----------------------------------------------------------------------------
-; drawColumn#Page#
-;
-;   Draw a scrolling column per display page
-;   X - display column
-;   Y - scroll offset
-;
-;   Each column has a dedicated buffer (shared between pages)
-;-----------------------------------------------------------------------------
-
-COLUMN_ROWS             = 128
-COLUMN_STARTING_ROW     = 32
-; convert row # to row address
-.macro writeScreen adrs,row
-    sta     adrs+((row)&7)*$400+(((row)>>3)&7)*$80+(((row)>>6)&7)*$28,x
-.endmacro
-
-.macro drawColumn adrs,buffer
-.repeat COLUMN_ROWS,row
-    lda             buffer+row,y
-    writeScreen     adrs, row+COLUMN_STARTING_ROW
-.endrepeat
-    rts
-.endmacro
-
-drawColumn0Page0:   drawColumn  $2000,buffer0
-drawColumn1Page0:   drawColumn  $2001,buffer1
-;drawColumn2Page0:   drawColumn  $2000,buffer2
-;drawColumn3Page0:   drawColumn  $2000,buffer3
-;drawColumn4Page0:   drawColumn  $2000,buffer4
-;drawColumn5Page0:   drawColumn  $2000,buffer5
-;drawColumn6Page0:   drawColumn  $2000,buffer6
-;drawColumn7Page0:   drawColumn  $2000,buffer7
-;drawColumn8Page0:   drawColumn  $2000,buffer8
-;drawColumn9Page0:   drawColumn  $2000,buffer9
-
-drawColumn0Page1:   drawColumn  $4000,buffer0
-drawColumn1Page1:   drawColumn  $4001,buffer1
-;drawColumn2Page1:   drawColumn  $4000,buffer2
-;drawColumn3Page1:   drawColumn  $4000,buffer3
-;drawColumn4Page1:   drawColumn  $4000,buffer4
-;drawColumn5Page1:   drawColumn  $4000,buffer5
-;drawColumn6Page1:   drawColumn  $4000,buffer6
-;drawColumn7Page1:   drawColumn  $4000,buffer7
-;drawColumn8Page1:   drawColumn  $4000,buffer8
-;drawColumn9Page1:   drawColumn  $4000,buffer9
 
 ;-----------------------------------------------------------------------------
 ; Draw Map
@@ -511,8 +465,8 @@ mapLoop:
 
     rts
 
-
 ;-------------------------
+
 drawRow:
     lda         #MAP_LEFT
     sta         tileX
@@ -563,7 +517,6 @@ mapTiles:
             ; index 120 - CREDITS 2
             MapText     " PAUL WASSON - 2025 "
 .endproc
-
 
 ;-----------------------------------------------------------------------------
 ; initTile
@@ -633,6 +586,63 @@ drawLoop:
     dex
     bne         drawLoop
 
+    rts
+
+.endproc
+
+
+;-----------------------------------------------------------------------------
+; copyTileToBuffers
+;   Copies 2x8 tile to a buffer pair twice ($80 bytes apart)
+;   Even bytes to the first buffer, odd bytes to the second buffer
+;   A       - tile to copy
+;   tileY   - offset line into buffer (must be < $80)
+;   tileX   - first buffer number of the pair
+;-----------------------------------------------------------------------------
+
+.proc copyTileToBuffers
+
+    ; set up tile pointer
+    jsr         initTile
+
+    ; set up buffer pointer
+    lda         tileY
+    sta         bufferPtr0
+    sta         bufferPtr1
+    lda         #>COLUMN_BUFFER_START
+    clc
+    adc         tileX
+    sta         bufferPtr0+1
+    sta         bufferPtr1+1
+    inc         bufferPtr1+1
+
+    ldx         #8              ; 8 rows
+    ldy         #0
+
+    sta         CLR80COL        ; Use RAMWRT for aux mem
+    sta         RAMWRTON        ; Write to AUX
+
+drawLoop:
+    ; even
+    ldy         #0
+    lda         (tilePtr0),y
+    sta         (bufferPtr0),y
+    ldy         #$80
+    sta         (bufferPtr0),y
+    inc         tilePtr0
+    ; odd
+    ldy         #0
+    lda         (tilePtr0),y
+    sta         (bufferPtr1),y
+    ldy         #$80
+    sta         (bufferPtr1),y
+    inc         tilePtr0
+    inc         bufferPtr0
+    inc         bufferPtr1
+    dex
+    bne         drawLoop
+
+    sta         RAMWRTOFF       ; Write to MAIN
     rts
 
 .endproc
@@ -745,8 +755,6 @@ columnCount     := tileX
 pageCount       := tileY
 codePtr0        := tilePtr0
 codePtr1        := tilePtr1
-bufferPtr0      := mapPtr0
-bufferPtr1      := mapPtr1
 
     jsr         HOME
     jsr         inline_print
@@ -929,7 +937,7 @@ copyDispatch:
     ldx         #0
 copyLoop:
     lda         dispatchStart,x
-    sta         DISPATCH_LOCATION,x
+    sta         DISPATCH_CODE,x
     inx
     cpx         #dispatchEnd-dispatchStart
     bne         copyLoop
@@ -957,7 +965,44 @@ dispatchEnd:
 
 .endproc
 
+;-----------------------------------------------------------------------------
+; Init buffers in aux memory
+;-----------------------------------------------------------------------------
 
+.proc initBuffers
+    ; Init buffer pointer (shared between pages)
+    lda         #$00            ; Assuming page aligned
+    sta         bufferPtr0
+    lda         #>COLUMN_BUFFER_START
+    sta         bufferPtr0+1
+
+    lda         #0
+    ldx         #0
+    ldy         #0
+
+    sta         CLR80COL        ; Use RAMWRT for aux mem
+    sta         RAMWRTON        ; Write to AUX
+
+zeroLoop:
+    sta         (bufferPtr0),y
+    iny
+    bne         zeroLoop
+
+    lda         bufferConfig,x
+    ldy         #$FF
+    sta         (bufferPtr0),y
+    lda         #0
+
+    inc         bufferPtr0+1
+    inx
+    cpx         #MAX_COLUMNS
+    bne         zeroLoop
+
+    sta         RAMWRTOFF       ; Write to MAIN
+
+    rts
+
+.endproc
 
 ;-----------------------------------------------------------------------------
 ; Monitor
@@ -1018,8 +1063,22 @@ playerX:        .byte       MAP_LEFT+TILE_WIDTH
 playerY:        .byte       MAP_BOTTOM-TILE_HEIGHT*2
 playerState:    .byte       STATE_IDLE
 
-roadOffset:     .word       $0000
-roadSpeed:      .word       $0180
+activeColumns:  .byte       2
+
+roadOffset0:    .byte       $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+roadOffset1:    .byte       $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+roadSpeed0:     .byte       $40,$60,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+roadSpeed1:     .byte       $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
+bufferConfig:   ; even bytes column X, odd byte column offset
+                .byte       8,0
+                .byte       10,0
+                .byte       $FF,0
+                .byte       $FF,0
+                .byte       $FF,0
+                .byte       $FF,0
+                .byte       $FF,0
+                .byte       $FF,0
 
 .align 256
 
@@ -1131,46 +1190,13 @@ fullLinePage:
     .byte       >$2350, >$2750, >$2B50, >$2F50, >$3350, >$3750, >$3B50, >$3F50
     .byte       >$23D0, >$27D0, >$2BD0, >$2FD0, >$33D0, >$37D0, >$3BD0, >$3FD0
 
-
-
-
-;-----------------------------------------------------------------------------
-; Data
-;-----------------------------------------------------------------------------
-.align 256
-
-buffer0:        .res 128-8
-                .byte $D0,$DC,$DC,$D0,$D0,$DC,$DC,$D0
-                .res 128-8
-                .byte $D0,$DC,$DC,$D0,$D0,$DC,$DC,$D0
-
-buffer1:        .res 128-8
-                .byte $82,$86,$86,$82,$82,$86,$86,$82
-                .res 128-8
-                .byte $82,$86,$86,$82,$82,$86,$86,$82
-
-;buffer2:        .res 256
-;buffer3:        .res 256
-;buffer4:        .res 256
-;buffer5:        .res 256
-;buffer6:        .res 256
-;buffer7:        .res 256
-;buffer8:        .res 256
-;buffer9:        .res 256
-
 ;-----------------------------------------------------------------------------
 ; Assets
 ;-----------------------------------------------------------------------------
 
-.include        "..\build\parallaxData.asm"
-
 .align 256
 tileSheet:
 .include        "font.asm"
-
-.align 256
-mapData:
-.include        "map.asm"
 
 
 
