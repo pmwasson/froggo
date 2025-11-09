@@ -34,6 +34,12 @@
         .endrep
 .endmacro
 
+.macro  MapTextCord sx,sy,s
+        .byte   sx,sy
+        MapText s
+        .byte   $FF
+.endmacro
+
 .macro  MapString s
         .repeat .strlen(s), I
         .byte   .strat(s, I) + $20
