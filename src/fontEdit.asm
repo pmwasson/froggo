@@ -380,6 +380,17 @@ down_good:
     jmp         canvas_loop
 :
 
+    ;-------------------------
+    ; Ctrl-X = Inverse Colors
+    ;-------------------------
+    cmp         #KEY_CTRL_X
+    bne         :+
+    jsr         inline_print
+    StringCR    "Inverse Colors"
+    jsr         inverseColors
+    jmp         canvas_loop
+:
+
     ;------------------
     ; Ctrl-Q = QUIT
     ;------------------
@@ -421,17 +432,6 @@ down_good:
     .byte       "Dump all",13,0
     jsr         dumpAll
     jmp         command_loop
-:
-
-    ;------------------
-    ; * = Map
-    ;------------------
-    cmp         #$80 + '*'
-    bne         :+
-    jsr         inline_print
-    .byte       "Test",13,0
-    jsr         drawMap
-    jmp         reset_loop
 :
 
     ;------------------
@@ -1164,6 +1164,51 @@ loopX:
 .endproc
 
 ;-----------------------------------------------------------------------------
+; Inverse Colors
+;
+;-----------------------------------------------------------------------------
+
+.proc inverseColors
+
+    ; save current cursor position
+    lda         curX
+    sta         tempX
+    lda         curY
+    sta         tempY
+
+    lda         #0
+    sta         curY
+
+loopY:
+    lda         #0
+    sta         curX
+
+loopX:
+    jsr         getPixel
+    eor         #%111
+    jsr         setColor
+    jsr         setPixel
+    inc         curX
+
+    lda         curX
+    cmp         shapeWidth
+    bne         loopX
+    inc         curY
+
+    lda         curY
+    cmp         shapeHeight
+    bne         loopY
+
+    ; restore cursor
+    lda         tempX
+    sta         curX
+    lda         tempY
+    sta         curY
+    rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
 ; setColor - color passed in A
 ;-----------------------------------------------------------------------------
 
@@ -1294,62 +1339,6 @@ dumpCount:      .byte       0
     sta         shapeIndex
 
     rts
-.endproc
-
-
-;-----------------------------------------------------------------------------
-; drawMap
-;
-;   Display map
-;
-;-----------------------------------------------------------------------------
-
-.proc drawMap
-    bit         MIXCLR
-
-    lda         #<mapData
-    sta         mapPtr0
-    lda         #>mapData
-    sta         mapPtr1
-
-    lda         #0
-    sta         mapIdx
-    sta         tileY
-
-loopY:
-    lda         #0
-    sta         tileX
-loopX:
-    ldy         #0
-    lda         (mapPtr0),y
-    jsr         drawTile
-
-    inc         mapPtr0
-    bne         :+
-    inc         mapPtr1
-:
-    inc         tileX
-    lda         tileX
-    cmp         #MAP_WIDTH
-    bne         loopX
-
-    inc         tileY
-    lda         tileY
-    cmp         #MAP_HEIGHT
-    bne         loopY
-
-
-    ; wait for keypress
-:
-    lda         KBD
-    bpl         :-
-    bit         KBDSTRB
-
-    bit         MIXSET
-    rts
-
-mapIdx:     .byte   0
-
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -1799,7 +1788,4 @@ copyBuffer:
 tileSheet:
 .include        "font.asm"
 
-.align 256
-mapData:
-.include        "map.asm"
 

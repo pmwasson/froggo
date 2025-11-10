@@ -43,6 +43,8 @@ MAP_LEFT                    = 0
 MAP_RIGHT                   = 40
 MAP_TOP                     = 4
 MAP_BOTTOM                  = 20
+MAP_HORIZONTAL_TILES        = (MAP_RIGHT-MAP_LEFT)/TILE_WIDTH
+MAP_VERTICAL_TILES          = (MAP_BOTTOM-MAP_TOP)/TILE_HEIGHT
 
 MAP_INDEX_MIDDLE            = 0
 MAP_INDEX_TOP               = 20
@@ -107,6 +109,30 @@ TILE_CONE                   = $59
 TILE_BUSH_WATER             = $5A       ; left of water
 TILE_BUSH_ROAD              = $5B       ; left of road
 TILE_COIN                   = $5F
+
+TILE_BUFFER0                = $80
+TILE_BUFFER1                = $81
+TILE_BUFFER2                = $82
+TILE_BUFFER3                = $83
+TILE_BUFFER4                = $84
+TILE_BUFFER5                = $85
+TILE_BUFFER6                = $86
+TILE_BUFFER7                = $87
+
+TILE_TYPE_FREE              = 0
+TILE_TYPE_COIN              = 1
+TILE_TYPE_BLOCKED           = 2
+TILE_TYPE_DEATH             = 4
+
+TILE_TYPE_BUFFER0           = $80
+TILE_TYPE_BUFFER1           = $81
+TILE_TYPE_BUFFER2           = $82
+TILE_TYPE_BUFFER3           = $83
+TILE_TYPE_BUFFER4           = $84
+TILE_TYPE_BUFFER5           = $85
+TILE_TYPE_BUFFER6           = $86
+TILE_TYPE_BUFFER7           = $87
+
 
 ;-----------------------------------------------------------------------------
 ; Main program
@@ -426,8 +452,9 @@ drawRow:
 rowLoop:
     ldy         index
     lda         bgTiles,y
+    bmi         :+              ; skip active columns
     jsr         drawTile
-
+:
     inc         index
     lda         tileX
     clc
@@ -442,9 +469,7 @@ rowLoop:
     bne         mapLoop
 
     ldy         #0
-    jsr         drawMisc        ; blockage in grass (trees, etc.)
-    iny
-    jsr         drawMisc        ; platforms in water (rocks)
+    jsr         drawMisc
     rts
 
 drawMisc:                       ; draw list of tiles (x,y,#) ending with 0
@@ -794,7 +819,7 @@ codePtr1        := tilePtr1
 :
 
     jsr         inline_print
-    String      "Installing AUX code..."
+    StringCR    "Installing AUX code..."
 
     ; Use zero page for storage so can read/write even if only writing aux
     sta         CLR80COL        ; Use RAMWRT for aux mem
@@ -1138,10 +1163,85 @@ doneWithColumns:
     sta         scriptPtr1
 
     jsr         setActiveBuffers
+    jsr         initTileArray       ; Set up collision detection
 
     rts
 
 index:          .byte   0
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Init tile array
+;   Tile array used for collision detection
+;-----------------------------------------------------------------------------
+; 18x14 array < 256 so can use absoluted index addressing
+; Ignore first, last row and column (blocked from movement):
+;   Columns = 20 - 2 = 18
+;   Rows = 16 - 2 = 14
+; Array values:
+;   <$80    : bespoke type (see defines)
+;   $80..$87: use column data 0..7
+;-----------------------------------------------------------------------------
+.proc initTileArray
+
+    ; copy BG row down
+    ldy         #0
+    sty         index
+bgYLoop:
+    ldx         #0
+bgXLoop:
+    ldy         bgTiles+1,x                 ; ignore row columns 0 & 19
+    lda         tileTypeTable,y
+    ldy         index
+    sta         tileArray,y
+    inc         index
+    inx
+    cpx         #MAP_HORIZONTAL_TILES-2     ; -2 for ignore left-most/right-most
+    bne         bgXLoop
+    lda         index
+    cmp         #(MAP_HORIZONTAL_TILES-2)*(MAP_VERTICAL_TILES-2)
+    bne         bgYLoop
+
+    ; process misc tiles
+    ldy         #0
+miscTileLoop:
+    lda         (scriptPtr0),y              ; x cord
+    beq         doneMiscTiles
+    lsr                                     ; / TILE_WIDTH
+    sta         index
+    dec         index                       ; -1 to ignore left
+
+    iny
+    lda         (scriptPtr0),y              ; y cord
+    sec
+    sbc         #(MAP_TOP+1)
+    bmi         skipTile                    ; skip top row
+    tax
+    lda         mult18Table,x               ; mult Y by 18
+    clc
+    adc         index
+    sta         index
+
+    iny
+    lda         (scriptPtr0),y              ; tile #
+    tax
+    lda         tileTypeTable,x
+    ldx         index
+    sta         tileArray,x
+
+    iny
+    jmp         miscTileLoop
+
+skipTile:
+    iny                                     ; tile #
+    iny                                     ; next tile
+    jmp         miscTileLoop
+
+doneMiscTiles:
+    rts
+
+index:      .byte   0
 
 .endproc
 
@@ -1215,9 +1315,13 @@ bufferSpeed1:   .res        8
 bufferOffset0:  .res        8
 bufferOffset1:  .res        8
 
+; Valid index 0..13
+mult18Table:    .byte   18*0, 18*1, 18*2, 18*3,  18*4,  18*5,  18*6
+                .byte   18*7, 18*8, 18*9, 18*10, 18*11, 18*12, 18*13
 
-; Alignment is not needed, but makes it easier to count bytes in dump
+
 .align 256
+tileArray:      .res        256         ; collision detection (18x14 array)
 
 levelData:
 ; Level 1
@@ -1225,9 +1329,9 @@ levelData1:
     .word   levelData2                                                          ; link to next level
     ; Background
     .byte   TILE_GRASS,TILE_GRASS,TILE_GRASS,TILE_GRASS_ROAD                    ; [4] grass->road
-    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD                   ; [5] road
+    .byte   TILE_BUFFER0,TILE_BUFFER1,TILE_BUFFER2,TILE_ROAD,TILE_BUFFER3       ; [5] road
     .byte   TILE_ROAD_GRASS,TILE_GRASS,TILE_GRASS_WATER                         ; [3] road->grass->water
-    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER              ; [5] water
+    .byte   TILE_BUFFER4,TILE_BUFFER5,TILE_BUFFER6,TILE_WATER,TILE_BUFFER7      ; [5] water
     .byte   TILE_WATER_GRASS,TILE_GRASS,TILE_GRASS                              ; [3] water->grass
     ; Scrolling columns
     .byte     8, 10, 12, 16, 24, 26, 28, 32                                     ; column pair offset, locations ($FF for inactive)
@@ -1270,7 +1374,6 @@ levelData1:
     .byte   0                                                                   ; end of column data
 
     ; Misc tiles [x,y,tile] (end with 0)
-    ; 2 sets: grass blockage and water platforms
     .byte   14, 4,TILE_CONE,14, 5,TILE_CONE,14, 6,TILE_CONE
     .byte   14, 9,TILE_CONE,14,10,TILE_CONE
     .byte                   14,13,TILE_CONE,14,14,TILE_CONE
@@ -1283,13 +1386,57 @@ levelData1:
     .byte   36,4,TILE_TREE_A,36,5,TILE_TREE_MID,36,6,TILE_TREE_MID,36,7,TILE_TREE_B
     .byte   22,4,TILE_BUSH_WATER,22,5,TILE_BUSH_WATER,22,7,TILE_BUSH_WATER,22,10,TILE_BUSH_WATER
     .byte   22,14,TILE_BUSH_WATER,22,15,TILE_BUSH_WATER,22,18,TILE_BUSH_WATER,22,19,TILE_BUSH_WATER
-    .byte   0                                                                   ; end of tile list
     .byte   30,8,TILE_ROCK,30,10,TILE_ROCK,30,12,TILE_ROCK,30,13,TILE_ROCK
     .byte   0                                                                   ; end of tile list
 
 levelData2:
 
 .align 256
+
+tileTypeTable:
+    .res        $40,TILE_TYPE_BLOCKED       ;00..3F - ASCII characters, treat as "blocked"
+    .byte       TILE_TYPE_DEATH             ;40     - Truck down A
+    .byte       TILE_TYPE_DEATH             ;41     - Truck up A
+    .byte       TILE_TYPE_FREE              ;42     - Log A
+    .byte       TILE_TYPE_DEATH             ;43     - Car2 A
+    .byte       TILE_TYPE_DEATH             ;44     - Car1 Blue
+    .byte       TILE_TYPE_FREE              ;45     - road/grass
+    .byte       TILE_TYPE_FREE              ;46     - grass
+    .byte       TILE_TYPE_FREE              ;47     - grass/road
+    .byte       TILE_TYPE_DEATH             ;48     - Truck down B
+    .byte       TILE_TYPE_DEATH             ;49     - Truck up B
+    .byte       TILE_TYPE_FREE              ;4A     - Log B
+    .byte       TILE_TYPE_DEATH             ;4B     - Car2 B
+    .byte       TILE_TYPE_BLOCKED           ;4C     - Tree A
+    .byte       TILE_TYPE_FREE              ;4D     - grass/water
+    .byte       TILE_TYPE_DEATH             ;4E     - water
+    .byte       TILE_TYPE_FREE              ;4F     - water/grass
+    .byte       TILE_TYPE_DEATH             ;50     - Truck down C
+    .byte       TILE_TYPE_DEATH             ;51     - Truck up C
+    .byte       TILE_TYPE_FREE              ;52     - Log C
+    .byte       TILE_TYPE_DEATH             ;53     - Car1 Red
+    .byte       TILE_TYPE_BLOCKED           ;54     - Tree B
+    .byte       TILE_TYPE_DEATH             ;55     - Car1 Purple
+    .byte       TILE_TYPE_BLOCKED           ;56     -
+    .byte       TILE_TYPE_FREE              ;57     - Road
+    .byte       TILE_TYPE_FREE              ;58     - Rock
+    .byte       TILE_TYPE_BLOCKED           ;59     - Cone
+    .byte       TILE_TYPE_BLOCKED           ;5A     - Bush (grass->water)
+    .byte       TILE_TYPE_BLOCKED           ;5B     - Bush (grass->road)
+    .byte       TILE_TYPE_BLOCKED           ;5C     - Tree A*
+    .byte       TILE_TYPE_BLOCKED           ;5D     - Divider (road->road)
+    .byte       TILE_TYPE_BLOCKED           ;5E     -
+    .byte       TILE_TYPE_COIN              ;5F     - Coin
+    .res        $20,TILE_TYPE_FREE          ;60..7f - Player
+    .byte       TILE_TYPE_BUFFER0           ;80     - Active column
+    .byte       TILE_TYPE_BUFFER1           ;81     - Active column
+    .byte       TILE_TYPE_BUFFER2           ;82     - Active column
+    .byte       TILE_TYPE_BUFFER3           ;83     - Active column
+    .byte       TILE_TYPE_BUFFER4           ;84     - Active column
+    .byte       TILE_TYPE_BUFFER5           ;85     - Active column
+    .byte       TILE_TYPE_BUFFER6           ;86     - Active column
+    .byte       TILE_TYPE_BUFFER7           ;87     - Active column
+
 
 ; pack lookup tables on page (192 + 24 + 24 = 240)
 
