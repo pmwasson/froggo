@@ -4,11 +4,28 @@
 ; Game
 ;-----------------------------------------------------------------------------
 
-.include        "defines.asm"
-.include        "macros.asm"
-
 .segment        "CODE"
 .org            $6000
+
+.include        "defines.asm"
+
+;-----------------------------------------------------------------------------
+; Macros
+;-----------------------------------------------------------------------------
+
+.include        "macros.asm"
+
+.macro  DrawStringCord stringX, stringY, string
+    lda     #stringX
+    sta     tileX
+    lda     #stringY
+    sta     tileY
+    lda     #<string
+    sta     stringPtr0
+    lda     #>string
+    sta     stringPtr1
+    jsr     drawString
+.endmacro
 
 ;-----------------------------------------------------------------------------
 ; Constants
@@ -59,6 +76,7 @@ STATE_START_RIGHT           = 5
 STATE_MOVE_RIGHT            = 6
 STATE_START_LEFT            = 7
 STATE_MOVE_LEFT             = 8
+STATE_GAME_OVER             = $80
 STATE_DEAD                  = $FF
 
 PLAYER_INIT_X               = MAP_LEFT+TILE_WIDTH
@@ -66,6 +84,7 @@ PLAYER_INIT_Y               = MAP_BOTTOM-TILE_HEIGHT*2
 PLAYER_INIT_STATE           = STATE_IDLE
 
 MOVE_DELAY                  = 5
+DEAD_DELAY                  = 120
 
 TILE_GRASS                  = $46
 TILE_GRASS_ROAD             = $47
@@ -110,7 +129,7 @@ TILE_BUFFER6                = $86
 TILE_BUFFER7                = $87
 
 TILE_TYPE_FREE              = $00
-TILE_TYPE_COIN              = $01
+TILE_TYPE_MOVEMENT          = $01
 TILE_TYPE_BLOCKED           = $02
 TILE_TYPE_DEATH             = $04
 
@@ -135,6 +154,7 @@ PLAYER_OFFSET_LEFT_2        = $80
 PLAYER_OFFSET_RIGHT_1       = $90
 PLAYER_OFFSET_RIGHT_2       = $A0
 
+SKIP_CHAR                   = '`' - $20
 ;-----------------------------------------------------------------------------
 ; Main program
 ;-----------------------------------------------------------------------------
@@ -143,6 +163,8 @@ PLAYER_OFFSET_RIGHT_2       = $A0
 
     jsr         initCode
     ;jsr         initBuffers
+
+reset_game:
     jsr         loadLevel
     jsr         initDisplay
     jsr         initState
@@ -150,6 +172,7 @@ PLAYER_OFFSET_RIGHT_2       = $A0
 game_loop:
 
     jsr         drawRoad
+    jsr         checkPlayer
     jsr         updatePlayer
 
     ; Flip display page
@@ -197,6 +220,10 @@ switchTo1:
 
     ; only process movement keypress if player is idle
     ldx         playerState
+    cpx         #STATE_GAME_OVER
+    bne         :+
+    jmp         reset_game  ; restart game
+:
     cpx         #STATE_IDLE
     beq         :+
     jmp         game_loop   ; not in idle, so no movement
@@ -221,7 +248,7 @@ switchTo1:
     cmp         #KEY_X
     bne         :+
     lda         #STATE_DEAD
-    sta         playerState
+    jsr         updateState
     jmp         game_loop
 :
     jmp         game_loop
@@ -240,9 +267,7 @@ goRight:
     jsr         movementCheck
     bne         :+
     lda         #STATE_START_RIGHT
-    sta         playerState
-    lda         #0
-    sta         count
+    jsr         updateState
 :
     jmp         game_loop
 
@@ -260,9 +285,7 @@ goLeft:
     jsr         movementCheck
     bne         :+
     lda         #STATE_START_LEFT
-    sta         playerState
-    lda         #0
-    sta         count
+    jsr         updateState
 :
     jmp         game_loop
 
@@ -279,9 +302,7 @@ goUp:
     jsr         movementCheck
     bne         :+
     lda         #STATE_START_UP
-    sta         playerState
-    lda         #0
-    sta         count
+    jsr         updateState
 :
     jmp         game_loop
 
@@ -298,9 +319,7 @@ goDown:
     jsr         movementCheck
     bne         :+
     lda         #STATE_START_DOWN
-    sta         playerState
-    lda         #0
-    sta         count
+    jsr         updateState
 :
     jmp         game_loop
 
@@ -355,12 +374,61 @@ erasePlayer1:
 .endproc
 
 ;-----------------------------------------------------------------------------
+; Check Player
+;
+;   Check environment to update player state
+;-----------------------------------------------------------------------------
+.proc checkPlayer
+
+    rts
+
+    ; FIXME REMOVE THIS CODE
+
+    lda         playerState
+    cmp         #STATE_DEAD
+    bne         :+
+    rts                         ; if dead, no changes
+:
+    cmp         #STATE_DEAD
+    bne         :+
+    rts                         ; if game over, no changes
+:
+    lda         playerX
+    sta         tileX
+    lda         playerTileY
+    sta         tileY
+    jsr         tile2array
+    tax
+    lda         tileTypeArray,x
+    and         #TILE_TYPE_DEATH
+    beq         :+
+    lda         #STATE_DEAD
+    jmp         updateState
+:
+    rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Update State
+;-----------------------------------------------------------------------------
+.proc updateState
+    sta         playerState
+    lda         #0
+    sta         count
+    sta         count+1
+    rts
+.endproc
+
+;-----------------------------------------------------------------------------
 ; Update Player
 ;-----------------------------------------------------------------------------
 .proc updatePlayer
 
     inc         count
-
+    bne         :+
+    inc         count+1
+:
     lda         playerX
     sta         tileX
     sta         drawTileX0
@@ -369,13 +437,37 @@ erasePlayer1:
     sta         drawTileY0
     sta         drawTileY1
 
+    ; check final states
     lda         playerState
+    cmp         #STATE_GAME_OVER
+    bne         :+
+    rts
+:
     cmp         #STATE_DEAD
     bne         :+
     lda         #PLAYER_OFFSET_DEAD
     jsr         drawPlayerOR
+    lda         count
+    cmp         #DEAD_DELAY
+    bne         doneDead
+    lda         #STATE_GAME_OVER
+    jmp         updateState
+doneDead:
     rts
 :
+
+    ; player is alive, so check environment before processing state
+    jsr         tile2array
+    tax
+    lda         tileTypeArray,x
+    sta         currentTileType
+    and         #TILE_TYPE_DEATH
+    beq         :+
+    lda         #STATE_DEAD
+    jmp         updateState
+:
+
+    ; check alive states
     lda         playerState
     cmp         #STATE_IDLE
     bne         :+
@@ -400,10 +492,11 @@ erasePlayer1:
     cmp         #MOVE_DELAY
     bmi         doneLeft
     lda         #STATE_MOVE_LEFT
-    sta         playerState
+    jmp         updateState
 doneLeft:
     rts
 :
+
     cmp         #STATE_MOVE_LEFT
     bne         :+
     dec         drawTileX0
@@ -413,8 +506,7 @@ doneLeft:
     lda         #PLAYER_OFFSET_IDLE
     jsr         drawPlayerOR
     lda         #STATE_IDLE
-    sta         playerState
-    rts
+    jmp         updateState
 :
     cmp         #STATE_START_RIGHT
     bne         :+
@@ -433,7 +525,7 @@ doneLeft:
     cmp         #MOVE_DELAY
     bmi         doneRight
     lda         #STATE_MOVE_RIGHT
-    sta         playerState
+    jmp         updateState
 doneRight:
     rts
 :
@@ -446,7 +538,7 @@ doneRight:
     lda         #PLAYER_OFFSET_IDLE
     jsr         drawPlayerOR
     lda         #STATE_IDLE
-    sta         playerState
+    jmp         updateState
     rts
 :
     cmp         #STATE_START_UP
@@ -468,7 +560,7 @@ doneRight:
     cmp         #MOVE_DELAY
     bmi         doneUp
     lda         #STATE_MOVE_UP
-    sta         playerState
+    jmp         updateState
 doneUp:
     rts
 :
@@ -483,8 +575,7 @@ doneUp:
     lda         #PLAYER_OFFSET_IDLE
     jsr         drawPlayerOR
     lda         #STATE_IDLE
-    sta         playerState
-    rts
+    jmp         updateState
 :
     cmp         #STATE_START_DOWN
     bne         :+
@@ -505,7 +596,7 @@ doneUp:
     cmp         #MOVE_DELAY
     bmi         doneDown
     lda         #STATE_MOVE_DOWN
-    sta         playerState
+    jmp         updateState
 doneDown:
     rts
 :
@@ -520,12 +611,17 @@ doneDown:
     lda         #PLAYER_OFFSET_IDLE
     jsr         drawPlayerOR
     lda         #STATE_IDLE
-    sta         playerState
+    jmp         updateState
+:
+    cmp         #STATE_GAME_OVER
+    bne         :+
     rts
 :
     brk
 
-saveY:          .byte   0
+saveY:              .byte   0
+currentTileType:    .byte   0
+
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -707,35 +803,21 @@ index:          .byte   0
 ;-----------------------------------------------------------------------------
 ; Draw text - add info to the screen
 ;-----------------------------------------------------------------------------
+stringBoxTop:       TileText "/------------------\"
+stringScore:        TileText "_    SCORE: 000    _"
+stringBoxBottom:    TileText "[------------------]"
+stringArrow:        TileText ">"
+stringFroggo:       TileText "_ @  ` FROGGO    @ _"
+
 .proc drawText
-
-    jsr         drawString
-    MapTextCord 0,0,"/------------------\"
-
-    jsr         drawString
-    MapTextCord 0,1,"_    SCORE: 000    _"
-
-    jsr         drawString
-    MapTextCord 0,2,"[------------------]"
-
-    jsr         drawString
-    MapTextCord 38,3,">"
-
-    jsr         drawString
-    MapTextCord 38,20,">"
-
-    jsr         drawString
-    MapTextCord 0,21,"/------------------\"
-
-    jsr         drawString
-    MapTextCord 0,22,"_ @    FROGGO    @ _"
-
-    jsr         drawString
-    MapTextCord 0,23,"[------------------]"
-
-    ;jsr         drawString
-    ;MapTextCord 0,23," PAUL WASSON - 2025 "
-
+    DrawStringCord  0, 0,  stringBoxTop
+    DrawStringCord  0, 1,  stringScore
+    DrawStringCord  0, 2,  stringBoxBottom
+    DrawStringCord  38,3,  stringArrow
+    DrawStringCord  38,20, stringArrow
+    DrawStringCord  0, 21, stringBoxTop
+    DrawStringCord  0, 22, stringFroggo
+    DrawStringCord  0, 23, stringBoxBottom
     rts
 .endproc
 
@@ -918,49 +1000,29 @@ lastRow:        .byte   0
 .endproc
 
 ;-----------------------------------------------------------------------------
-; drawString (inline)
-;   Follow call with x,y,string,0
+; drawString
+;   Draw string on screen
 ;-----------------------------------------------------------------------------
 
 .proc drawString
-    ; Pop return address to find string
-    pla
-    sta     stringPtr0
-    pla
-    sta     stringPtr1
-    ldy     #1
+    ldy     #0
 
-    lda     (stringPtr0),y
-    sta     tileX
-    iny
-    lda     (stringPtr0),y
-    sta     tileY
-    iny
-
-    ; Print characters until 0 (end-of-string)
+    ; Print characters until bit 7 set (end-of-string)
 drawLoop:
     lda     (stringPtr0),y
-    bmi     done
+    bpl     :+
+    rts                 ; done
+:
     sty     index
+    cmp     #SKIP_CHAR  ; Skip instead of draw to save time
+    beq     :+
     jsr     drawTile
+:
     inc     tileX
     inc     tileX
     ldy     index
     iny
     jmp     drawLoop
-
-done:
-    ; calculate return address after print string
-    clc
-    tya
-    adc     stringPtr0  ; add low-byte first
-    tax                 ; save in X
-    lda     stringPtr1  ; carry to high-byte
-    adc     #0
-    pha                 ; push return high-byte
-    txa
-    pha                 ; push return low-byte
-    rts                 ; return
 
 index:      .byte   0
 
@@ -1042,7 +1104,7 @@ drawLoop:
     sta         eraseTileY0_1
     sta         eraseTileY1_1
     lda         #PLAYER_INIT_STATE
-    sta         playerState
+    jsr         updateState
     rts
 .endproc
 
@@ -1643,7 +1705,7 @@ quitParams:
 ; Globals
 ;-----------------------------------------------------------------------------
 
-count:          .byte       0
+count:          .word       0
 playerX:        .byte       0
 playerY:        .byte       0
 playerTileY:    .byte       0
@@ -1755,7 +1817,7 @@ tileTypeTable:
     .res        $40,TILE_TYPE_BLOCKED       ;00..3F - ASCII characters, treat as "blocked"
     .byte       TILE_TYPE_DEATH             ;40     - Truck down A
     .byte       TILE_TYPE_DEATH             ;41     - Truck up A
-    .byte       TILE_TYPE_FREE              ;42     - Log A
+    .byte       TILE_TYPE_MOVEMENT          ;42     - Log A
     .byte       TILE_TYPE_DEATH             ;43     - Car2 A
     .byte       TILE_TYPE_DEATH             ;44     - Car1 Blue
     .byte       TILE_TYPE_FREE              ;45     - road/grass
@@ -1763,7 +1825,7 @@ tileTypeTable:
     .byte       TILE_TYPE_FREE              ;47     - grass/road
     .byte       TILE_TYPE_DEATH             ;48     - Truck down B
     .byte       TILE_TYPE_DEATH             ;49     - Truck up B
-    .byte       TILE_TYPE_FREE              ;4A     - Log B
+    .byte       TILE_TYPE_MOVEMENT          ;4A     - Log B
     .byte       TILE_TYPE_DEATH             ;4B     - Car2 B
     .byte       TILE_TYPE_BLOCKED           ;4C     - Tree A
     .byte       TILE_TYPE_FREE              ;4D     - grass/water
@@ -1771,7 +1833,7 @@ tileTypeTable:
     .byte       TILE_TYPE_FREE              ;4F     - water/grass
     .byte       TILE_TYPE_DEATH             ;50     - Truck down C
     .byte       TILE_TYPE_DEATH             ;51     - Truck up C
-    .byte       TILE_TYPE_FREE              ;52     - Log C
+    .byte       TILE_TYPE_MOVEMENT          ;52     - Log C
     .byte       TILE_TYPE_DEATH             ;53     - Car1 Red
     .byte       TILE_TYPE_BLOCKED           ;54     - Tree B
     .byte       TILE_TYPE_DEATH             ;55     - Car1 Purple
@@ -1784,7 +1846,7 @@ tileTypeTable:
     .byte       TILE_TYPE_BLOCKED           ;5C     - Tree A*
     .byte       TILE_TYPE_BLOCKED           ;5D     - Divider (road->road)
     .byte       TILE_TYPE_BLOCKED           ;5E     -
-    .byte       TILE_TYPE_COIN              ;5F     - Coin
+    .byte       TILE_TYPE_FREE              ;5F     - Coin
     .res        $20,TILE_TYPE_FREE          ;60..7f - Player
     .byte       TILE_TYPE_BUFFER0           ;80     - Active column
     .byte       TILE_TYPE_BUFFER1           ;81     - Active column

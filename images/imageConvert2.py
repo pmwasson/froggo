@@ -29,13 +29,21 @@ lineOffset = [
     0x0350, 0x0350+0x0400, 0x0350+0x0800, 0x0350+0x0c00, 0x0350+0x1000, 0x0350+0x1400, 0x0350+0x1800, 0x0350+0x1c00,
     0x03D0, 0x03D0+0x0400, 0x03D0+0x0800, 0x03D0+0x0c00, 0x03D0+0x1000, 0x03D0+0x1400, 0x03D0+0x1800, 0x03D0+0x1c00];
 
-def writeScreen(data,output):
-    width = int(560/7/2)
-    height = 192
-    outputBytes = bytearray(8192)
-    for y in range(height):
-        for x in range(width):
-            outputBytes[lineOffset[y]+x] = data[y][x]
+def writeScreen(srcWidth,srcHeight,remap,data,output):
+    width = int(srcWidth*2/7)
+    height = srcHeight
+    if (remap):
+        print("; Remapping image to screen")
+        outputBytes = bytearray(8192)
+        for y in range(height):
+            for x in range(width):
+                outputBytes[lineOffset[y]+x] = data[y][x]
+    else:
+        print("; Linear output")
+        outputBytes = bytearray(width*height)
+        for y in range(height):
+            for x in range(width):
+                outputBytes[y*width+x] = data[y][x]
     with open(output, "wb") as binary_file:
         byteCount = binary_file.write(outputBytes)
 
@@ -56,7 +64,7 @@ def closestMatch(colors):
             minScore = testScore
     return(minIndex)
 
-# Usage: inputFile outputFile width height
+# Usage: inputFile outputFile width height remapToScreen
 # FIXME: use a real command line parser
 
 def main():
@@ -65,6 +73,7 @@ def main():
     outfile = sys.argv[2]
     width = int(sys.argv[3])
     height = int(sys.argv[4])
+    remap = int(sys.argv[5])
 
     source = Image.open(infile)
     print(";",infile,source.format, source.size, source.mode)
@@ -102,6 +111,6 @@ def main():
         allData.append(line)
         evenData.append(line[0::2])
         oddData.append(line[1::2])
-    writeScreen(allData, os.path.splitext(outfile)[0] + ".bin")
+    writeScreen(width, height, remap, allData, os.path.splitext(outfile)[0] + ".bin")
 
 main()

@@ -29,25 +29,18 @@
 .endmacro
 
 .macro  MapText s
-        .repeat .strlen(s), I
-        .byte   .strat(s, I) - $20
-        .endrep
+    .repeat .strlen(s), I
+    .byte   .strat(s, I) - $20
+    .endrep
 .endmacro
 
-.macro  MapTextCord sx,sy,s
-        .byte   sx,sy
-        MapText s
-        .byte   $FF
-.endmacro
-
-.macro  MapString s
-        .repeat .strlen(s), I
-        .byte   .strat(s, I) + $20
-        .endrep
+.macro  TileText s
+    MapText s
+    .byte   $FF
 .endmacro
 
 .macro  byteRep b,num
-        .repeat num
-        .byte   b
-        .endrep
+    .repeat num
+    .byte   b
+    .endrep
 .endmacro
