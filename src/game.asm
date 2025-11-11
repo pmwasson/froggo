@@ -49,11 +49,6 @@ MAP_VERTICAL_TILES          = (MAP_BOTTOM-MAP_TOP)/TILE_HEIGHT
 MAP_INDEX_MIDDLE            = 0
 MAP_INDEX_TOP               = 20
 MAP_INDEX_BOTTOM            = 40
-MAP_INDEX_SCORE             = 60
-MAP_INDEX_CREDITS1          = 80
-MAP_INDEX_CREDITS2          = 100
-
-ROAD_X                      = 4 * TILE_WIDTH
 
 STATE_IDLE                  = 0
 STATE_START_UP              = 1
@@ -141,10 +136,10 @@ TILE_TYPE_BUFFER7           = $87
 .proc main
 
     jsr         initCode
-    jsr         initBuffers
-    jsr         initState
+    ;jsr         initBuffers
     jsr         loadLevel
     jsr         initDisplay
+    jsr         initState
 
 game_loop:
 
@@ -234,7 +229,7 @@ goUp:
     jmp         game_loop
 
 goDown:
-    ; check if at top
+    ; check if at bottom
     lda         playerY
     cmp         #MAP_BOTTOM-TILE_HEIGHT*2
     beq         :+
@@ -503,7 +498,13 @@ index:          .byte   0
 .proc drawText
 
     jsr         drawString
-    MapTextCord 0,1,"--- SCORE: 00000 ---"
+    MapTextCord 0,0,"/------------------\"
+
+    jsr         drawString
+    MapTextCord 0,1,"_    SCORE: 000    _"
+
+    jsr         drawString
+    MapTextCord 0,2,"[------------------]"
 
     jsr         drawString
     MapTextCord 38,3,">"
@@ -512,7 +513,13 @@ index:          .byte   0
     MapTextCord 38,20,">"
 
     jsr         drawString
-    MapTextCord 0,22,"------ FROGGO ------"
+    MapTextCord 0,21,"/------------------\"
+
+    jsr         drawString
+    MapTextCord 0,22,"_ @    FROGGO    @ _"
+
+    jsr         drawString
+    MapTextCord 0,23,"[------------------]"
 
     ;jsr         drawString
     ;MapTextCord 0,23," PAUL WASSON - 2025 "
@@ -547,7 +554,7 @@ index:          .byte   0
 .endproc
 
 ;-----------------------------------------------------------------------------
-; drawTile -- draw 2-byte x 8 row tile
+; drawTile -- draw aligned 2-byte x 8 row tile
 ;
 ;   tileY - row to start drawing 0..23
 ;   tileX - column to start drawing 0..39
@@ -587,6 +594,106 @@ drawLoop:
     sta         screenPtr1
     dex
     bne         drawLoop
+
+    rts
+
+.endproc
+
+
+;-----------------------------------------------------------------------------
+; drawPlayerOR -- OR 2x8 player shape, unaligned Y, aligned X
+;
+;   A       - start of shape in playerShapes
+;   playerY - row to start drawing 0..183 (191-8)
+;   playerX - column to start drawing 0..39
+;-----------------------------------------------------------------------------
+
+
+.proc drawPlayerOR
+
+    sta         shapeOffset
+    lda         playerY
+    sta         row
+    clc
+    adc         #8
+    sta         lastRow
+
+loop:
+    ldx         row
+    lda         playerX
+    clc
+    adc         fullLineOffset,x
+    sta         screenPtr0
+    lda         fullLinePage,x
+    adc         drawPage
+    sta         screenPtr1
+
+    ldy         #0
+    ldx         shapeOffset
+    lda         (screenPtr0),y
+    ora         playerShapes,x
+    sta         (screenPtr0),y
+    iny
+    lda         (screenPtr0),y
+    ora         playerShapes+1,x
+    sta         (screenPtr0),y
+    inc         shapeOffset
+    inc         shapeOffset
+    inc         row
+    lda         row
+    cmp         lastRow
+    bne         loop
+    rts
+
+shapeOffset:    .byte   0
+row:            .byte   0
+lastRow:        .byte   0
+
+    rts
+
+.endproc
+
+
+; This code in a copy of above with "ora" -> "and".
+; Any changes should be reflected above and then re-copied and substituted.
+.proc drawPlayerAND
+
+    sta         shapeOffset
+    lda         playerY
+    sta         row
+    clc
+    adc         #8
+    sta         lastRow
+
+loop:
+    ldx         row
+    lda         playerX
+    clc
+    adc         fullLineOffset,x
+    sta         screenPtr0
+    lda         fullLinePage,x
+    adc         drawPage
+    sta         screenPtr1
+
+    ldx         shapeOffset
+    lda         (screenPtr0),y
+    and         playerShapes,x
+    sta         (screenPtr0),y
+    iny
+    lda         (screenPtr0),y
+    and         playerShapes+1,x
+    sta         (screenPtr0),y
+    inc         shapeOffset
+    inc         shapeOffset
+    inc         row
+    lda         row
+    cmp         lastRow
+    bne         loop
+    rts
+
+shapeOffset:    .byte   0
+row:            .byte   0
+lastRow:        .byte   0
 
     rts
 
@@ -1192,9 +1299,12 @@ bgYLoop:
     ldx         #0
 bgXLoop:
     ldy         bgTiles+1,x                 ; ignore row columns 0 & 19
+    sty         tileIndex
     lda         tileTypeTable,y
     ldy         index
-    sta         tileArray,y
+    sta         tileTypeArray,y
+    lda         tileIndex
+    sta         tileCacheArray,y
     inc         index
     inx
     cpx         #MAP_HORIZONTAL_TILES-2     ; -2 for ignore left-most/right-most
@@ -1225,10 +1335,13 @@ miscTileLoop:
 
     iny
     lda         (scriptPtr0),y              ; tile #
+    sta         tileIndex
     tax
     lda         tileTypeTable,x
     ldx         index
-    sta         tileArray,x
+    sta         tileTypeArray,x
+    lda         tileIndex
+    sta         tileCacheArray,x
 
     iny
     jmp         miscTileLoop
@@ -1242,6 +1355,7 @@ doneMiscTiles:
     rts
 
 index:      .byte   0
+tileIndex:  .byte   0
 
 .endproc
 
@@ -1321,7 +1435,8 @@ mult18Table:    .byte   18*0, 18*1, 18*2, 18*3,  18*4,  18*5,  18*6
 
 
 .align 256
-tileArray:      .res        256         ; collision detection (18x14 array)
+tileTypeArray:  .res        256         ; collision detection (18x14 array)
+tileCacheArray: .res        256         ; track tile index for BG
 
 levelData:
 ; Level 1
@@ -1553,6 +1668,7 @@ fullLinePage:
 .align 256
 tileSheet:
 .include        "font.asm"
+.include        "playerShapes.asm"
 
 
 

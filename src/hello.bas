@@ -1,0 +1,2 @@
+10 HOME
+20 PRINT "HELLO!"
