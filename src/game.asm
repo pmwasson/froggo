@@ -53,26 +53,21 @@ MAP_INDEX_BOTTOM            = 40
 STATE_IDLE                  = 0
 STATE_START_UP              = 1
 STATE_MOVE_UP               = 2
-STATE_DONE_UP               = 3
-STATE_START_DOWN            = 4
-STATE_MOVE_DOWN             = 5
-STATE_DONE_DOWN             = 6
+STATE_START_DOWN            = 3
+STATE_MOVE_DOWN             = 4
+STATE_START_RIGHT           = 5
+STATE_MOVE_RIGHT            = 6
+STATE_START_LEFT            = 7
+STATE_MOVE_LEFT             = 8
 STATE_DEAD                  = $FF
 
 PLAYER_INIT_X               = MAP_LEFT+TILE_WIDTH
 PLAYER_INIT_Y               = MAP_BOTTOM-TILE_HEIGHT*2
 PLAYER_INIT_STATE           = STATE_IDLE
 
-MOVE_DELAY                  = 3
+MOVE_DELAY                  = 5
 
 TILE_GRASS                  = $46
-TILE_PLAYER_GREEN_IDLE      = $6E
-TILE_PLAYER_GREEN_DEAD      = $6F
-TILE_PLAYER_GREEN_UP_1      = $62
-TILE_PLAYER_GREEN_UP_2      = $6A
-TILE_PLAYER_GREEN_DOWN_1    = $63
-TILE_PLAYER_GREEN_DOWN_2    = $6B
-
 TILE_GRASS_ROAD             = $47
 TILE_ROAD                   = $57
 TILE_ROAD_GRASS             = $45
@@ -114,20 +109,31 @@ TILE_BUFFER5                = $85
 TILE_BUFFER6                = $86
 TILE_BUFFER7                = $87
 
-TILE_TYPE_FREE              = 0
-TILE_TYPE_COIN              = 1
-TILE_TYPE_BLOCKED           = 2
-TILE_TYPE_DEATH             = 4
+TILE_TYPE_FREE              = $00
+TILE_TYPE_COIN              = $01
+TILE_TYPE_BLOCKED           = $02
+TILE_TYPE_DEATH             = $04
 
 TILE_TYPE_BUFFER0           = $80
-TILE_TYPE_BUFFER1           = $81
-TILE_TYPE_BUFFER2           = $82
-TILE_TYPE_BUFFER3           = $83
-TILE_TYPE_BUFFER4           = $84
-TILE_TYPE_BUFFER5           = $85
-TILE_TYPE_BUFFER6           = $86
-TILE_TYPE_BUFFER7           = $87
+TILE_TYPE_BUFFER1           = $90
+TILE_TYPE_BUFFER2           = $A0
+TILE_TYPE_BUFFER3           = $B0
+TILE_TYPE_BUFFER4           = $C0
+TILE_TYPE_BUFFER5           = $D0
+TILE_TYPE_BUFFER6           = $E0
+TILE_TYPE_BUFFER7           = $F0
 
+PLAYER_OFFSET_IDLE          = $00
+PLAYER_OFFSET_IDLE_MASK     = $10
+PLAYER_OFFSET_DEAD          = $20
+PLAYER_OFFSET_UP_1          = $30
+PLAYER_OFFSET_UP_2          = $40
+PLAYER_OFFSET_DOWN_1        = $50
+PLAYER_OFFSET_DOWN_2        = $60
+PLAYER_OFFSET_LEFT_1        = $70
+PLAYER_OFFSET_LEFT_2        = $80
+PLAYER_OFFSET_RIGHT_1       = $90
+PLAYER_OFFSET_RIGHT_2       = $A0
 
 ;-----------------------------------------------------------------------------
 ; Main program
@@ -154,16 +160,20 @@ game_loop:
 
 ;switchTo2
     ; switch page
+    jsr         drawPlayer1
     bit         HISCR           ; display high screen
     lda         #$00            ; update low screen
     sta         drawPage
+    jsr         erasePlayer0
     jmp         game_loop
 
 switchTo1:
     ; switch page
+    jsr         drawPlayer0
     bit         LOWSCR          ; display low screen
     lda         #$20            ; update high screen
     sta         drawPage
+    jsr         erasePlayer1
 
     ; Check for user input
     ;---------------------------
@@ -216,11 +226,58 @@ switchTo1:
 :
     jmp         game_loop
 
+goRight:
+    ; check if at right edge
+    lda         playerX
+    cmp         #(MAP_RIGHT-TILE_WIDTH*2)
+    beq         :+
+    lda         playerX
+    sta         tileX
+    lda         playerTileY
+    sta         tileY
+    inc         tileX
+    inc         tileX               ; check right
+    jsr         movementCheck
+    bne         :+
+    lda         #STATE_START_RIGHT
+    sta         playerState
+    lda         #0
+    sta         count
+:
+    jmp         game_loop
+
+goLeft:
+    ; check if at left edge
+    lda         playerX
+    cmp         #(MAP_LEFT+TILE_WIDTH)
+    beq         :+
+    lda         playerX
+    sta         tileX
+    lda         playerTileY
+    sta         tileY
+    dec         tileX
+    dec         tileX               ; check right
+    jsr         movementCheck
+    bne         :+
+    lda         #STATE_START_LEFT
+    sta         playerState
+    lda         #0
+    sta         count
+:
+    jmp         game_loop
+
 goUp:
     ; check if at top
-    lda         playerY
-    cmp         #MAP_TOP+TILE_HEIGHT
+    lda         playerTileY
+    cmp         #(MAP_TOP+TILE_HEIGHT)
     beq         :+
+    lda         playerX
+    sta         tileX
+    lda         playerTileY
+    sta         tileY
+    dec         tileY               ; check above
+    jsr         movementCheck
+    bne         :+
     lda         #STATE_START_UP
     sta         playerState
     lda         #0
@@ -230,9 +287,16 @@ goUp:
 
 goDown:
     ; check if at bottom
-    lda         playerY
-    cmp         #MAP_BOTTOM-TILE_HEIGHT*2
+    lda         playerTileY
+    cmp         #(MAP_BOTTOM-TILE_HEIGHT*2)
     beq         :+
+    lda         playerX
+    sta         tileX
+    lda         playerTileY
+    sta         tileY
+    inc         tileY               ; check below
+    jsr         movementCheck
+    bne         :+
     lda         #STATE_START_DOWN
     sta         playerState
     lda         #0
@@ -240,10 +304,53 @@ goDown:
 :
     jmp         game_loop
 
-goRight:
-goLeft:
-    jmp         game_loop
+drawPlayer0:
+    lda         drawTileX0
+    sta         eraseTileX0_0
+    lda         drawTileY0
+    sta         eraseTileY0_0
+    lda         drawTileX1
+    sta         eraseTileX1_0
+    lda         drawTileY1
+    sta         eraseTileY1_0
+    rts
 
+drawPlayer1:
+    lda         drawTileX0
+    sta         eraseTileX0_1
+    lda         drawTileY0
+    sta         eraseTileY0_1
+    lda         drawTileX1
+    sta         eraseTileX1_1
+    lda         drawTileY1
+    sta         eraseTileY1_1
+    rts
+
+erasePlayer0:
+    lda         eraseTileX0_0
+    sta         tileX
+    lda         eraseTileY0_0
+    sta         tileY
+    jsr         eraseTile
+    lda         eraseTileX1_0
+    sta         tileX
+    lda         eraseTileY1_0
+    sta         tileY
+    jsr         eraseTile
+    rts
+
+erasePlayer1:
+    lda         eraseTileX0_1
+    sta         tileX
+    lda         eraseTileY0_1
+    sta         tileY
+    jsr         eraseTile
+    lda         eraseTileX1_1
+    sta         tileX
+    lda         eraseTileY1_1
+    sta         tileY
+    jsr         eraseTile
+    rts
 
 .endproc
 
@@ -256,36 +363,106 @@ goLeft:
 
     lda         playerX
     sta         tileX
-    lda         playerY
-    sta         tileY
+    sta         drawTileX0
+    sta         drawTileX1
+    lda         playerTileY
+    sta         drawTileY0
+    sta         drawTileY1
 
     lda         playerState
     cmp         #STATE_DEAD
     bne         :+
-    lda         #TILE_PLAYER_GREEN_DEAD
-    jsr         drawTile
+    lda         #PLAYER_OFFSET_DEAD
+    jsr         drawPlayerOR
     rts
 :
-
     lda         playerState
     cmp         #STATE_IDLE
     bne         :+
-    lda         #TILE_PLAYER_GREEN_IDLE
-    jsr         drawTile
+    lda         #PLAYER_OFFSET_IDLE
+    jsr         drawPlayerOR
+    rts
+:
+    cmp         #STATE_START_LEFT
+    bne         :+
+    dec         drawTileX1
+    dec         drawTileX1
+    lda         #PLAYER_OFFSET_LEFT_2
+    jsr         drawPlayerOR
+    dec         playerX
+    dec         playerX
+    lda         #PLAYER_OFFSET_LEFT_1
+    jsr         drawPlayerOR
+    inc         playerX
+    inc         playerX
+    sta         SPEAKER
+    lda         count
+    cmp         #MOVE_DELAY
+    bmi         doneLeft
+    lda         #STATE_MOVE_LEFT
+    sta         playerState
+doneLeft:
+    rts
+:
+    cmp         #STATE_MOVE_LEFT
+    bne         :+
+    dec         drawTileX0
+    dec         drawTileX0
+    dec         playerX
+    dec         playerX
+    lda         #PLAYER_OFFSET_IDLE
+    jsr         drawPlayerOR
+    lda         #STATE_IDLE
+    sta         playerState
+    rts
+:
+    cmp         #STATE_START_RIGHT
+    bne         :+
+    inc         drawTileX1
+    inc         drawTileX1
+    lda         #PLAYER_OFFSET_RIGHT_1
+    jsr         drawPlayerOR
+    inc         playerX
+    inc         playerX
+    lda         #PLAYER_OFFSET_RIGHT_2
+    jsr         drawPlayerOR
+    dec         playerX
+    dec         playerX
+    sta         SPEAKER
+    lda         count
+    cmp         #MOVE_DELAY
+    bmi         doneRight
+    lda         #STATE_MOVE_RIGHT
+    sta         playerState
+doneRight:
+    rts
+:
+    cmp         #STATE_MOVE_RIGHT
+    bne         :+
+    inc         drawTileX0
+    inc         drawTileX0
+    inc         playerX
+    inc         playerX
+    lda         #PLAYER_OFFSET_IDLE
+    jsr         drawPlayerOR
+    lda         #STATE_IDLE
+    sta         playerState
     rts
 :
     cmp         #STATE_START_UP
     bne         :+
-    lda         count
-    and         #1
-    beq         noNoiseUp
-    sta         SPEAKER
-noNoiseUp:
-    lda         #TILE_PLAYER_GREEN_UP_2
-    jsr         drawTile
-    dec         tileY
-    lda         #TILE_PLAYER_GREEN_UP_1
-    jsr         drawTile
+    dec         drawTileY1
+    lda         #PLAYER_OFFSET_UP_2
+    jsr         drawPlayerOR
+    lda         playerY
+    sta         saveY
+    sec
+    sbc         #8
+    sta         playerY
+    lda         #PLAYER_OFFSET_UP_1
+    jsr         drawPlayerOR
+    lda         saveY
+    sta         playerY
     sta         SPEAKER
     lda         count
     cmp         #MOVE_DELAY
@@ -297,40 +474,32 @@ doneUp:
 :
     cmp         #STATE_MOVE_UP
     bne         :+
-    lda         #TILE_GRASS
-    jsr         drawTile
-    dec         tileY
-    lda         #TILE_PLAYER_GREEN_IDLE
-    jsr         drawTile
-    dec         playerY
-    lda         #STATE_DONE_UP
-    sta         playerState
-    rts
-:
-    cmp         #STATE_DONE_UP
-    bne         :+
-    lda         #TILE_PLAYER_GREEN_IDLE
-    jsr         drawTile
-    inc         tileY
-    lda         #TILE_GRASS
-    jsr         drawTile
+    dec         drawTileY0
+    lda         playerY
+    sec
+    sbc         #8
+    sta         playerY
+    dec         playerTileY
+    lda         #PLAYER_OFFSET_IDLE
+    jsr         drawPlayerOR
     lda         #STATE_IDLE
     sta         playerState
     rts
 :
-
     cmp         #STATE_START_DOWN
     bne         :+
-    lda         count
-    and         #1
-    beq         noNoiseDown
-    sta         SPEAKER
-noNoiseDown:
-    lda         #TILE_PLAYER_GREEN_DOWN_1
-    jsr         drawTile
-    inc         tileY
-    lda         #TILE_PLAYER_GREEN_DOWN_2
-    jsr         drawTile
+    inc         drawTileY1
+    lda         #PLAYER_OFFSET_DOWN_1
+    jsr         drawPlayerOR
+    lda         playerY
+    sta         saveY
+    clc
+    adc         #8
+    sta         playerY
+    lda         #PLAYER_OFFSET_DOWN_2
+    jsr         drawPlayerOR
+    lda         saveY
+    sta         playerY
     sta         SPEAKER
     lda         count
     cmp         #MOVE_DELAY
@@ -342,31 +511,74 @@ doneDown:
 :
     cmp         #STATE_MOVE_DOWN
     bne         :+
-    lda         #TILE_GRASS
-    jsr         drawTile
-    inc         tileY
-    lda         #TILE_PLAYER_GREEN_IDLE
-    jsr         drawTile
-    inc         playerY
-    lda         #STATE_DONE_DOWN
-    sta         playerState
-    rts
-:
-    cmp         #STATE_DONE_DOWN
-    bne         :+
-    lda         #TILE_PLAYER_GREEN_IDLE
-    jsr         drawTile
-    dec         tileY
-    lda         #TILE_GRASS
-    jsr         drawTile
+    inc         drawTileY0
+    lda         playerY
+    clc
+    adc         #8
+    sta         playerY
+    inc         playerTileY
+    lda         #PLAYER_OFFSET_IDLE
+    jsr         drawPlayerOR
     lda         #STATE_IDLE
     sta         playerState
     rts
 :
     brk
 
+saveY:          .byte   0
 .endproc
 
+;-----------------------------------------------------------------------------
+; Tile 2 array
+;
+;   Convert (tileX,tileY) to an array index
+;-----------------------------------------------------------------------------
+
+.proc tile2array
+    lda         tileX
+    lsr                                     ; / TILE_WIDTH
+    sta         index
+    dec         index                       ; -1 to ignore left
+    lda         tileY
+    sec
+    sbc         #(MAP_TOP+1)
+    tax
+    lda         mult18Table,x               ; mult Y by 18
+    clc
+    adc         index
+    rts
+
+index:          .byte   0
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Erase Tile
+;-----------------------------------------------------------------------------
+; Read tile cache and erase
+.proc eraseTile
+    jsr         tile2array
+    tax
+    lda         tileCacheArray,x
+    bmi         :+                  ; ignore active columns
+    jmp         drawTile            ; chain returns
+:
+    rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Movement check
+;
+;   Return 0 if not blocked
+;-----------------------------------------------------------------------------
+.proc movementCheck
+    jsr         tile2array
+    tax
+    lda         tileTypeArray,x
+    and         #TILE_TYPE_BLOCKED
+    rts
+.endproc
 
 ;-----------------------------------------------------------------------------
 ; Sound "Move"
@@ -612,6 +824,9 @@ drawLoop:
 .proc drawPlayerOR
 
     sta         shapeOffset
+    bne         :+
+    jsr         drawPlayerAND       ; only shape 0 (idle) gets a mask
+:
     lda         playerY
     sta         row
     clc
@@ -656,8 +871,10 @@ lastRow:        .byte   0
 
 ; This code in a copy of above with "ora" -> "and".
 ; Any changes should be reflected above and then re-copied and substituted.
+
 .proc drawPlayerAND
 
+    lda         #PLAYER_OFFSET_IDLE_MASK        ; hard coded
     sta         shapeOffset
     lda         playerY
     sta         row
@@ -675,6 +892,7 @@ loop:
     adc         drawPage
     sta         screenPtr1
 
+    ldy         #0
     ldx         shapeOffset
     lda         (screenPtr0),y
     and         playerShapes,x
@@ -811,8 +1029,18 @@ drawLoop:
 .proc initState
     lda         #PLAYER_INIT_X
     sta         playerX
-    lda         #PLAYER_INIT_Y
+    sta         eraseTileX0_0
+    sta         eraseTileX1_0
+    sta         eraseTileX0_1
+    sta         eraseTileX1_1
+    lda         #PLAYER_INIT_Y*8
     sta         playerY
+    lda         #PLAYER_INIT_Y
+    sta         playerTileY
+    sta         eraseTileY0_0
+    sta         eraseTileY1_0
+    sta         eraseTileY0_1
+    sta         eraseTileY1_1
     lda         #PLAYER_INIT_STATE
     sta         playerState
     rts
@@ -1416,10 +1644,25 @@ quitParams:
 ;-----------------------------------------------------------------------------
 
 count:          .byte       0
-playerX:        .byte       MAP_LEFT+TILE_WIDTH
-playerY:        .byte       MAP_BOTTOM-TILE_HEIGHT*2
+playerX:        .byte       0
+playerY:        .byte       0
+playerTileY:    .byte       0
 playerState:    .byte       STATE_IDLE
 activeColumns:  .byte       0
+
+; player drawing
+drawTileX0:     .byte       0
+drawTileY0:     .byte       0
+drawTileX1:     .byte       0
+drawTileY1:     .byte       0
+eraseTileX0_0:  .byte       0
+eraseTileY0_0:  .byte       0
+eraseTileX1_0:  .byte       0
+eraseTileY1_0:  .byte       0
+eraseTileX0_1:  .byte       0
+eraseTileY0_1:  .byte       0
+eraseTileX1_1:  .byte       0
+eraseTileY1_1:  .byte       0
 
 ; Current level data (expecting order of bgTiles, bufferX, bufferSpeed0&1)
 bgTiles:        .res        20
