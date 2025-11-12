@@ -167,11 +167,11 @@ LEVEL_COLUMN_START          = $2F
 .proc main
 
     jsr         initCode
-    ;jsr         initBuffers
-
-reset_game:
-    jsr         loadLevel
     jsr         initDisplay
+
+reset_loop:
+    jsr         loadLevel
+    jsr         drawScreen
     jsr         initState
 
 game_loop:
@@ -225,7 +225,7 @@ switchTo1:
     ldx         playerState
     cpx         #STATE_GAME_OVER
     bne         :+
-    jmp         reset_game  ; restart game
+    jmp         reset_loop  ; restart game
 :
     ; only process movement keypress if player is idle
     cpx         #STATE_IDLE
@@ -276,7 +276,7 @@ goRight:
     jmp         game_loop
 
 finishLevel:
-    brk
+    jmp         reset_loop
 
 goLeft:
     ; check if at left edge
@@ -418,6 +418,8 @@ erasePlayer1:
     lda         drawPage
     eor         #$20
     sta         drawPage
+    jsr         soundSplat
+    rts
 :
     cmp         #STATE_GAME_OVER
     bne         :+
@@ -429,6 +431,7 @@ erasePlayer1:
     lda         drawPage
     eor         #$20
     sta         drawPage
+    rts
 :
     rts
 .endproc
@@ -844,14 +847,14 @@ index:          .byte   0
 .endproc
 
 ;-----------------------------------------------------------------------------
-; Sound "Move"
+; Sound "Splat"
 ;-----------------------------------------------------------------------------
 
-.proc soundMove
-    ldy         #$14
+.proc soundSplat
+    ldy         #$40
 loop:
     sta         SPEAKER
-    ldx         #$5A
+    ldx         #$B7
 pause:
     dex
     bne         pause
@@ -1306,7 +1309,13 @@ drawLoop:
     lda         #$00
     sta         drawPage
     jsr         clearScreen
+.endproc
 
+;-----------------------------------------------------------------------------
+; Draw Screen
+;-----------------------------------------------------------------------------
+
+.proc drawScreen
     ; display map on both pages
     lda         #$20
     sta         drawPage
@@ -1944,8 +1953,7 @@ levelData1:
     .byte     8                                                                 ; active column pairs
 
     ; column pair 0
-;    .byte   TILE_CAR1_BLUE,TILE_ROAD,TILE_CAR1_PURPLE,TILE_ROAD,TILE_CAR1_BLUE,TILE_ROAD,TILE_ROAD,TILE_ROAD
-    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+    .byte   TILE_CAR1_BLUE,TILE_ROAD,TILE_CAR1_PURPLE,TILE_ROAD,TILE_CAR1_BLUE,TILE_ROAD,TILE_ROAD,TILE_ROAD
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
 
     ; column pair 1
