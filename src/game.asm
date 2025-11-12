@@ -261,7 +261,7 @@ goRight:
     ; check if at right edge
     lda         playerX
     cmp         #(MAP_RIGHT-TILE_WIDTH*2)
-    beq         :+
+    beq         finishLevel
     lda         playerX
     sta         tileX
     lda         playerTileY
@@ -274,6 +274,9 @@ goRight:
     jsr         updateState
 :
     jmp         game_loop
+
+finishLevel:
+    brk
 
 goLeft:
     ; check if at left edge
@@ -360,8 +363,11 @@ erasePlayer0:
     jsr         eraseTile
     inc         tileY
     inc         tileY
+    lda         tileY
+    cmp         #MAP_BOTTOM-TILE_HEIGHT
+    beq         :+
     jsr         eraseTile
-
+:
     lda         eraseTileX1_0
     sta         tileX
     lda         eraseTileY1_0
@@ -380,8 +386,11 @@ erasePlayer1:
     jsr         eraseTile
     inc         tileY
     inc         tileY
+    lda         tileY
+    cmp         #MAP_BOTTOM-TILE_HEIGHT
+    beq         :+
     jsr         eraseTile
-
+:
     lda         eraseTileX1_1
     sta         tileX
     lda         eraseTileY1_1
@@ -463,18 +472,6 @@ erasePlayer1:
 ; Update Player
 ;-----------------------------------------------------------------------------
 .proc updatePlayer
-
-    lda         playerY
-    clc
-    adc         #4
-    lsr
-    lsr
-    lsr
-    cmp         playerTileY
-    beq         :+
-    brk
-:
-
     inc         count
     bne         :+
     inc         count+1
@@ -553,10 +550,10 @@ doneDead:
     adc         playerY
     adc         #256-(MAP_TOP*8-1)
     sta         playerOffset
-    and         #$7f
     lsr
     lsr
     lsr         ; divide by 8
+    and         #$f
     sta         tileTop             ; playerY + offset + 1
 
     lda         playerOffset
@@ -565,6 +562,7 @@ doneDead:
     lsr
     lsr
     lsr         ; divide by 8
+    and         #$f
     sta         tileMiddle
 
     lda         playerOffset
@@ -574,6 +572,7 @@ doneDead:
     lsr
     lsr
     lsr         ; divide by 8
+    and         #$f
     sta         tileBottom          ; playerY + offset + 6
 
     ; check for movement first
@@ -2160,6 +2159,9 @@ fullLinePage:
 tileSheet:
 .include        "font.asm"
 .include        "playerShapes.asm"
+
+cutScene:
+.incbin         "..\build\froggo-crop.bin"
 
 
 
