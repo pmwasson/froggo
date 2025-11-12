@@ -355,6 +355,13 @@ erasePlayer0:
     lda         eraseTileY0_0
     sta         tileY
     jsr         eraseTile
+
+    dec         tileY
+    jsr         eraseTile
+    inc         tileY
+    inc         tileY
+    jsr         eraseTile
+
     lda         eraseTileX1_0
     sta         tileX
     lda         eraseTileY1_0
@@ -368,6 +375,13 @@ erasePlayer1:
     lda         eraseTileY0_1
     sta         tileY
     jsr         eraseTile
+
+    dec         tileY
+    jsr         eraseTile
+    inc         tileY
+    inc         tileY
+    jsr         eraseTile
+
     lda         eraseTileX1_1
     sta         tileX
     lda         eraseTileY1_1
@@ -431,6 +445,8 @@ erasePlayer1:
 :
     ; Make Y align to tiles
     lda         playerY
+    clc
+    adc         #4
     lsr
     lsr
     lsr
@@ -449,6 +465,8 @@ erasePlayer1:
 .proc updatePlayer
 
     lda         playerY
+    clc
+    adc         #4
     lsr
     lsr
     lsr
@@ -571,6 +589,7 @@ doneDead:
     sbc         currentOffset
     sta         playerY
     clc
+    adc         #4
     lsr
     lsr
     lsr                             ; /8
