@@ -84,7 +84,7 @@ PLAYER_INIT_Y               = MAP_BOTTOM-TILE_HEIGHT*2
 PLAYER_INIT_STATE           = STATE_IDLE
 
 MOVE_DELAY                  = 5
-DEAD_DELAY                  = 120
+DEAD_DELAY                  = 150
 
 TILE_GRASS                  = $46
 TILE_GRASS_ROAD             = $47
@@ -155,6 +155,9 @@ PLAYER_OFFSET_RIGHT_1       = $90
 PLAYER_OFFSET_RIGHT_2       = $A0
 
 SKIP_CHAR                   = '`' - $20
+
+LEVEL_COLUMN_START          = $2F
+
 ;-----------------------------------------------------------------------------
 ; Main program
 ;-----------------------------------------------------------------------------
@@ -172,7 +175,6 @@ reset_game:
 game_loop:
 
     jsr         drawRoad
-    jsr         checkPlayer
     jsr         updatePlayer
 
     ; Flip display page
@@ -201,7 +203,6 @@ switchTo1:
     ; Check for user input
     ;---------------------------
 
-
     ; wait for keypress
     lda         KBD
     bmi         :+
@@ -218,12 +219,13 @@ switchTo1:
     jmp         monitor
 :
 
-    ; only process movement keypress if player is idle
+    ; if game over, hit a jey to restart
     ldx         playerState
     cpx         #STATE_GAME_OVER
     bne         :+
     jmp         reset_game  ; restart game
 :
+    ; only process movement keypress if player is idle
     cpx         #STATE_IDLE
     beq         :+
     jmp         game_loop   ; not in idle, so no movement
@@ -374,50 +376,69 @@ erasePlayer1:
 .endproc
 
 ;-----------------------------------------------------------------------------
-; Check Player
-;
-;   Check environment to update player state
-;-----------------------------------------------------------------------------
-.proc checkPlayer
-
-    rts
-
-    ; FIXME REMOVE THIS CODE
-
-    lda         playerState
-    cmp         #STATE_DEAD
-    bne         :+
-    rts                         ; if dead, no changes
-:
-    cmp         #STATE_DEAD
-    bne         :+
-    rts                         ; if game over, no changes
-:
-    lda         playerX
-    sta         tileX
-    lda         playerTileY
-    sta         tileY
-    jsr         tile2array
-    tax
-    lda         tileTypeArray,x
-    and         #TILE_TYPE_DEATH
-    beq         :+
-    lda         #STATE_DEAD
-    jmp         updateState
-:
-    rts
-
-.endproc
-
-;-----------------------------------------------------------------------------
 ; Update State
 ;-----------------------------------------------------------------------------
 .proc updateState
     sta         playerState
-    lda         #0
-    sta         count
-    sta         count+1
+    ldx         #0
+    stx         count
+    stx         count+1
+    cmp         #STATE_DEAD
+    bne         :+
+    DrawStringCord  0, 22, stringGameOver
+    lda         drawPage
+    eor         #$20
+    sta         drawPage
+    DrawStringCord  0, 22, stringGameOver
+    lda         drawPage
+    eor         #$20
+    sta         drawPage
+:
+    cmp         #STATE_GAME_OVER
+    bne         :+
+    DrawStringCord  0, 22, stringPressKey
+    lda         drawPage
+    eor         #$20
+    sta         drawPage
+    DrawStringCord  0, 22, stringPressKey
+    lda         drawPage
+    eor         #$20
+    sta         drawPage
+:
     rts
+.endproc
+
+;-----------------------------------------------------------------------------
+; Set Movement
+;-----------------------------------------------------------------------------
+.proc setMovement
+    ; check if on dynamic column
+    ldx         tileX
+    lda         bgTiles,x
+    bpl         :+
+    lsr
+    lsr
+    lsr
+    lsr
+    tax
+    lda         bufferOffset1,x
+    sta         initialOffset
+    brk
+    rts
+:
+    ; In case not lined up, jump the the average tile
+    lda         playerY
+    adc         #4
+    lsr
+    lsr
+    lsr
+    sta         playerTileY
+    asl
+    asl
+    asl
+    sta         playerY
+    rts
+
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -466,7 +487,86 @@ doneDead:
     lda         #STATE_DEAD
     jmp         updateState
 :
+    ; dynamic column?
+    lda         currentTileType
+    bmi         :+
+    jmp         doneDynamic
+:
 
+    ; calculate indexes into buffer
+    and         #$70
+    sta         columnBase
+    lsr
+    lsr
+    lsr
+    lsr         ; column #
+    tax
+    lda         bufferOffset1,x
+    sta         currentOffset
+    clc
+    adc         playerY
+    adc         #256-(MAP_TOP*8-1)
+    sta         playerOffset
+    and         #$7f
+    lsr
+    lsr
+    lsr         ; divide by 8
+    sta         tileTop             ; playerY + offset + 1
+
+    lda         playerOffset
+    clc
+    adc         #4
+    lsr
+    lsr
+    lsr         ; divide by 8
+    sta         tileMiddle
+
+    lda         playerOffset
+    clc
+    adc         #5
+    and         #$7f
+    lsr
+    lsr
+    lsr         ; divide by 8
+    sta         tileBottom          ; playerY + offset + 6
+
+    ; check for movement first
+    lda         columnBase
+    ora         tileMiddle
+    tax
+    lda         tileDynamicType,x
+    and         #TILE_TYPE_MOVEMENT
+    beq         :+
+
+    lda         currentOffset
+    sec
+    sbc         initialOffset
+    adc         playerY
+    sta         playerY
+    jmp         doneDynamic
+:
+
+    lda         columnBase
+    ora         tileTop
+    tax
+    lda         tileDynamicType,x
+    and         #TILE_TYPE_DEATH
+    beq         :+
+    jmp         dead
+:
+    lda         columnBase
+    ora         tileBottom
+    tax
+    lda         tileDynamicType,x
+    and         #TILE_TYPE_DEATH
+    beq         :+
+dead:
+    lda         #STATE_DEAD
+    jsr         updateState
+    rts
+:
+
+doneDynamic:
     ; check alive states
     lda         playerState
     cmp         #STATE_IDLE
@@ -496,7 +596,6 @@ doneDead:
 doneLeft:
     rts
 :
-
     cmp         #STATE_MOVE_LEFT
     bne         :+
     dec         drawTileX0
@@ -506,7 +605,8 @@ doneLeft:
     lda         #PLAYER_OFFSET_IDLE
     jsr         drawPlayerOR
     lda         #STATE_IDLE
-    jmp         updateState
+    jsr         updateState
+    jmp         setMovement
 :
     cmp         #STATE_START_RIGHT
     bne         :+
@@ -538,8 +638,8 @@ doneRight:
     lda         #PLAYER_OFFSET_IDLE
     jsr         drawPlayerOR
     lda         #STATE_IDLE
-    jmp         updateState
-    rts
+    jsr         updateState
+    jmp         setMovement
 :
     cmp         #STATE_START_UP
     bne         :+
@@ -621,7 +721,12 @@ doneDown:
 
 saveY:              .byte   0
 currentTileType:    .byte   0
-
+columnBase:         .byte   0
+playerOffset:       .byte   0
+tileTop:            .byte   0
+tileMiddle:         .byte   0
+tileBottom:         .byte   0
+currentOffset:      .byte   0
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -701,6 +806,10 @@ pause:
 
     ldx         #0
 
+    lda         playerState
+    cmp         #STATE_DEAD
+    beq         :+
+
 incOffsetLoop:
     clc
     lda         bufferOffset0,x
@@ -712,6 +821,8 @@ incOffsetLoop:
     inx
     cpx         activeColumns
     bne         incOffsetLoop
+
+:
 
     ; point to first odd buffer
     lda         #$FF
@@ -807,7 +918,9 @@ stringBoxTop:       TileText "/------------------\"
 stringScore:        TileText "_    SCORE: 000    _"
 stringBoxBottom:    TileText "[------------------]"
 stringArrow:        TileText ">"
-stringFroggo:       TileText "_ @  ` FROGGO    @ _"
+stringFroggo:       TileText "_ @    FROGGO    @ _"
+stringGameOver:     TileText "_ @  GAME OVER   @ _"
+stringPressKey:     TileText "_   PRESS ANY KEY  _"
 
 .proc drawText
     DrawStringCord  0, 0,  stringBoxTop
@@ -1533,7 +1646,13 @@ tileLoop:
     ldy         index
     lda         (scriptPtr0),y
     beq         doneWithColumns
+    sta         tileIndex
     jsr         copyTileToBuffers
+
+    ldx         tileIndex
+    lda         tileTypeTable,x
+    ldy         index
+    sta         tileDynamicType-LEVEL_COLUMN_START,y
 
     inc         index
 
@@ -1565,6 +1684,7 @@ doneWithColumns:
     rts
 
 index:          .byte   0
+tileIndex:      .byte   0
 
 .endproc
 
@@ -1711,6 +1831,7 @@ playerY:        .byte       0
 playerTileY:    .byte       0
 playerState:    .byte       STATE_IDLE
 activeColumns:  .byte       0
+initialOffset:  .byte       0
 
 ; player drawing
 drawTileX0:     .byte       0
@@ -1740,8 +1861,9 @@ mult18Table:    .byte   18*0, 18*1, 18*2, 18*3,  18*4,  18*5,  18*6
 
 
 .align 256
-tileTypeArray:  .res        256         ; collision detection (18x14 array)
-tileCacheArray: .res        256         ; track tile index for BG
+tileTypeArray:      .res        256         ; collision detection (18x14 array)
+tileCacheArray:     .res        256         ; track tile index for BG
+tileDynamicType:    .res        MAX_COLUMN_PAIRS*COLUMN_ROWS/8
 
 levelData:
 ; Level 1
@@ -1760,7 +1882,8 @@ levelData1:
     .byte     8                                                                 ; active column pairs
 
     ; column pair 0
-    .byte   TILE_CAR1_BLUE,TILE_ROAD,TILE_CAR1_PURPLE,TILE_ROAD,TILE_CAR1_BLUE,TILE_ROAD,TILE_ROAD,TILE_ROAD
+;    .byte   TILE_CAR1_BLUE,TILE_ROAD,TILE_CAR1_PURPLE,TILE_ROAD,TILE_CAR1_BLUE,TILE_ROAD,TILE_ROAD,TILE_ROAD
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
 
     ; column pair 1
