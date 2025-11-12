@@ -31,6 +31,8 @@
 ; Constants
 ;-----------------------------------------------------------------------------
 
+BREAK_X = 24
+
 ; reuse zero page addresses
 bufferPtr0                  := mapPtr0      ; and +1
 bufferPtr1                  := maskPtr0     ; and +1
@@ -416,22 +418,19 @@ erasePlayer1:
     ; check if on dynamic column
     lda         playerX
     lsr
-    tax
-    lda         bgTiles,x
+    tay
+    lda         bgTiles,y
     bpl         :+
-    and         #$70
-    lsr
-    lsr
-    lsr
-    lsr
+    and         #$07
     tax
     lda         bufferOffset1,x
+    clc
+    adc         playerY
     sta         initialOffset
     rts
 :
-    ; In case not lined up, jump the the average tile
+    ; Make Y align to tiles
     lda         playerY
-    adc         #4
     lsr
     lsr
     lsr
@@ -448,6 +447,15 @@ erasePlayer1:
 ; Update Player
 ;-----------------------------------------------------------------------------
 .proc updatePlayer
+
+    lda         playerY
+    lsr
+    lsr
+    lsr
+    cmp         playerTileY
+    beq         :+
+    brk
+:
 
     inc         count
     bne         :+
@@ -481,6 +489,23 @@ doneDead:
 :
 
     ; player is alive, so check environment before processing state
+
+    ; Above the top?
+    lda         playerY
+    cmp         #(MAP_TOP+TILE_HEIGHT)*8
+    bcs         :+
+    lda         #STATE_DEAD
+    jmp         updateState
+:
+
+    ; Below the bottom?
+    cmp         #(MAP_BOTTOM-2*TILE_HEIGHT)*8+1
+    bcc         :+
+    lda         #STATE_DEAD
+    jmp         updateState
+:
+
+
     jsr         tile2array
     tax
     lda         tileTypeArray,x
@@ -541,11 +566,15 @@ doneDead:
     and         #TILE_TYPE_MOVEMENT
     beq         :+
 
-    lda         currentOffset
+    lda         initialOffset
     sec
-    sbc         initialOffset
-    adc         playerY
+    sbc         currentOffset
     sta         playerY
+    clc
+    lsr
+    lsr
+    lsr                             ; /8
+    sta         playerTileY
     jmp         doneDynamic
 :
 
