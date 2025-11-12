@@ -705,6 +705,10 @@ doneUp:
     sec
     sbc         #8
     sta         playerY
+    lda         initialOffset
+    sec
+    sbc         #8
+    sta         initialOffset
     dec         playerTileY
     lda         #PLAYER_OFFSET_IDLE
     jsr         drawPlayerOR
@@ -742,6 +746,10 @@ doneDown:
     clc
     adc         #8
     sta         playerY
+    lda         initialOffset
+    clc
+    adc         #8
+    sta         initialOffset
     inc         playerTileY
     lda         #PLAYER_OFFSET_IDLE
     jsr         drawPlayerOR
