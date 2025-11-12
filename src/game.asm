@@ -412,10 +412,14 @@ erasePlayer1:
 ; Set Movement
 ;-----------------------------------------------------------------------------
 .proc setMovement
+
     ; check if on dynamic column
-    ldx         tileX
+    lda         playerX
+    lsr
+    tax
     lda         bgTiles,x
     bpl         :+
+    and         #$70
     lsr
     lsr
     lsr
@@ -423,7 +427,6 @@ erasePlayer1:
     tax
     lda         bufferOffset1,x
     sta         initialOffset
-    brk
     rts
 :
     ; In case not lined up, jump the the average tile
@@ -592,7 +595,7 @@ doneDynamic:
     cmp         #MOVE_DELAY
     bmi         doneLeft
     lda         #STATE_MOVE_LEFT
-    jmp         updateState
+    jsr         updateState
 doneLeft:
     rts
 :
@@ -606,7 +609,8 @@ doneLeft:
     jsr         drawPlayerOR
     lda         #STATE_IDLE
     jsr         updateState
-    jmp         setMovement
+    jsr         setMovement
+    rts
 :
     cmp         #STATE_START_RIGHT
     bne         :+
@@ -625,7 +629,7 @@ doneLeft:
     cmp         #MOVE_DELAY
     bmi         doneRight
     lda         #STATE_MOVE_RIGHT
-    jmp         updateState
+    jsr         updateState
 doneRight:
     rts
 :
@@ -639,7 +643,8 @@ doneRight:
     jsr         drawPlayerOR
     lda         #STATE_IDLE
     jsr         updateState
-    jmp         setMovement
+    jsr         setMovement
+    rts
 :
     cmp         #STATE_START_UP
     bne         :+
@@ -660,7 +665,7 @@ doneRight:
     cmp         #MOVE_DELAY
     bmi         doneUp
     lda         #STATE_MOVE_UP
-    jmp         updateState
+    jsr         updateState
 doneUp:
     rts
 :
@@ -675,7 +680,8 @@ doneUp:
     lda         #PLAYER_OFFSET_IDLE
     jsr         drawPlayerOR
     lda         #STATE_IDLE
-    jmp         updateState
+    jsr         updateState
+    rts
 :
     cmp         #STATE_START_DOWN
     bne         :+
@@ -696,7 +702,7 @@ doneUp:
     cmp         #MOVE_DELAY
     bmi         doneDown
     lda         #STATE_MOVE_DOWN
-    jmp         updateState
+    jsr         updateState
 doneDown:
     rts
 :
@@ -711,7 +717,8 @@ doneDown:
     lda         #PLAYER_OFFSET_IDLE
     jsr         drawPlayerOR
     lda         #STATE_IDLE
-    jmp         updateState
+    jsr         updateState
+    rts
 :
     cmp         #STATE_GAME_OVER
     bne         :+
