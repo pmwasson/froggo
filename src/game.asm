@@ -27,6 +27,30 @@
     jsr     drawString
 .endmacro
 
+.macro  DrawImageParam imgX, imgY, imgWidth, imgHeight, imgPtr
+    lda     #imgX
+    sta     imageX
+    lda     #imgY
+    sta     imageY
+    lda     #imgWidth
+    sta     imageWidth
+    lda     #imgHeight
+    sta     imageHeight
+    lda     #<imgPtr
+    sta     tilePtr0
+    lda     #>imgPtr
+    sta     tilePtr1
+    jsr     drawImage
+.endmacro
+
+.macro PlaySongPtr song
+    lda     #<song
+    sta     stringPtr0
+    lda     #>song
+    sta     stringPtr1
+    jsr     playSong
+.endmacro
+
 ;-----------------------------------------------------------------------------
 ; Constants
 ;-----------------------------------------------------------------------------
@@ -40,10 +64,11 @@ bufferPtr1                  := maskPtr0     ; and +1
 ; Constants for draw loop unrolling
 MAX_COLUMNS                 = 16
 MAX_COLUMN_PAIRS            = MAX_COLUMNS/2
-COLUMN_CODE_START           = $2000     ; page0 $2000..$5048, page1 $5049..$8091
-COLUMN_CODE_START_PAGE2     = $5049
-COLUMN_BUFFER_START         = $8100     ;       $8100..$90FF
-DISPATCH_CODE               = $C00
+COLUMN_CODE_START           = $2000                         ; page0 offset $0000..$3048, page1 $3049..$6091
+COLUMN_CODE_START_PAGE2     = COLUMN_CODE_START + $3049     ; include some padding after code to align buffers
+COLUMN_BUFFER_START         = COLUMN_CODE_START + $6100     ; size=$1000
+                                                            ; Total size = $7100
+DISPATCH_CODE               = $C00                          ; code very small (<32 bytes)
 
 COLUMN_ROWS                 = 128
 COLUMN_STARTING_ROW         = 32
@@ -160,6 +185,16 @@ SKIP_CHAR                   = '`' - $20
 
 LEVEL_COLUMN_START          = $2F
 
+NOTE_REST                   = 0
+NOTE_E5                     = $61
+NOTE_D5                     = $6D
+NOTE_C5                     = $74
+NOTE_C4                     = $F5
+NOTE_WHOLE                  = 80
+NOTE_HALF                   = NOTE_WHOLE/2
+NOTE_QUARTER                = NOTE_WHOLE/4
+NOTE_DONE                   = 0
+
 ;-----------------------------------------------------------------------------
 ; Main program
 ;-----------------------------------------------------------------------------
@@ -169,10 +204,13 @@ LEVEL_COLUMN_START          = $2F
     jsr         initCode
     jsr         initDisplay
 
+    PlaySongPtr songGameStart
+
 reset_loop:
     jsr         loadLevel
     jsr         drawScreen
     jsr         initState
+
 
 game_loop:
 
@@ -221,10 +259,11 @@ switchTo1:
     jmp         monitor
 :
 
-    ; if game over, hit a jey to restart
+    ; if game over, hit a key to restart
     ldx         playerState
     cpx         #STATE_GAME_OVER
     bne         :+
+    PlaySongPtr songGameStart
     jmp         reset_loop  ; restart game
 :
     ; only process movement keypress if player is idle
@@ -261,7 +300,7 @@ goRight:
     ; check if at right edge
     lda         playerX
     cmp         #(MAP_RIGHT-TILE_WIDTH*2)
-    beq         finishLevel
+    beq         atRightEdge
     lda         playerX
     sta         tileX
     lda         playerTileY
@@ -275,7 +314,8 @@ goRight:
 :
     jmp         game_loop
 
-finishLevel:
+atRightEdge:
+    jsr         finishLevel
     jmp         reset_loop
 
 goLeft:
@@ -401,6 +441,51 @@ erasePlayer1:
 .endproc
 
 ;-----------------------------------------------------------------------------
+; Finish Level
+;-----------------------------------------------------------------------------
+.proc finishLevel
+
+    ; Drawing on high screen
+
+    ; Display image
+    DrawImageParam  MAP_LEFT,MAP_TOP*8,(MAP_RIGHT-MAP_LEFT),(MAP_BOTTOM-MAP_TOP)*8,cutScene
+    DrawStringCord  0, 22, stringLevelComplete
+
+    ; display Image
+    bit         HISCR
+    PlaySongPtr songGameStart
+    jsr         waitForKey
+
+    bit         LOWSCR
+    rts
+.endproc
+
+.proc waitForKey
+    ; kill extra keypress
+    bit         KBDSTRB
+
+    lda         #15         ; about 10 seconds
+    sta         wait
+    ldy         #0
+    ldx         #0
+loop:
+    lda         KBD
+    bmi         done
+    dex
+    bne         loop
+    dey
+    bne         loop
+    dec         wait
+    bne         loop
+    ; timeout
+done:
+    bit         KBDSTRB
+    rts
+
+wait:           .byte   0
+.endproc
+
+;-----------------------------------------------------------------------------
 ; Update State
 ;-----------------------------------------------------------------------------
 .proc updateState
@@ -418,7 +503,7 @@ erasePlayer1:
     lda         drawPage
     eor         #$20
     sta         drawPage
-    jsr         soundSplat
+    PlaySongPtr songOuch
     rts
 :
     cmp         #STATE_GAME_OVER
@@ -431,6 +516,7 @@ erasePlayer1:
     lda         drawPage
     eor         #$20
     sta         drawPage
+    PlaySongPtr songDead
     rts
 :
     rts
@@ -847,20 +933,99 @@ index:          .byte   0
 .endproc
 
 ;-----------------------------------------------------------------------------
-; Sound "Splat"
+; Play Tone
+;
+;   A = tone, X=duration
 ;-----------------------------------------------------------------------------
 
-.proc soundSplat
-    ldy         #$40
+.proc playTone
+
+tone    :=      tempZP
+
+    stx         tone
+    sta         duration
+    ldy         #0
+
 loop:
-    sta         SPEAKER
-    ldx         #$B7
-pause:
-    dex
-    bne         pause
-    dey
+    dex                     ; 2  2
+    bne         :+          ; 2  3
+    sta         SPEAKER     ; 4
+    ldx         tone        ; 3      (zero-page)
+cont:
+    dey                     ; 2  2
+    bne         loop        ; 3  3
+    dec         duration
     bne         loop
     rts
+:                           ;
+    lda         tone        ;    3
+    jmp         cont        ;    3
+                            ; 16 16
+
+duration:       .byte   0
+
+.endproc
+
+.proc playRest
+
+tone    :=      tempZP
+
+    stx         tone
+    sta         duration
+    ldy         #0
+
+loop:
+    dex                     ; 2  2
+    bne         :+          ; 2  3
+    lda         duration    ; 4
+    ldx         tone        ; 3      (zero-page)
+cont:
+    dey                     ; 2  2
+    bne         loop        ; 3  3
+    dec         duration
+    bne         loop
+    rts
+:                           ;
+    lda         tone        ;    3
+    jmp         cont        ;    3
+                            ; 16 16
+
+duration:       .byte   0
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Play Song
+;-----------------------------------------------------------------------------
+
+.proc playSong
+    ldy         #0
+    sty         index
+songLoop:
+    ldy         index
+    lda         (stringPtr0),y
+    beq         rest
+    tax
+    iny
+    lda         (stringPtr0),y
+    beq         done
+    jsr         playTone
+    inc         index
+    inc         index
+    jmp         songLoop
+rest:
+    iny
+    lda         (stringPtr0),y
+    beq         done
+    jsr         playRest
+    inc         index
+    inc         index
+    jmp         songLoop
+done:
+    rts
+
+index:  .byte   0
+
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -986,6 +1151,7 @@ stringArrow:        TileText ">"
 stringFroggo:       TileText "_ @    FROGGO    @ _"
 stringGameOver:     TileText "_ @  GAME OVER   @ _"
 stringPressKey:     TileText "_   PRESS ANY KEY  _"
+stringLevelComplete:TileText "_  LEVEL COMPLETE! _"
 
 .proc drawText
     DrawStringCord  0, 0,  stringBoxTop
@@ -1177,6 +1343,60 @@ lastRow:        .byte   0
 
 .endproc
 
+
+
+;-----------------------------------------------------------------------------
+; drawImage
+;
+;   imageX      - start byte column
+;   imageY      - start row
+;   imageWidth  - width (in bytes)
+;   imageHeight - height
+;   tilePtr0    - data
+;-----------------------------------------------------------------------------
+
+.proc drawImage
+
+    lda         imageY
+    tax
+    clc
+    adc         imageHeight
+    sta         lastRow
+
+yLoop:
+    lda         imageX
+    clc
+    adc         fullLineOffset,x
+    sta         screenPtr0
+    lda         fullLinePage,x
+    adc         drawPage
+    sta         screenPtr1
+
+    ldy         #0
+xLoop:
+    lda         (tilePtr0),y
+    sta         (screenPtr0),y
+    iny
+    cpy         imageWidth
+    bne         xLoop
+
+    lda         tilePtr0
+    clc
+    adc         imageWidth
+    sta         tilePtr0
+    lda         tilePtr1
+    adc         #0
+    sta         tilePtr1
+
+    inx
+    cpx         lastRow
+    bne         yLoop
+    rts
+
+lastRow:        .byte   0
+
+.endproc
+
 ;-----------------------------------------------------------------------------
 ; drawString
 ;   Draw string on screen
@@ -1309,6 +1529,8 @@ drawLoop:
     lda         #$00
     sta         drawPage
     jsr         clearScreen
+    rts
+
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -1321,12 +1543,17 @@ drawLoop:
     sta         drawPage
     jsr         drawMap
     jsr         drawText
+    jsr         drawRoad
+
+    sta         HISCR       ; show high while drawing low
     lda         #$00
     sta         drawPage
     jsr         drawMap
     jsr         drawText
+    jsr         drawRoad
 
     ; start with showing page1 and drawing on page2
+    sta         LOWSCR
     lda         #$20
     sta         drawPage
 
@@ -1892,6 +2119,9 @@ quitParams:
 ;-----------------------------------------------------------------------------
 .include        "inline_print.asm"
 
+seed:           .word       $1234
+.include        "galois16o.asm"
+
 ;-----------------------------------------------------------------------------
 ; Globals
 ;-----------------------------------------------------------------------------
@@ -1917,6 +2147,25 @@ eraseTileX0_1:  .byte       0
 eraseTileY0_1:  .byte       0
 eraseTileX1_1:  .byte       0
 eraseTileY1_1:  .byte       0
+
+imageX:         .byte       0
+imageY:         .byte       0
+imageWidth:     .byte       0
+imageHeight:    .byte       0
+
+; Songs
+songGameStart:
+    .byte   NOTE_C5,NOTE_HALF,NOTE_D5,NOTE_HALF,NOTE_E5,NOTE_HALF
+    .byte   NOTE_C5,NOTE_HALF,NOTE_D5,NOTE_HALF,NOTE_E5,NOTE_HALF
+    .byte   NOTE_REST,NOTE_DONE
+
+songDead:
+    .byte   NOTE_E5,NOTE_WHOLE ; ,NOTE_REST,NOTE_QUARTER
+    .byte   NOTE_D5,NOTE_WHOLE ; ,NOTE_REST,NOTE_QUARTER
+    .byte   NOTE_C5,NOTE_WHOLE,NOTE_REST,NOTE_DONE
+
+songOuch:
+    .byte   NOTE_C4,NOTE_QUARTER,NOTE_REST,NOTE_DONE
 
 ; Current level data (expecting order of bgTiles, bufferX, bufferSpeed0&1)
 bgTiles:        .res        20
@@ -2169,7 +2418,7 @@ tileSheet:
 .include        "playerShapes.asm"
 
 cutScene:
-.incbin         "..\build\froggo-crop.bin"
+.incbin         "..\build\loggo-crop.bin"
 
 
 

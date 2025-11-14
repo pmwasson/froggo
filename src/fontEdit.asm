@@ -486,15 +486,18 @@ finish_move:
 .proc printHelp
     bit         TXTSET
     jsr         inline_print
+    StringCont  "  -,=:        Previous/Next tile"
+    StringCont  "  _,+:        Previous-8/Next-8 tile"
     StringCont  "  Arrows:     Move cursor"
     StringCont  "  01234567:   Change color"
     StringCont  "  Ctrl+C:     Copy"
     StringCont  "  Ctrl+V:     Paste"
     StringCont  "  <SP>:       Draw pixel"
     StringCont  "  Ctrl+F:     Fill with current color"
+    StringCont  "  Ctrl+X:     Invert colors"
     StringCont  "  !:          Dump tile"
     StringCont  "  @:          Dump all tiles"
-    StringCont  "  *:          Map test"
+    StringCont  "              (Capture with printer)"
     StringCont  "  ?:          This help screen"
     StringCont  "  \:          Monitor"
     StringCont  "  Ctrl+Q:     Quit"
