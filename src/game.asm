@@ -60,7 +60,7 @@ COLUMN_CODE_START           = $2000                         ; page0 offset $0000
 COLUMN_CODE_START_PAGE2     = COLUMN_CODE_START + $3049     ; include some padding after code to align buffers
 COLUMN_BUFFER_START         = COLUMN_CODE_START + $6100     ; size=$1000
                                                             ; Total size = $7100
-DISPATCH_CODE               = $C00                          ; code very small (<32 bytes)
+DISPATCH_CODE               = $C00                          ; Dispatch code very small (<32 bytes)
 
 COLUMN_ROWS                 = 128
 COLUMN_STARTING_ROW         = 32
@@ -184,13 +184,12 @@ LEVEL_COLUMN_START          = $2F
 .proc main
 
     jsr         initCode
-
-    sta         MIXCLR
-    sta         LOWSCR
-    sta         LORES
-    sta         TXTCLR
     jsr         uncompressScreen
     jsr         initDisplay
+
+
+    lda         #9
+    sta         currentLevel
 
     PlaySongPtr songGameStart
 
@@ -198,7 +197,6 @@ reset_loop:
     jsr         loadLevel
     jsr         drawScreen
     jsr         initState
-
 
 game_loop:
 
@@ -439,6 +437,13 @@ erasePlayer1:
 ;-----------------------------------------------------------------------------
 .proc finishLevel
 
+    lda         currentLevel
+    clc
+    sed
+    adc         #1
+    sta         currentLevel
+    cld
+
     ; Drawing on high screen
 
     ; Display image
@@ -564,6 +569,7 @@ wait:           .byte   0
     sta         drawTileX0
     sta         drawTileX1
     lda         playerTileY
+    sta         tileY
     sta         drawTileY0
     sta         drawTileY1
 
@@ -602,7 +608,6 @@ doneDead:
     lda         #STATE_DEAD
     jmp         updateState
 :
-
 
     jsr         tile2array
     tax
@@ -862,7 +867,7 @@ doneDown:
     bne         :+
     rts
 :
-    brk
+    brk         ; unknown state
 
 saveY:              .byte   0
 currentTileType:    .byte   0
@@ -1043,7 +1048,7 @@ index:          .byte   0
 ; Draw text - add info to the screen
 ;-----------------------------------------------------------------------------
 stringBoxTop:       TileText "/------------------\"
-stringScore:        TileText "_    SCORE: 000    _"
+stringLevel:        TileText "_    LEVEL:        _"
 stringBoxBottom:    TileText "[------------------]"
 stringArrow:        TileText ">"
 stringFroggo:       TileText "_ @    FROGGO    @ _"
@@ -1051,16 +1056,43 @@ stringGameOver:     TileText "_ @  GAME  OVER  @ _"
 stringPressKey:     TileText "_   PRESS ANY KEY  _"
 stringLevelComplete:TileText "_  LEVEL COMPLETE! _"
 
+LEVEL_X = 12*TILE_WIDTH
+LEVEL_Y = 1*TILE_HEIGHT
+
 .proc drawText
     DrawStringCord  0, 0,  stringBoxTop
-    DrawStringCord  0, 1,  stringScore
+    DrawStringCord  0, 1,  stringLevel
     DrawStringCord  0, 2,  stringBoxBottom
     DrawStringCord  38,3,  stringArrow
     DrawStringCord  38,20, stringArrow
     DrawStringCord  0, 21, stringBoxTop
     DrawStringCord  0, 22, stringFroggo
     DrawStringCord  0, 23, stringBoxBottom
+
+    lda         #LEVEL_X
+    sta         tileX
+    lda         #LEVEL_Y
+    sta         tileY
+    lda         currentLevel
+    lsr
+    lsr
+    lsr
+    lsr
+    and         #$f
+    tax
+    lda         digitTile,x
+    jsr         drawTile
+    lda         #LEVEL_X+TILE_WIDTH
+    sta         tileX
+    lda         currentLevel
+    and         #$f
+    tax
+    lda         digitTile,x
+    jsr         drawTile
+
     rts
+
+digitTile:      .byte   $10,$11,$12,$13,$14,$15,$16,$17,$18,$19
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -2111,7 +2143,6 @@ seed:           .word       $1234
 ;-----------------------------------------------------------------------------
 ; Globals
 ;-----------------------------------------------------------------------------
-
 count:          .word       0
 playerX:        .byte       0
 playerY:        .byte       0
@@ -2119,6 +2150,7 @@ playerTileY:    .byte       0
 playerState:    .byte       STATE_IDLE
 activeColumns:  .byte       0
 initialOffset:  .byte       0
+currentLevel:   .byte       0
 
 ; player drawing
 drawTileX0:     .byte       0

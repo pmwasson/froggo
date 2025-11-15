@@ -23,14 +23,16 @@ cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\parallax.asm apple2.lib  -o parall
 :: Start with a blank prodos disk
 copy ..\disk\template_prodos.dsk froggo.dsk  || exit
 
+:: Game
+java -jar C:\jar\AppleCommander.jar -p  froggo.dsk game.system sys < C:\cc65\target\apple2\util\loader.system || exit
+java -jar C:\jar\AppleCommander.jar -as froggo.dsk game bin < game.apple2  || exit
+
+
 :: Basic system for title
 java -jar C:\jar\AppleCommander.jar -p  froggo.dsk basic.system sys < ..\disk\BASIC.SYSTEM  || exit
 java -jar C:\jar\AppleCommander.jar -bas froggo.dsk startup < ..\src\startup.bas  || exit
 java -jar C:\jar\AppleCommander.jar -bas froggo.dsk hello < ..\src\hello.bas || exit
 
-:: Game
-java -jar C:\jar\AppleCommander.jar -p  froggo.dsk game.system sys < C:\cc65\target\apple2\util\loader.system || exit
-java -jar C:\jar\AppleCommander.jar -as froggo.dsk game bin < game.apple2  || exit
 
 :: Parallax
 java -jar C:\jar\AppleCommander.jar -p  froggo.dsk parallax.system sys < C:\cc65\target\apple2\util\loader.system || exit
