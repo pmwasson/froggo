@@ -184,6 +184,12 @@ LEVEL_COLUMN_START          = $2F
 .proc main
 
     jsr         initCode
+
+    sta         MIXCLR
+    sta         LOWSCR
+    sta         LORES
+    sta         TXTCLR
+    jsr         uncompressScreen
     jsr         initDisplay
 
     PlaySongPtr songGameStart
@@ -232,11 +238,17 @@ switchTo1:
 :
     bit         KBDSTRB
 
+    cmp         #KEY_TAB
+    bne         :+
+    jsr         showPause
+    jmp         game_loop
+:
+
     cmp         #KEY_ESC
     bne         :+
     jmp         quit
 :
-    cmp         #KEY_TAB
+    cmp         #KEY_ASTERISK
     bne         :+
     jmp         monitor
 :
@@ -1035,7 +1047,7 @@ stringScore:        TileText "_    SCORE: 000    _"
 stringBoxBottom:    TileText "[------------------]"
 stringArrow:        TileText ">"
 stringFroggo:       TileText "_ @    FROGGO    @ _"
-stringGameOver:     TileText "_ @  GAME OVER   @ _"
+stringGameOver:     TileText "_ @  GAME  OVER  @ _"
 stringPressKey:     TileText "_   PRESS ANY KEY  _"
 stringLevelComplete:TileText "_  LEVEL COMPLETE! _"
 
@@ -1954,6 +1966,94 @@ tileIndex:  .byte   0
 .endproc
 
 ;-----------------------------------------------------------------------------
+; uncompressScreen
+;
+;   Set up pause screen on low-res page
+;-----------------------------------------------------------------------------
+.proc uncompressScreen
+
+BG                  = $F
+FG                  = $4
+IMAGE               = img_pause_compressed
+
+    lda         #$00
+    sta         screenPtr0
+    lda         #$04
+    sta         screenPtr1
+
+    lda         #0
+    sta         index
+    ldy         #0
+loop:
+    ldx         index
+    lda         IMAGE,x
+    sta         tempZP
+    jsr         writeByte
+    jsr         writeByte
+    jsr         writeByte
+    jsr         writeByte
+    inc         index
+    cpy         #128+120
+    beq         next
+    cpy         #120
+    beq         skip
+    jmp         loop
+skip:
+    ldy         #128
+    jmp         loop
+next:
+    ldy         #0
+    inc         screenPtr1
+    lda         screenPtr1
+    cmp         #8
+    bne         loop
+    rts
+
+writeByte:
+    lda         tempZP
+    and         #%00000011
+    tax
+    lda         colorLookup,x
+    sta         (screenPtr0),y
+    iny
+    lda         tempZP
+    lsr
+    lsr
+    sta         tempZP
+    rts
+
+index:          .byte   0
+colorLookup:    .byte   BG+BG*16,FG+BG*16,BG+FG*16,FG+FG*16
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Show Pause
+;-----------------------------------------------------------------------------
+.proc showPause
+    lda         PAGE2       ; remember screen we were on
+    sta         page
+    ; display pause screen
+    sta         LOWSCR
+    sta         LORES
+
+wait:
+    lda         KBD
+    bpl         wait
+    sta         KBDSTRB
+
+    sta         HIRES
+    lda         page
+    bmi         :+
+    rts                     ; still on low
+    sta         HISCR       ; switch to high
+    rts
+
+page:   .byte   0
+
+.endproc
+
+;-----------------------------------------------------------------------------
 ; Monitor
 ;
 ;  Exit to monitor
@@ -2319,6 +2419,9 @@ tileSheet:
 
 cutScene:
 .incbin         "..\build\loggo-crop.bin"
+
+; qrcode
+.include        "..\build\qrcode.asm"
 
 
 

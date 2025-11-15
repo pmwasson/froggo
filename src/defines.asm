@@ -158,6 +158,7 @@ KEY_CTRL_Y      = $99
 KEY_CTRL_Z      = $9A
 KEY_ESC         = $9B
 KEY_SPACE       = $A0
+KEY_ASTERISK    = $AA
 KEY_0           = $B0
 KEY_9           = $B9
 KEY_A           = $C1
