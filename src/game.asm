@@ -43,14 +43,6 @@
     jsr     drawImage
 .endmacro
 
-.macro PlaySongPtr song
-    lda     #<song
-    sta     stringPtr0
-    lda     #>song
-    sta     stringPtr1
-    jsr     playSong
-.endmacro
-
 ;-----------------------------------------------------------------------------
 ; Constants
 ;-----------------------------------------------------------------------------
@@ -184,16 +176,6 @@ PLAYER_OFFSET_RIGHT_2       = $A0
 SKIP_CHAR                   = '`' - $20
 
 LEVEL_COLUMN_START          = $2F
-
-NOTE_REST                   = 0
-NOTE_E5                     = $61
-NOTE_D5                     = $6D
-NOTE_C5                     = $74
-NOTE_C4                     = $F5
-NOTE_WHOLE                  = 80
-NOTE_HALF                   = NOTE_WHOLE/2
-NOTE_QUARTER                = NOTE_WHOLE/4
-NOTE_DONE                   = 0
 
 ;-----------------------------------------------------------------------------
 ; Main program
@@ -453,7 +435,7 @@ erasePlayer1:
 
     ; display Image
     bit         HISCR
-    PlaySongPtr songGameStart
+    PlaySongPtr songLevelComplete
     jsr         waitForKey
 
     bit         LOWSCR
@@ -930,102 +912,6 @@ index:          .byte   0
     lda         tileTypeArray,x
     and         #TILE_TYPE_BLOCKED
     rts
-.endproc
-
-;-----------------------------------------------------------------------------
-; Play Tone
-;
-;   A = tone, X=duration
-;-----------------------------------------------------------------------------
-
-.proc playTone
-
-tone    :=      tempZP
-
-    stx         tone
-    sta         duration
-    ldy         #0
-
-loop:
-    dex                     ; 2  2
-    bne         :+          ; 2  3
-    sta         SPEAKER     ; 4
-    ldx         tone        ; 3      (zero-page)
-cont:
-    dey                     ; 2  2
-    bne         loop        ; 3  3
-    dec         duration
-    bne         loop
-    rts
-:                           ;
-    lda         tone        ;    3
-    jmp         cont        ;    3
-                            ; 16 16
-
-duration:       .byte   0
-
-.endproc
-
-.proc playRest
-
-tone    :=      tempZP
-
-    stx         tone
-    sta         duration
-    ldy         #0
-
-loop:
-    dex                     ; 2  2
-    bne         :+          ; 2  3
-    lda         duration    ; 4
-    ldx         tone        ; 3      (zero-page)
-cont:
-    dey                     ; 2  2
-    bne         loop        ; 3  3
-    dec         duration
-    bne         loop
-    rts
-:                           ;
-    lda         tone        ;    3
-    jmp         cont        ;    3
-                            ; 16 16
-
-duration:       .byte   0
-
-.endproc
-
-;-----------------------------------------------------------------------------
-; Play Song
-;-----------------------------------------------------------------------------
-
-.proc playSong
-    ldy         #0
-    sty         index
-songLoop:
-    ldy         index
-    lda         (stringPtr0),y
-    beq         rest
-    tax
-    iny
-    lda         (stringPtr0),y
-    beq         done
-    jsr         playTone
-    inc         index
-    inc         index
-    jmp         songLoop
-rest:
-    iny
-    lda         (stringPtr0),y
-    beq         done
-    jsr         playRest
-    inc         index
-    inc         index
-    jmp         songLoop
-done:
-    rts
-
-index:  .byte   0
-
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -2118,7 +2004,7 @@ quitParams:
 ; Utilities
 ;-----------------------------------------------------------------------------
 .include        "inline_print.asm"
-
+.include        "tones.asm"
 seed:           .word       $1234
 .include        "galois16o.asm"
 
@@ -2153,19 +2039,33 @@ imageY:         .byte       0
 imageWidth:     .byte       0
 imageHeight:    .byte       0
 
-; Songs
+; 2tone Songs
 songGameStart:
-    .byte   NOTE_C5,NOTE_HALF,NOTE_D5,NOTE_HALF,NOTE_E5,NOTE_HALF
-    .byte   NOTE_C5,NOTE_HALF,NOTE_D5,NOTE_HALF,NOTE_E5,NOTE_HALF
-    .byte   NOTE_REST,NOTE_DONE
+    .byte   NOTE_C4,    NOTE_C6,    NOTE_HALF
+    .byte   NOTE_D4,    NOTE_D6,    NOTE_HALF
+    .byte   NOTE_E4,    NOTE_E6,    NOTE_HALF
+    .byte   NOTE_C4,    NOTE_C6,    NOTE_HALF
+    .byte   NOTE_D4,    NOTE_D6,    NOTE_HALF
+    .byte   NOTE_E4,    NOTE_E6,    NOTE_HALF
+    .byte   NOTE_REST,  NOTE_REST,  NOTE_DONE
+
+songLevelComplete:
+    .byte   NOTE_C4,    NOTE_C5,    NOTE_HALF
+    .byte   NOTE_C5,    NOTE_C6,    NOTE_HALF
+    .byte   NOTE_C6,    NOTE_C7,    NOTE_HALF
+    .byte   NOTE_REST,  NOTE_REST,  NOTE_DONE
 
 songDead:
-    .byte   NOTE_E5,NOTE_WHOLE ; ,NOTE_REST,NOTE_QUARTER
-    .byte   NOTE_D5,NOTE_WHOLE ; ,NOTE_REST,NOTE_QUARTER
-    .byte   NOTE_C5,NOTE_WHOLE,NOTE_REST,NOTE_DONE
+    .byte   NOTE_E5,    NOTE_REST,  NOTE_HALF
+    .byte   NOTE_REST,  NOTE_REST,  NOTE_QUARTER
+    .byte   NOTE_D5,    NOTE_REST,  NOTE_HALF
+    .byte   NOTE_REST,  NOTE_REST,  NOTE_QUARTER
+    .byte   NOTE_C5,    NOTE_C4,    NOTE_HALF
+    .byte   NOTE_REST,  NOTE_REST,  NOTE_DONE
 
 songOuch:
-    .byte   NOTE_C4,NOTE_QUARTER,NOTE_REST,NOTE_DONE
+    .byte   NOTE_C4,    NOTE_C6,    NOTE_QUARTER
+    .byte   NOTE_REST,  NOTE_REST,  NOTE_DONE
 
 ; Current level data (expecting order of bgTiles, bufferX, bufferSpeed0&1)
 bgTiles:        .res        20

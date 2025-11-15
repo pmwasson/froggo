@@ -44,3 +44,12 @@
     .byte   b
     .endrep
 .endmacro
+
+
+.macro PlaySongPtr song
+    lda     #<song
+    sta     stringPtr0
+    lda     #>song
+    sta     stringPtr1
+    jsr     playSong
+.endmacro
