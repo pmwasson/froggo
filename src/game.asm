@@ -187,8 +187,7 @@ LEVEL_COLUMN_START          = $2F
     jsr         uncompressScreen
     jsr         initDisplay
 
-
-    lda         #9
+    lda         #1
     sta         currentLevel
 
     PlaySongPtr songGameStart
@@ -1843,6 +1842,12 @@ writeXLoop:
 ; [1]                           - $00 [end of column data]
 ; [3] x misc-tile-count         - x,y,tile to draw on screen
 ; [1]                           - $00 [end of tile list]
+;
+; -> load bg tiles, buffer - x, speed*2
+; -> sets activeColumns (used by draw road, could get rid of)
+; -> copies tiles to active buffers
+; -> copies tile type to dynamic array for collisions
+; -> sets pointer to misc tiles
 ;-----------------------------------------------------------------------------
 
 .proc loadLevel
@@ -2321,7 +2326,7 @@ tileTypeTable:
     .byte       TILE_TYPE_BLOCKED           ;5D     - Divider (road->road)
     .byte       TILE_TYPE_BLOCKED           ;5E     -
     .byte       TILE_TYPE_FREE              ;5F     - Coin
-    .res        $20,TILE_TYPE_FREE          ;60..7f - Player
+    .res        $20,TILE_TYPE_FREE          ;60..7f - Unused
     .byte       TILE_TYPE_BUFFER0           ;80     - Active column
     .byte       TILE_TYPE_BUFFER1           ;81     - Active column
     .byte       TILE_TYPE_BUFFER2           ;82     - Active column
@@ -2448,6 +2453,7 @@ fullLinePage:
 tileSheet:
 .include        "font.asm"
 .include        "playerShapes.asm"
+.include        "levels.asm"
 
 cutScene:
 .incbin         "..\build\loggo-crop.bin"
