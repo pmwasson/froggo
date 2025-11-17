@@ -563,7 +563,6 @@ colorLookup:    .byte   BG+BG*16,FG+BG*16,BG+FG*16,FG+FG*16
     lda         #1
     sta         currentLevel
 
-    PlaySongPtr songGameStart
 
 reset_loop:
     jsr         loadLevel
