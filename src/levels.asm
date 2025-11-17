@@ -22,6 +22,7 @@ COLUMN_ROAD_D_0             = (levelColumnDataRD0 - levelColumnData)/16
 COLUMN_ROAD_D_1             = (levelColumnDataRD0 - levelColumnData)/16
 COLUMN_ROAD_D_2             = (levelColumnDataRD0 - levelColumnData)/16
 COLUMN_ROAD_D_3             = (levelColumnDataRD0 - levelColumnData)/16
+COLUMN_TRAIN_D_0            = (levelColumnDataTD0 - levelColumnData)/16
 COLUMN_WATER_S_0            = (levelColumnDataWS0 - levelColumnData)/16
 COLUMN_WATER_D_0            = (levelColumnDataWD0 - levelColumnData)/16
 COLUMN_WATER_D_1            = (levelColumnDataWD0 - levelColumnData)/16
@@ -64,6 +65,9 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_DYNAMIC + COLUMN_TYPE_DOWN          ; 2 medium cars and a truck (down)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 3 small cars (red, red, blue)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 2 trucks
+
+; train (dynamic)
+    .byte       COLUMN_TYPE_DYNAMIC                             ; train cars
 
 ; water (static)
     .byte       COLUMN_TYPE_STATIC                              ; rocks in middle
@@ -131,6 +135,11 @@ levelColumnDataRD2:
 levelColumnDataRD3:
     .byte   TILE_TRUCKU_A,TILE_TRUCKU_B,TILE_TRUCKU_C,TILE_ROAD,TILE_TRUCKU_A,TILE_TRUCKU_B,TILE_TRUCKU_C,TILE_ROAD
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+
+; train (dynamic)
+levelColumnDataTD0:
+    .byte   TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C,TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C
+    .byte   TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C,TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C
 
 ; water (static)
 levelColumnDataWS0:

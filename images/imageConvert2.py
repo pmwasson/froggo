@@ -29,9 +29,15 @@ lineOffset = [
     0x0350, 0x0350+0x0400, 0x0350+0x0800, 0x0350+0x0c00, 0x0350+0x1000, 0x0350+0x1400, 0x0350+0x1800, 0x0350+0x1c00,
     0x03D0, 0x03D0+0x0400, 0x03D0+0x0800, 0x03D0+0x0c00, 0x03D0+0x1000, 0x03D0+0x1400, 0x03D0+0x1800, 0x03D0+0x1c00];
 
-def writeScreen(srcWidth,srcHeight,remap,data,output):
+def writeScreen(srcWidth,srcHeight,remap,data,output,replace):
     width = int(srcWidth*2/7)
     height = srcHeight
+
+    if (len(replace)>0):
+        print(f"; replace first {len(replace)} bytes with: {replace}")
+        print(f"; previous values: {data[0][0:len(replace)]}")
+        data[0][0:len(replace)] = replace
+
     if (remap):
         print("; Remapping image to screen")
         outputBytes = bytearray(8192)
@@ -74,6 +80,7 @@ def main():
     width = int(sys.argv[3])
     height = int(sys.argv[4])
     remap = int(sys.argv[5])
+    jumpAddress = int(sys.argv[6],16)
 
     source = Image.open(infile)
     print(";",infile,source.format, source.size, source.mode)
@@ -111,6 +118,11 @@ def main():
         allData.append(line)
         evenData.append(line[0::2])
         oddData.append(line[1::2])
-    writeScreen(width, height, remap, allData, os.path.splitext(outfile)[0] + ".bin")
+
+    jumpInst = 0x4c
+    jumpBytes = []
+    if (jumpAddress > 0):
+        jumpBytes = [jumpInst,int(jumpAddress%256),int(jumpAddress/256)]
+    writeScreen(width, height, remap, allData, os.path.splitext(outfile)[0] + ".bin",jumpBytes)
 
 main()

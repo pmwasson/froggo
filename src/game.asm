@@ -5,7 +5,7 @@
 ;-----------------------------------------------------------------------------
 
 .segment        "CODE"
-.org            $6000
+.org            $2000
 
 .include        "defines.asm"
 
@@ -16,15 +16,28 @@
 .include        "macros.asm"
 
 .macro  DrawStringCord stringX, stringY, string
-    lda     #stringX
-    sta     tileX
-    lda     #stringY
-    sta     tileY
-    lda     #<string
-    sta     stringPtr0
-    lda     #>string
-    sta     stringPtr1
-    jsr     drawString
+    lda         #stringX
+    sta         tileX
+    lda         #stringY
+    sta         tileY
+    lda         #<string
+    sta         stringPtr0
+    lda         #>string
+    sta         stringPtr1
+    jsr         drawString
+.endmacro
+
+.macro  DrawStringBoth stringX, stringY, string
+    DrawStringCord stringX, stringY, string
+    lda         drawPage
+    eor         #$20
+    sta         drawPage
+    lda         #stringX
+    sta         tileX
+    jsr         drawString
+    lda         drawPage
+    eor         #$20
+    sta         drawPage
 .endmacro
 
 .macro  DrawImageParam imgX, imgY, imgWidth, imgHeight, imgPtr
@@ -124,6 +137,9 @@ TILE_TRUCKD_C               = $50
 TILE_TRUCKU_A               = $41
 TILE_TRUCKU_B               = $49
 TILE_TRUCKU_C               = $51
+TILE_TRAIN_A                = $61
+TILE_TRAIN_B                = $69
+TILE_TRAIN_C                = $71
 
 TILE_LOG_A                  = $42
 TILE_LOG_B                  = $4A
@@ -178,13 +194,370 @@ SKIP_CHAR                   = '`' - $20
 LEVEL_COLUMN_START          = $2F
 
 ;-----------------------------------------------------------------------------
+; Title image
+;-----------------------------------------------------------------------------
+; Have the system load the title screen (first 3 bytes converted to jump)
+
+.incbin "..\build\froggo.bin"
+
+; ;=============================================================================
+; .align $2000
+; ;=============================================================================
+
+;-----------------------------------------------------------------------------
+; Init code (run once)
+;
+; This code lives on the second hires page and will get overwritten.
+; Only initial code to run once should be here.
+;-----------------------------------------------------------------------------
+
+.proc init
+    jsr         HOME        ; clear screen
+    jsr         TEXT        ; put cursor at the bottom
+
+    ; restore image
+    lda         #127
+    sta         $2000
+    sta         $2001
+    sta         $2002
+
+    ; display screen
+    sta         MIXCLR
+    sta         LOWSCR
+    sta         HIRES
+    sta         TXTCLR
+
+    jsr         initCode
+    jsr         uncompressScreen
+
+    jmp         main
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Init code
+;
+;  Write unrolled column drawing routines to aux memory
+;-----------------------------------------------------------------------------
+
+.proc initCode
+
+; Reuse zero page addresses
+
+columnCount     := tileX
+pageCount       := tileY
+codePtr0        := tilePtr0
+codePtr1        := tilePtr1
+
+    jsr         inline_print
+    StringCR    "CHECKING MEMORY SIZE..."
+
+    lda         $BF98
+    bmi         :+
+    jsr         inline_print
+    StringCR    "128K MEMORY NOT DETECTED, EXITING"
+    jmp         monitor
+:
+
+    jsr         inline_print
+    StringCR    "Installing AUX code..."
+
+    ; Use zero page for storage so can read/write even if only writing aux
+    sta         CLR80COL        ; Use RAMWRT for aux mem
+    sta         RAMWRTON        ; Write to AUX
+
+    ; Init code pointer
+    lda         #<COLUMN_CODE_START
+    sta         codePtr0
+    lda         #>COLUMN_CODE_START
+    sta         codePtr1
+
+    lda         #0
+    sta         pageCount
+    sta         drawPage
+
+page_loop:
+    ; Init buffer pointer (shared between pages)
+    lda         #$00            ; Assuming page aligned
+    sta         bufferPtr0
+    lda         #>COLUMN_BUFFER_START
+    sta         bufferPtr1
+
+    lda         #0
+    sta         columnCount
+
+column_loop:
+    ldx         #COLUMN_STARTING_ROW
+
+    ldy         #0
+
+    ; If an even column, load x,y from last byte of buffer pair
+    lda         columnCount
+    and         #1
+    bne         write_loop      ; skip if odd
+
+    ; **    LDX BUFFER+$FF
+    ; **    BPL NO_EXIT
+    ; **    RTS
+    ; ** NO_EXIT:
+    ; **    LDY BUFFER+$1FF
+    ; **    ...
+
+    lda         #INSTRUCTION_LDX
+    sta         (codePtr0),y
+    iny
+    lda         #$FF            ; end of buffer
+    sta         (codePtr0),y
+    iny
+    lda         bufferPtr1
+    sta         (codePtr0),y
+    iny
+
+    lda         #INSTRUCTION_BPL
+    sta         (codePtr0),y
+    iny
+    lda         #$01            ; skip 1 byte (RTS)
+    sta         (codePtr0),y
+    iny
+
+    lda         #INSTRUCTION_RTS
+    sta         (codePtr0),y
+    iny
+
+    lda         #INSTRUCTION_LDY
+    sta         (codePtr0),y
+    iny
+    lda         #$FF            ; end of buffer
+    sta         (codePtr0),y
+    iny
+    lda         bufferPtr1
+    clc
+    adc         #1
+    sta         (codePtr0),y
+    iny
+
+    ; increment code pointer
+    clc
+    tya
+    adc         codePtr0
+    sta         codePtr0
+    lda         codePtr1
+    adc         #0
+    sta         codePtr1
+
+write_loop:
+    ldy         #0
+
+    ; ** LDA BUFFER+ROW,Y
+    ; ** STA SCREEN_ADRS,X
+
+    lda         #INSTRUCTION_LDA_Y
+    sta         (codePtr0),y
+    iny
+    lda         bufferPtr0
+    sta         (codePtr0),y
+    iny
+    lda         bufferPtr1
+    sta         (codePtr0),y
+    iny
+
+    lda         #INSTRUCTION_STA_X
+    sta         (codePtr0),y
+    iny
+    lda         columnCount         ; If column odd, +1
+    and         #1
+    clc
+    adc         fullLineOffset,x
+    sta         (codePtr0),y
+    iny
+    lda         fullLinePage,x
+    adc         drawPage
+    sta         (codePtr0),y
+    iny
+
+    ; increment code pointer
+    clc
+    tya
+    adc         codePtr0
+    sta         codePtr0
+    lda         codePtr1
+    adc         #0
+    sta         codePtr1
+
+    ; increment buffer pointer
+    inc         bufferPtr0          ; will deal with upper byte later
+
+    inx
+    cpx         #COLUMN_STARTING_ROW+COLUMN_ROWS
+    bne         write_loop
+
+    ; move to next buffer
+    lda         #0
+    sta         bufferPtr0
+    inc         bufferPtr1
+
+    inc         columnCount
+    lda         columnCount
+    cmp         #MAX_COLUMNS
+    beq         doneColumns
+    jmp         column_loop
+
+doneColumns:
+    ; ** RTS
+    ldy         #0
+    lda         #INSTRUCTION_RTS
+    sta         (codePtr0),y
+    iny
+
+    clc
+    tya
+    adc         codePtr0
+    sta         codePtr0
+    lda         codePtr1
+    adc         #0
+    sta         codePtr1
+
+    lda         #$20
+    sta         drawPage
+
+    inc         pageCount
+    lda         pageCount
+    cmp         #2
+    beq         donePage
+    jmp         page_loop
+
+donePage:
+
+    ; Dispatch
+    jsr         copyDispatch        ; copy to aux
+    sta         RAMWRTOFF           ; Write to Main
+    jsr         copyDispatch        ; copy to main
+
+    rts
+
+copyDispatch:
+    ldx         #0
+copyLoop:
+    lda         dispatchStart,x
+    sta         DISPATCH_CODE,x
+    inx
+    cpx         #dispatchEnd-dispatchStart
+    bne         copyLoop
+    rts
+
+dispatchStart:
+    ; This code is being used as data to be copied to lower memory
+    ; location in both main and aux memory to call the aux code.
+    ; It must be relocatable.
+
+    ; Determine what page to draw on
+    lda         PAGE2           ; bit 7 = page2 displayed
+    bmi         draw1
+draw2:
+    sta         RAMRDON         ; read from aux (including instructions)
+    jsr         COLUMN_CODE_START_PAGE2
+    sta         RAMRDOFF
+    rts
+draw1:
+    sta         RAMRDON         ; read from aux (including instructions)
+    jsr         COLUMN_CODE_START
+    sta         RAMRDOFF
+    rts
+dispatchEnd:
+
+.endproc
+
+
+;-----------------------------------------------------------------------------
+; uncompressScreen
+;
+;   Set up pause screen on low-res page
+;-----------------------------------------------------------------------------
+.proc uncompressScreen
+
+BG                  = $F
+FG                  = $4
+IMAGE               = img_pause_compressed
+
+    lda         #$00
+    sta         screenPtr0
+    lda         #$04
+    sta         screenPtr1
+
+    lda         #0
+    sta         index
+    ldy         #0
+loop:
+    ldx         index
+    lda         IMAGE,x
+    sta         tempZP
+    jsr         writeByte
+    jsr         writeByte
+    jsr         writeByte
+    jsr         writeByte
+    inc         index
+    cpy         #128+120
+    beq         next
+    cpy         #120
+    beq         skip
+    jmp         loop
+skip:
+    ldy         #128
+    jmp         loop
+next:
+    ldy         #0
+    inc         screenPtr1
+    lda         screenPtr1
+    cmp         #8
+    bne         loop
+    rts
+
+writeByte:
+    lda         tempZP
+    and         #%00000011
+    tax
+    lda         colorLookup,x
+    sta         (screenPtr0),y
+    iny
+    lda         tempZP
+    lsr
+    lsr
+    sta         tempZP
+    rts
+
+index:          .byte   0
+colorLookup:    .byte   BG+BG*16,FG+BG*16,BG+FG*16,FG+FG*16
+
+.endproc
+
+
+;-----------------------------------------------------------------------------
+; Data to be used or copied to aux memory (will get overwritten)
+;-----------------------------------------------------------------------------
+
+; qrcode
+.include        "..\build\qrcode.asm"
+
+; level column data
+.include        "levels.asm"
+
+
+; pretend there is more data to keep the linker happy
+.res            $1B00
+
+;=============================================================================
+.align $100
+;=============================================================================
+
+;-----------------------------------------------------------------------------
 ; Main program
 ;-----------------------------------------------------------------------------
 
 .proc main
 
-    jsr         initCode
-    jsr         uncompressScreen
+    PlaySongPtr songGameStart
+    jsr         waitForKey
+
     jsr         initDisplay
 
     lda         #1
@@ -493,27 +866,13 @@ wait:           .byte   0
     stx         count+1
     cmp         #STATE_DEAD
     bne         :+
-    DrawStringCord  0, 22, stringGameOver
-    lda         drawPage
-    eor         #$20
-    sta         drawPage
-    DrawStringCord  0, 22, stringGameOver
-    lda         drawPage
-    eor         #$20
-    sta         drawPage
+    DrawStringBoth  0, 22, stringGameOver
     PlaySongPtr songOuch
     rts
 :
     cmp         #STATE_GAME_OVER
     bne         :+
-    DrawStringCord  0, 22, stringPressKey
-    lda         drawPage
-    eor         #$20
-    sta         drawPage
-    DrawStringCord  0, 22, stringPressKey
-    lda         drawPage
-    eor         #$20
-    sta         drawPage
+    DrawStringBoth  0, 22, stringPressKey
     PlaySongPtr songDead
     rts
 :
@@ -595,14 +954,14 @@ doneDead:
 
     ; Above the top?
     lda         playerY
-    cmp         #(MAP_TOP+TILE_HEIGHT)*8
+    cmp         #(MAP_TOP+TILE_HEIGHT)*8-6
     bcs         :+
     lda         #STATE_DEAD
     jmp         updateState
 :
 
     ; Below the bottom?
-    cmp         #(MAP_BOTTOM-2*TILE_HEIGHT)*8+1
+    cmp         #(MAP_BOTTOM-2*TILE_HEIGHT)*8+7
     bcc         :+
     lda         #STATE_DEAD
     jmp         updateState
@@ -1054,6 +1413,7 @@ stringFroggo:       TileText "_ @    FROGGO    @ _"
 stringGameOver:     TileText "_ @  GAME  OVER  @ _"
 stringPressKey:     TileText "_   PRESS ANY KEY  _"
 stringLevelComplete:TileText "_  LEVEL COMPLETE! _"
+stringHint:         TileText "_MOVE KEYS: A,Z,<,>_"
 
 LEVEL_X = 12*TILE_WIDTH
 LEVEL_Y = 1*TILE_HEIGHT
@@ -1432,6 +1792,9 @@ drawLoop:
     sta         eraseTileY1_1
     lda         #PLAYER_INIT_STATE
     jsr         updateState
+    lda         #0
+    sta         count
+    sta         count+1
     rts
 .endproc
 
@@ -1440,11 +1803,6 @@ drawLoop:
 ;-----------------------------------------------------------------------------
 
 .proc initDisplay
-    ; assuming title is being displayed, so show page1 graphics while clearing 2
-    sta         MIXCLR
-    sta         LOWSCR
-    sta         HIRES
-    sta         TXTCLR
 
     ; clear page2
     lda         #$00
@@ -1530,238 +1888,6 @@ loopPage:
 
 .endproc
 
-;-----------------------------------------------------------------------------
-; Init code
-;
-;  Write unrolled column drawing routines to aux memory
-;-----------------------------------------------------------------------------
-
-.proc initCode
-
-; Reuse zero page addresses
-
-columnCount     := tileX
-pageCount       := tileY
-codePtr0        := tilePtr0
-codePtr1        := tilePtr1
-
-    jsr         inline_print
-    StringCR    "CHECKING MEMORY SIZE..."
-
-    lda         $BF98
-    bmi         :+
-    jsr         inline_print
-    StringCR    "128K MEMORY NOT DETECTED, EXITING"
-    jmp         monitor
-:
-
-    jsr         inline_print
-    StringCR    "Installing AUX code..."
-
-    ; Use zero page for storage so can read/write even if only writing aux
-    sta         CLR80COL        ; Use RAMWRT for aux mem
-    sta         RAMWRTON        ; Write to AUX
-
-    ; Init code pointer
-    lda         #<COLUMN_CODE_START
-    sta         codePtr0
-    lda         #>COLUMN_CODE_START
-    sta         codePtr1
-
-    lda         #0
-    sta         pageCount
-    sta         drawPage
-
-page_loop:
-    ; Init buffer pointer (shared between pages)
-    lda         #$00            ; Assuming page aligned
-    sta         bufferPtr0
-    lda         #>COLUMN_BUFFER_START
-    sta         bufferPtr1
-
-    lda         #0
-    sta         columnCount
-
-column_loop:
-    ldx         #COLUMN_STARTING_ROW
-
-    ldy         #0
-
-    ; If an even column, load x,y from last byte of buffer pair
-    lda         columnCount
-    and         #1
-    bne         write_loop      ; skip if odd
-
-    ; **    LDX BUFFER+$FF
-    ; **    BPL NO_EXIT
-    ; **    RTS
-    ; ** NO_EXIT:
-    ; **    LDY BUFFER+$1FF
-    ; **    ...
-
-    lda         #INSTRUCTION_LDX
-    sta         (codePtr0),y
-    iny
-    lda         #$FF            ; end of buffer
-    sta         (codePtr0),y
-    iny
-    lda         bufferPtr1
-    sta         (codePtr0),y
-    iny
-
-    lda         #INSTRUCTION_BPL
-    sta         (codePtr0),y
-    iny
-    lda         #$01            ; skip 1 byte (RTS)
-    sta         (codePtr0),y
-    iny
-
-    lda         #INSTRUCTION_RTS
-    sta         (codePtr0),y
-    iny
-
-    lda         #INSTRUCTION_LDY
-    sta         (codePtr0),y
-    iny
-    lda         #$FF            ; end of buffer
-    sta         (codePtr0),y
-    iny
-    lda         bufferPtr1
-    clc
-    adc         #1
-    sta         (codePtr0),y
-    iny
-
-    ; increment code pointer
-    clc
-    tya
-    adc         codePtr0
-    sta         codePtr0
-    lda         codePtr1
-    adc         #0
-    sta         codePtr1
-
-write_loop:
-    ldy         #0
-
-    ; ** LDA BUFFER+ROW,Y
-    ; ** STA SCREEN_ADRS,X
-
-    lda         #INSTRUCTION_LDA_Y
-    sta         (codePtr0),y
-    iny
-    lda         bufferPtr0
-    sta         (codePtr0),y
-    iny
-    lda         bufferPtr1
-    sta         (codePtr0),y
-    iny
-
-    lda         #INSTRUCTION_STA_X
-    sta         (codePtr0),y
-    iny
-    lda         columnCount         ; If column odd, +1
-    and         #1
-    clc
-    adc         fullLineOffset,x
-    sta         (codePtr0),y
-    iny
-    lda         fullLinePage,x
-    adc         drawPage
-    sta         (codePtr0),y
-    iny
-
-    ; increment code pointer
-    clc
-    tya
-    adc         codePtr0
-    sta         codePtr0
-    lda         codePtr1
-    adc         #0
-    sta         codePtr1
-
-    ; increment buffer pointer
-    inc         bufferPtr0          ; will deal with upper byte later
-
-    inx
-    cpx         #COLUMN_STARTING_ROW+COLUMN_ROWS
-    bne         write_loop
-
-    ; move to next buffer
-    lda         #0
-    sta         bufferPtr0
-    inc         bufferPtr1
-
-    inc         columnCount
-    lda         columnCount
-    cmp         #MAX_COLUMNS
-    beq         doneColumns
-    jmp         column_loop
-
-doneColumns:
-    ; ** RTS
-    ldy         #0
-    lda         #INSTRUCTION_RTS
-    sta         (codePtr0),y
-    iny
-
-    clc
-    tya
-    adc         codePtr0
-    sta         codePtr0
-    lda         codePtr1
-    adc         #0
-    sta         codePtr1
-
-    lda         #$20
-    sta         drawPage
-
-    inc         pageCount
-    lda         pageCount
-    cmp         #2
-    beq         donePage
-    jmp         page_loop
-
-donePage:
-
-    ; Dispatch
-    jsr         copyDispatch        ; copy to aux
-    sta         RAMWRTOFF           ; Write to Main
-    jsr         copyDispatch        ; copy to main
-
-    rts
-
-copyDispatch:
-    ldx         #0
-copyLoop:
-    lda         dispatchStart,x
-    sta         DISPATCH_CODE,x
-    inx
-    cpx         #dispatchEnd-dispatchStart
-    bne         copyLoop
-    rts
-
-dispatchStart:
-    ; This code is being used as data to be copied to lower memory
-    ; location in both main and aux memory to call the aux code.
-    ; It must be relocatable.
-
-    ; Determine what page to draw on
-    lda         PAGE2           ; bit 7 = page2 displayed
-    bmi         draw1
-draw2:
-    sta         RAMRDON         ; read from aux (including instructions)
-    jsr         COLUMN_CODE_START_PAGE2
-    sta         RAMRDOFF
-    rts
-draw1:
-    sta         RAMRDON         ; read from aux (including instructions)
-    jsr         COLUMN_CODE_START
-    sta         RAMRDOFF
-    rts
-dispatchEnd:
-
-.endproc
 
 ;-----------------------------------------------------------------------------
 ; Init buffers in aux memory
@@ -2002,67 +2128,6 @@ tileIndex:  .byte   0
 
 .endproc
 
-;-----------------------------------------------------------------------------
-; uncompressScreen
-;
-;   Set up pause screen on low-res page
-;-----------------------------------------------------------------------------
-.proc uncompressScreen
-
-BG                  = $F
-FG                  = $4
-IMAGE               = img_pause_compressed
-
-    lda         #$00
-    sta         screenPtr0
-    lda         #$04
-    sta         screenPtr1
-
-    lda         #0
-    sta         index
-    ldy         #0
-loop:
-    ldx         index
-    lda         IMAGE,x
-    sta         tempZP
-    jsr         writeByte
-    jsr         writeByte
-    jsr         writeByte
-    jsr         writeByte
-    inc         index
-    cpy         #128+120
-    beq         next
-    cpy         #120
-    beq         skip
-    jmp         loop
-skip:
-    ldy         #128
-    jmp         loop
-next:
-    ldy         #0
-    inc         screenPtr1
-    lda         screenPtr1
-    cmp         #8
-    bne         loop
-    rts
-
-writeByte:
-    lda         tempZP
-    and         #%00000011
-    tax
-    lda         colorLookup,x
-    sta         (screenPtr0),y
-    iny
-    lda         tempZP
-    lsr
-    lsr
-    sta         tempZP
-    rts
-
-index:          .byte   0
-colorLookup:    .byte   BG+BG*16,FG+BG*16,BG+FG*16,FG+FG*16
-
-.endproc
 
 ;-----------------------------------------------------------------------------
 ; Show Pause
@@ -2453,13 +2518,10 @@ fullLinePage:
 tileSheet:
 .include        "font.asm"
 .include        "playerShapes.asm"
-.include        "levels.asm"
 
 cutScene:
 .incbin         "..\build\loggo-crop.bin"
 
-; qrcode
-.include        "..\build\qrcode.asm"
 
 
 
