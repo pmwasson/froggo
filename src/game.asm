@@ -60,8 +60,6 @@
 ; Constants
 ;-----------------------------------------------------------------------------
 
-BREAK_X = 24
-
 ; reuse zero page addresses
 bufferPtr0                  := mapPtr0      ; and +1
 bufferPtr1                  := maskPtr0     ; and +1
@@ -69,12 +67,13 @@ bufferPtr1                  := maskPtr0     ; and +1
 ; Constants for draw loop unrolling
 MAX_COLUMNS                 = 16
 MAX_COLUMN_PAIRS            = MAX_COLUMNS/2
-COLUMN_CODE_START           = $2000                         ; page0 offset $0000..$3048, page1 $3049..$6091
+
+DISPATCH_CODE               = $C00                          ; Dispatch code very small (<256 bytes)
+AUX_LEVEL_DATA              = $D00                          ; $D00 .. $2FFF
+COLUMN_CODE_START           = $3000                         ; page0 offset $0000..$3048, page1 $3049..$6091
 COLUMN_CODE_START_PAGE2     = COLUMN_CODE_START + $3049     ; include some padding after code to align buffers
 COLUMN_BUFFER_START         = COLUMN_CODE_START + $6100     ; size=$1000
                                                             ; Total size = $7100
-DISPATCH_CODE               = $C00                          ; Dispatch code very small (<32 bytes)
-
 COLUMN_ROWS                 = 128
 COLUMN_STARTING_ROW         = 32
 
@@ -200,10 +199,6 @@ LEVEL_COLUMN_START          = $2F
 
 .incbin "..\build\froggo.bin"
 
-; ;=============================================================================
-; .align $2000
-; ;=============================================================================
-
 ;-----------------------------------------------------------------------------
 ; Init code (run once)
 ;
@@ -229,6 +224,7 @@ LEVEL_COLUMN_START          = $2F
 
     jsr         initCode
     jsr         uncompressScreen
+    jsr         installLevelData
 
     jmp         main
 
@@ -528,22 +524,63 @@ writeByte:
 index:          .byte   0
 colorLookup:    .byte   BG+BG*16,FG+BG*16,BG+FG*16,FG+FG*16
 
+; qrcode
+.include        "..\build\qrcode.asm"
+
 .endproc
 
+
+;-----------------------------------------------------------------------------
+; Install Level Data to aux memory
+;-----------------------------------------------------------------------------
+
+.proc installLevelData
+
+    lda         #<LEVEL_DATA_START
+    sta         bufferPtr0
+    lda         #>LEVEL_DATA_START
+    sta         bufferPtr0+1
+
+    lda         #<AUX_LEVEL_DATA
+    sta         bufferPtr1
+    lda         #>AUX_LEVEL_DATA
+    sta         bufferPtr1+1
+
+    sta         RAMWRTON            ; Write to AUX
+
+    ldy         #0
+loop1:
+    lda         (bufferPtr0),y
+    sta         (bufferPtr1),y
+    iny
+    bne         loop1
+
+    inc         bufferPtr0+1
+    inc         bufferPtr1+1
+    lda         bufferPtr0+1
+    cmp         #>LEVEL_DATA_END
+    bne         loop1
+
+    sta         RAMWRTOFF           ; Write to Main
+
+    rts
+
+; start and end aligned
+.align 256
+; level column data
+LEVEL_DATA_START:
+.include        "levels.asm"
+.align 256
+LEVEL_DATA_END:
+
+.endproc
 
 ;-----------------------------------------------------------------------------
 ; Data to be used or copied to aux memory (will get overwritten)
 ;-----------------------------------------------------------------------------
 
-; qrcode
-.include        "..\build\qrcode.asm"
-
-; level column data
-.include        "levels.asm"
-
-
 ; pretend there is more data to keep the linker happy
-.res            $1B00
+.res            $1A00
 
 ;=============================================================================
 .align $100
