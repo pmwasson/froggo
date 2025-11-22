@@ -64,16 +64,20 @@
 bufferPtr0                  := mapPtr0      ; and +1
 bufferPtr1                  := maskPtr0     ; and +1
 
-; Constants for draw loop unrolling
-MAX_COLUMNS                 = 16
-MAX_COLUMN_PAIRS            = MAX_COLUMNS/2
-
+; Memory Mapping
+;---------------
 DISPATCH_CODE               = $C00                          ; Dispatch code very small (<256 bytes)
+                                                            ; Keep above prodos file buffer ($800..$BFF)
 AUX_LEVEL_DATA              = $D00                          ; $D00 .. $2FFF
 COLUMN_CODE_START           = $3000                         ; page0 offset $0000..$3048, page1 $3049..$6091
 COLUMN_CODE_START_PAGE2     = COLUMN_CODE_START + $3049     ; include some padding after code to align buffers
 COLUMN_BUFFER_START         = COLUMN_CODE_START + $6100     ; size=$1000
                                                             ; Total size = $7100
+
+; Constants for draw loop unrolling
+MAX_COLUMNS                 = 16
+MAX_COLUMN_PAIRS            = MAX_COLUMNS/2
+
 COLUMN_ROWS                 = 128
 COLUMN_STARTING_ROW         = 32
 
@@ -593,18 +597,19 @@ LEVEL_DATA_END:
 .proc main
 
     PlaySongPtr songGameStart
+    jsr         initGameState
     jsr         waitForKey
-
     jsr         initDisplay
 
     lda         #1
     sta         currentLevel
 
 
+
 reset_loop:
     jsr         loadLevel
     jsr         drawScreen
-    jsr         initState
+    jsr         initLevelState
 
 game_loop:
 
@@ -663,6 +668,7 @@ switchTo1:
     ldx         playerState
     cpx         #STATE_GAME_OVER
     bne         :+
+    jsr         initGameState
     PlaySongPtr songGameStart
     jmp         reset_loop  ; restart game
 :
@@ -861,6 +867,10 @@ erasePlayer1:
     ; display Image
     bit         HISCR
     PlaySongPtr songLevelComplete
+
+    ; Preload next cutscene
+    inc         sceneFileNameEnd-1
+    jsr         loadCutScene
     jsr         waitForKey
 
     bit         LOWSCR
@@ -890,6 +900,20 @@ done:
     rts
 
 wait:           .byte   0
+.endproc
+
+
+;-----------------------------------------------------------------------------
+; Load Cut Scene
+;-----------------------------------------------------------------------------
+.proc loadCutScene
+    ldx         #FILE_SCENE
+    jsr         loadData
+    lda         fileError
+    beq         :+
+    jsr         monitor
+:
+    rts
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -1808,10 +1832,26 @@ drawLoop:
 .endproc
 
 ;-----------------------------------------------------------------------------
-; initState
+; initGameState
 ;-----------------------------------------------------------------------------
 
-.proc initState
+.proc initGameState
+    lda         #0
+    sta         fileError
+
+    lda         #'0'
+    sta         sceneFileNameEnd-1
+    jsr         loadCutScene
+    rts
+.endproc
+
+;-----------------------------------------------------------------------------
+; initLevelState
+;-----------------------------------------------------------------------------
+
+.proc initLevelState
+    lda         #0
+    sta         fileError
     lda         #PLAYER_INIT_X
     sta         playerX
     sta         eraseTileX0_0
@@ -2184,6 +2224,7 @@ wait:
     lda         page
     bmi         :+
     rts                     ; still on low
+:
     sta         HISCR       ; switch to high
     rts
 
@@ -2226,15 +2267,88 @@ page:   .byte   0
 
     jsr         MLI
     .byte       CMD_QUIT
-    .word       quitParams
+    .word       quit_params
+
+.endproc
 
 
-quitParams:
-    .byte       4               ; 4 parameters
-    .byte       0               ; 0 is the only quit type
-    .word       0               ; Reserved pointer for future use (what future?)
-    .byte       0               ; Reserved byte for future use (what future?)
-    .word       0               ; Reserved pointer for future use (what future?)
+;-----------------------------------------------------------------------------
+; Load Data
+;   Load data using ProDOS
+;-----------------------------------------------------------------------------
+.proc loadData
+
+    ; Set parameters
+    lda         fileParameters,x
+    sta         open_params+1
+    lda         fileParameters+1,x
+    sta         open_params+2
+
+    lda         fileParameters+2,x
+    sta         rw_params+2
+    lda         fileParameters+3,x
+    sta         rw_params+3
+    lda         fileParameters+4,x
+    sta         rw_params+4
+    lda         fileParameters+5,x
+    sta         rw_params+5
+
+    ; open file
+    jsr         MLI
+    .byte       CMD_OPEN
+    .word       open_params
+    bcc         :+
+    jsr         printPath
+    jsr         inline_print
+    StringCR    "File not found"
+    inc         fileError
+    rts
+:
+
+    ; set reference number
+    lda         open_params+5
+    sta         rw_params+1
+    sta         close_params+1
+
+    ; read data
+    jsr         MLI
+    .byte       CMD_READ
+    .word       rw_params
+    bcc         :+
+
+    jsr         printPath
+    jsr         inline_print
+    StringCR    "Read Error"
+    inc         fileError
+    rts
+:
+
+    jsr         MLI
+    .byte       CMD_CLOSE
+    .word       close_params
+    bcc         :+
+
+    jsr         inline_print
+    StringCR    "File close error"
+    inc         fileError
+:
+    rts
+
+printPath:
+    jsr         HOME
+    jsr         TEXT
+    jsr         inline_print
+    String      "Pathname:"
+
+    lda         open_params+1
+    sta         stringPtr0
+    lda         open_params+2
+    sta         stringPtr1
+    jsr         print_length
+
+    lda         #KEY_RETURN
+    jsr         COUT
+    rts
 
 .endproc
 
@@ -2245,6 +2359,59 @@ quitParams:
 .include        "tones.asm"
 seed:           .word       $1234
 .include        "galois16o.asm"
+
+
+;-----------------------------------------------------------------------------
+; Global ProDos parameters
+;-----------------------------------------------------------------------------
+
+FILE_TILE           = 0*8
+FILE_SCENE          = 1*8
+
+tileFileName:       StringLen "DATA/TILE.0"
+sceneFileName:      StringLen "DATA/SCENE.0"
+sceneFileNameEnd:
+
+fileParameters:
+    .word       tileFileName,   tileSheet,  16*128,     0   
+    .word       sceneFileName,  cutScene,   40*128,     0
+
+fileError:      .byte   0
+assetNum:       .byte   0
+
+open_params:
+    .byte       $3              ; 3 parameters
+    .word       tileFileName    ; pathname*
+    .word       FILEBUFFER      ; ProDos buffer
+    .byte       $0              ; reference number
+
+create_params:
+    .byte       $7              ; 7 parameters
+    .word       tileFileName    ; pathname*
+    .byte       $C3             ; access bits (full access)
+    .byte       $6              ; file type (binary)
+    .word       $2000           ; binary file load address
+    .byte       $1              ; storage type (standard)
+    .word       $0              ; creation date
+    .word       $0              ; creation time
+
+rw_params:
+    .byte       $4
+    .byte       $0              ; reference number*
+    .word       $2000           ; address of data buffer*
+    .word       $2000           ; number of bytes to read/write*
+    .word       $0              ; number of bytes read/written
+
+close_params:
+    .byte       $1              ; 1 parameter
+    .byte       $0              ; reference number*
+
+quit_params:
+    .byte       4               ; 4 parameters
+    .byte       0               ; 0 is the only quit type
+    .word       0               ; Reserved pointer for future use (what future?)
+    .byte       0               ; Reserved byte for future use (what future?)
+    .word       0               ; Reserved pointer for future use (what future?)
 
 ;-----------------------------------------------------------------------------
 ; Globals
@@ -2551,12 +2718,15 @@ fullLinePage:
 ;-----------------------------------------------------------------------------
 
 .align 256
-tileSheet:
-.include        "font.asm"
 .include        "playerShapes.asm"
 
+.align 256
+tileSheet:
+.include        "font.asm"
+
+.align 256
 cutScene:
-.incbin         "..\build\loggo-crop.bin"
+
 
 
 

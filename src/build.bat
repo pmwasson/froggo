@@ -24,25 +24,27 @@ cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\parallax.asm apple2.lib  -o parall
 copy ..\disk\template_prodos.dsk froggo.dsk  || exit
 
 :: Game
-:: java -jar C:\jar\AppleCommander.jar -p  froggo.dsk game.system sys < C:\cc65\target\apple2\util\loader.system || exit
-:: java -jar C:\jar\AppleCommander.jar -as froggo.dsk game bin < game.apple2  || exit
-java -jar C:\jar\AppleCommander.jar -as froggo.dsk game.system sys < game.apple2  || exit
+:: ac-windows -p  froggo.dsk game.system sys < C:\cc65\target\apple2\util\loader.system || exit
+:: ac-windows -as froggo.dsk game bin < game.apple2  || exit
+ac-windows  -as froggo.dsk game.system sys < game.apple2  || exit
 
 :: Basic system for title
-java -jar C:\jar\AppleCommander.jar -p  froggo.dsk basic.system sys < ..\disk\BASIC.SYSTEM  || exit
-java -jar C:\jar\AppleCommander.jar -bas froggo.dsk startup < ..\src\startup.bas  || exit
-java -jar C:\jar\AppleCommander.jar -bas froggo.dsk hello < ..\src\hello.bas || exit
+ac-windows -p  froggo.dsk basic.system sys < ..\disk\BASIC.SYSTEM  || exit
+::ac-windows -bas froggo.dsk startup < ..\src\startup.bas  || exit
+ac-windows -bas froggo.dsk hello < ..\src\hello.bas || exit
 
 :: Parallax
-java -jar C:\jar\AppleCommander.jar -p  froggo.dsk parallax.system sys < C:\cc65\target\apple2\util\loader.system || exit
-java -jar C:\jar\AppleCommander.jar -as froggo.dsk parallax bin < parallax.apple2  || exit
+::ac-windows -p  froggo.dsk parallax.system sys < C:\cc65\target\apple2\util\loader.system || exit
+ac-windows -as froggo.dsk parallax bin < parallax.apple2  || exit
 
 :: Font Edit
-java -jar C:\jar\AppleCommander.jar -p  froggo.dsk fedit.system sys < C:\cc65\target\apple2\util\loader.system || exit
-java -jar C:\jar\AppleCommander.jar -as froggo.dsk fedit bin < fontEdit.apple2  || exit
+::ac-windows -p  froggo.dsk fedit.system sys < C:\cc65\target\apple2\util\loader.system || exit
+ac-windows -as froggo.dsk fedit bin < fontEdit.apple2  || exit
 
 :: Data
-::java -jar C:\jar\AppleCommander.jar -p  froggo.dsk data/froggo.hgr  bin < froggo.bin    || exit
+ac-windows -p  froggo.dsk data/scene.0  bin < log.bin       || exit
+ac-windows -p  froggo.dsk data/scene.1  bin < cup.bin       || exit
+ac-windows -p  froggo.dsk data/scene.2  bin < car.bin       || exit
 
 :: Copy results out of the build directory
 copy froggo.dsk ..\disk || exit
@@ -51,5 +53,5 @@ copy froggo.dsk ..\disk || exit
 :: Test on emulator
 ::---------------------------------------------------------------------------
 
-D:\AppleWin\AppleWin\Applewin.exe -no-printscreen-dlg -d1 froggo.dsk
+Applewin -no-printscreen-dlg -d1 froggo.dsk
 
