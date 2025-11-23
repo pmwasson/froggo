@@ -26,7 +26,7 @@ copy ..\disk\template_prodos.dsk froggo.dsk  || exit
 :: Game
 :: ac-windows -p  froggo.dsk game.system sys < C:\cc65\target\apple2\util\loader.system || exit
 :: ac-windows -as froggo.dsk game bin < game.apple2  || exit
-ac-windows  -as froggo.dsk game.system sys < game.apple2  || exit
+ac-windows  -as froggo.dsk froggo.system sys < game.apple2  || exit
 
 :: Parallax
 ::ac-windows -p  froggo.dsk parallax.system sys < C:\cc65\target\apple2\util\loader.system || exit
@@ -44,7 +44,11 @@ ac-windows -bas froggo.dsk hello < ..\src\hello.bas || exit
 :: Data
 ac-windows -p  froggo.dsk data/scene.0  bin < log.bin       || exit
 ac-windows -p  froggo.dsk data/scene.1  bin < cup.bin       || exit
-ac-windows -p  froggo.dsk data/scene.2  bin < car.bin       || exit
+ac-windows -p  froggo.dsk data/scene.2  bin < selfie.bin    || exit
+ac-windows -p  froggo.dsk data/scene.3  bin < gamer.bin     || exit
+ac-windows -p  froggo.dsk data/scene.4  bin < cape.bin      || exit
+ac-windows -p  froggo.dsk data/scene.5  bin < thumb.bin     || exit
+ac-windows -p  froggo.dsk data/scene.6  bin < car.bin       || exit
 
 :: Copy results out of the build directory
 copy froggo.dsk ..\disk || exit

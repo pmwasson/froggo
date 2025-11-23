@@ -29,13 +29,45 @@ COLUMN_WATER_D_1            = (levelColumnDataWD0 - levelColumnData)/16
 COLUMN_WATER_D_2            = (levelColumnDataWD0 - levelColumnData)/16
 COLUMN_WATER_D_3            = (levelColumnDataWD0 - levelColumnData)/16
 
-levelData0:
+; Each level is 32 bytes in AUX memory consisting of
+;   size(bytes)     description
+;   -----------     --------------------------
+;   20              column indexes
+;   8               dynamic column speeds
+;   4               padding
+;
+; This gets expanded with some redundancy to main memory as
+;   20*16           tiles for display
+;   18*14           tiles for static collisions
+;   8*16            tiles for dynamic collisions
+;   20              column types
+;   16              column speeds -- expanded by original 2 nibbles to 2 bytes
+;   16              column offsets -- always reset to zero
+; 
+; Each level is 20 columns, with 16 tiles in each column 16 (20*16 = 320 tile total)
+; There is a maximum of 8 dynamic columns, each of which has a type (1 byte), speed (2 bytes)
+
+levelData0:     ; grass--road--grass--water--grass
+    ; columns
     .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0                                            ; 4
     .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_D_1,COLUMN_ROAD_D_2,COLUMN_ROAD_S_0,COLUMN_ROAD_D_3,COLUMN_ROAD_GRASS_0         ; 6
     .byte       COLUMN_GRASS_3,COLUMN_GRASS_WATER_0                                                                         ; 2
     .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0,COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0   ; 6
     .byte       COLUMN_GRASS_4,COLUMN_GRASS_0                                                                               ; 2
+    ; dynamic speeds
+    .byte       <($0180>>2),<($FF10>>2),<($00B0>>2),<($0150>>2),<($0040>>2),<($FF30>>2),<($0020>>2),<($0090>>2)
+    ; padding
+    .res        4
 
+levelData1:     ; grass--water--grass--water--grass
+    .byte       COLUMN_GRASS_4,COLUMN_GRASS_3,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0                                           ; 4
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0,COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0   ; 6
+    .byte       COLUMN_GRASS_3,COLUMN_GRASS_WATER_0                                                                         ; 2
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0,COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0   ; 6
+    .byte       COLUMN_GRASS_4,COLUMN_GRASS_0                                                                               ; 2
+    .byte       <($0080>>4),<($FF10>>4),<($00A0>>4),<($0130>>4),<($FF40>>4),<($FF30>>4),<($0020>>4),<($FF90>>4)
+    ; padding
+    .res        4
 
 levelColumnInfo:
 ; grass

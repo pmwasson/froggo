@@ -601,11 +601,6 @@ LEVEL_DATA_END:
     jsr         waitForKey
     jsr         initDisplay
 
-    lda         #1
-    sta         currentLevel
-
-
-
 reset_loop:
     jsr         loadLevel
     jsr         drawScreen
@@ -662,6 +657,11 @@ switchTo1:
     cmp         #KEY_ASTERISK
     bne         :+
     jmp         monitor
+:
+    cmp         #KEY_RETURN
+    bne         :+
+    jsr         finishLevel
+    jmp         reset_loop
 :
 
     ; if game over, hit a key to restart
@@ -851,11 +851,11 @@ erasePlayer1:
 ;-----------------------------------------------------------------------------
 .proc finishLevel
 
-    lda         currentLevel
+    lda         displayLevel
     clc
     sed
     adc         #1
-    sta         currentLevel
+    sta         displayLevel
     cld
 
     ; Drawing on high screen
@@ -870,6 +870,12 @@ erasePlayer1:
 
     ; Preload next cutscene
     inc         sceneFileNameEnd-1
+    lda         sceneFileNameEnd-1
+    cmp         #'7'
+    bne         :+
+    lda         #'0'
+    sta         sceneFileNameEnd-1
+:
     jsr         loadCutScene
     jsr         waitForKey
 
@@ -1492,7 +1498,7 @@ LEVEL_Y = 1*TILE_HEIGHT
     sta         tileX
     lda         #LEVEL_Y
     sta         tileY
-    lda         currentLevel
+    lda         displayLevel
     lsr
     lsr
     lsr
@@ -1503,7 +1509,7 @@ LEVEL_Y = 1*TILE_HEIGHT
     jsr         drawTile
     lda         #LEVEL_X+TILE_WIDTH
     sta         tileX
-    lda         currentLevel
+    lda         displayLevel
     and         #$f
     tax
     lda         digitTile,x
@@ -1838,10 +1844,16 @@ drawLoop:
 .proc initGameState
     lda         #0
     sta         fileError
-
     lda         #'0'
     sta         sceneFileNameEnd-1
     jsr         loadCutScene
+
+
+    lda         #1
+    sta         displayLevel
+    lda         #0
+    sta         currentLevel
+
     rts
 .endproc
 
@@ -2028,6 +2040,27 @@ writeXLoop:
     sta         RAMWRTOFF       ; write to MAIN
     rts
 
+.endproc
+
+.proc loadAuxLevel
+
+    ; set level pointer
+    lda         currentLevel
+    asl
+    asl
+    asl
+    asl
+    asl                             ; *32
+    sta         scriptPtr0
+    lda         currentLevel
+    lsr
+    lsr
+    lsr                             ; /8
+    clc
+    adc         #>AUX_LEVEL_DATA    ; assume page aligned
+    sta         scriptPtr1
+
+    rts
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -2423,6 +2456,7 @@ playerTileY:    .byte       0
 playerState:    .byte       STATE_IDLE
 activeColumns:  .byte       0
 initialOffset:  .byte       0
+displayLevel:   .byte       0
 currentLevel:   .byte       0
 
 ; player drawing
@@ -2502,13 +2536,16 @@ levelData1:
     .byte   TILE_WATER_GRASS,TILE_GRASS,TILE_GRASS                              ; [3] water->grass
     ; Scrolling columns
     .byte     8, 10, 12, 16, 24, 26, 28, 32                                     ; column pair offset, locations ($FF for inactive)
-    .byte   $80,$10,$A7,$50,$40,$30,$20,$90                                     ; column pair speed (lower)
+    .byte   $80,$10,$A0,$50,$40,$30,$20,$90                                     ; column pair speed (lower)
     .byte   $01,$FF,$00,$01,$00,$FF,$00,$00                                     ; column pair speed (upper)
     .byte     8                                                                 ; active column pairs
 
     ; column pair 0
     .byte   TILE_CAR1_BLUE,TILE_ROAD,TILE_CAR1_PURPLE,TILE_ROAD,TILE_CAR1_BLUE,TILE_ROAD,TILE_ROAD,TILE_ROAD
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+
+    ;.byte   TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C,TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C
+    ;.byte   TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C,TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C
 
     ; column pair 1
     .byte   TILE_CAR2_A,TILE_CAR2_B,TILE_ROAD,TILE_CAR2_A,TILE_CAR2_B,TILE_ROAD,TILE_TRUCKD_A,TILE_TRUCKD_B
@@ -2712,6 +2749,10 @@ fullLinePage:
     .byte       >$22D0, >$26D0, >$2AD0, >$2ED0, >$32D0, >$36D0, >$3AD0, >$3ED0
     .byte       >$2350, >$2750, >$2B50, >$2F50, >$3350, >$3750, >$3B50, >$3F50
     .byte       >$23D0, >$27D0, >$2BD0, >$2FD0, >$33D0, >$37D0, >$3BD0, >$3FD0
+
+.align 256
+
+worldMap:       .res 16*20
 
 ;-----------------------------------------------------------------------------
 ; Assets
