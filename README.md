@@ -23,6 +23,11 @@ python3 build:
 - [x] Smooth scrolling by unrolling loops into AUX memory
 - [x] Load title screen in same file as the game
 - [x] Load next cutscene while displaying the current one
+- [ ] Different level types
+  - [ ] Trains - very fast, go from emptry to full
+  - [ ] Snakes - time limit by slowly filling column
+  - [ ] Crosswalk - stop time briefly so must hurry across road
+  - [ ] Buttons - simple puzzle solving - enable bridges or remove barriers (crosswalk may be a subset)
 - [ ] Rewrite level loading code so can come from AUX memory
 - [ ] More levels
   - [ ] 5 levels

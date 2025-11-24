@@ -8,7 +8,7 @@
 160 PRINT "| -fedit    : a font/tile editor       |"; 
 170 PRINT "|                                      |";
 180 PRINT "| Enjoy!                               |";
-190 PRINT "|              - PAUL WASSON, 12/2025  |";
+190 PRINT "|              - Paul Wasson, 12/2025  |";
 200 PRINT "|______________________________________|"
 210 GET A$
 220 PRINT

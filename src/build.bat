@@ -45,10 +45,11 @@ ac-windows -bas froggo.dsk hello < ..\src\hello.bas || exit
 ac-windows -p  froggo.dsk data/scene.0  bin < log.bin       || exit
 ac-windows -p  froggo.dsk data/scene.1  bin < cup.bin       || exit
 ac-windows -p  froggo.dsk data/scene.2  bin < selfie.bin    || exit
-ac-windows -p  froggo.dsk data/scene.3  bin < gamer.bin     || exit
+ac-windows -p  froggo.dsk data/scene.3  bin < karate.bin    || exit
 ac-windows -p  froggo.dsk data/scene.4  bin < cape.bin      || exit
 ac-windows -p  froggo.dsk data/scene.5  bin < thumb.bin     || exit
-ac-windows -p  froggo.dsk data/scene.6  bin < car.bin       || exit
+ac-windows -p  froggo.dsk data/scene.6  bin < gamer.bin     || exit
+ac-windows -p  froggo.dsk data/scene.7  bin < car.bin       || exit
 
 :: Copy results out of the build directory
 copy froggo.dsk ..\disk || exit

@@ -196,6 +196,8 @@ SKIP_CHAR                   = '`' - $20
 
 LEVEL_COLUMN_START          = $2F
 
+NUMBER_CUTSCENES            = 8
+
 ;-----------------------------------------------------------------------------
 ; Title image
 ;-----------------------------------------------------------------------------
@@ -445,10 +447,14 @@ copyLoop:
     bne         copyLoop
     rts
 
+; align dispatch code and add padding to avoid moving addresses
+.align 256
 dispatchStart:
+
+dispatch:
     ; This code is being used as data to be copied to lower memory
     ; location in both main and aux memory to call the aux code.
-    ; It must be relocatable.
+    ; It must be relocatable (or destination addresses calculated)
 
     ; Determine what page to draw on
     lda         PAGE2           ; bit 7 = page2 displayed
@@ -463,6 +469,102 @@ draw1:
     jsr         COLUMN_CODE_START
     sta         RAMRDOFF
     rts
+
+.align 32
+
+; Zero page usage
+currentColumn   := tempZP
+levelPtr        := scriptPtr0
+columnPtr       := mapPtr0
+
+
+; Set up map pointer before calling
+; This read the column index and then copy of the referenced data to fixed locations
+;   - column types (20 bytes)
+;   - column tiles (20*16 bytes)
+;   - column expanded speeds (8*2 bytes)
+
+copyLevelData:
+    lda         #0
+    sta         currentColumn
+
+    sta         RAMRDON         ; read from aux (including instructions)
+
+columnLoop:
+    ldy         currentColumn
+    lda         (levelPtr),y
+    tax                                 ; X = column index
+    lda         levelColumnInfo,x       ; lookup column type
+    sta         worldColumnType,y
+    txa                                 ; calc column tiles address
+    tay                                 ; put a copy of the index in Y
+    asl
+    asl
+    asl
+    asl                                 ; *16
+    sta         columnPtr
+    tya
+    lsr
+    lsr
+    lsr
+    lsr                                 ; /16
+    clc
+    adc         #>(AUX_LEVEL_DATA + (levelColumnData-LEVEL_DATA_START))
+    sta         columnPtr+1
+    ldx         currentColumn
+
+    ; Copy and transpose the column data
+    ; (Could also consider working with non-transposed data)
+    ldy         #0
+columnTileLoop:
+.repeat 16,index
+    lda         (columnPtr),y
+    sta         worldMap+index*20,x
+    iny         
+.endrep
+    cpy         #16
+    beq         :+
+    jmp         DISPATCH_CODE + (columnTileLoop-dispatchStart)      ; relocated jump!
+:
+
+    inc         currentColumn
+    cmp         #20
+    beq         :+
+    jmp         DISPATCH_CODE + (columnLoop-dispatchStart)      ; relocated jump!
+:
+    ; expand speeds
+    ldx         #0                          ; x = speed index
+    ldy         #20                         ; currentColumn == 20
+speedLoop:
+    lda         (levelPtr),y
+    asl
+    asl
+    asl
+    asl                                     ; *16
+    sta         worldSpeed0,x               ; write lower bytes
+    lda         (levelPtr),y
+    bmi         negativeSign
+    lsr
+    lsr
+    lsr
+    lsr                                     ; /16 (positive)
+    jmp         DISPATCH_CODE + (speedContinue-dispatchStart)
+negativeSign:
+    lsr
+    lsr
+    lsr
+    lsr                                     ; /16 (negative)
+    ora         #$f0                        ; set sign bits
+speedContinue:
+    sta         worldSpeed1,x              ; write upper bytes
+    inx
+    iny
+    cpy         #20+8
+    bne         speedLoop
+
+    sta         RAMRDOFF                    ; back to main memory
+    rts
+
 dispatchEnd:
 
 .endproc
@@ -569,6 +671,8 @@ loop1:
 
     rts
 
+.endproc
+
 ; start and end aligned
 .align 256
 ; level column data
@@ -577,14 +681,13 @@ LEVEL_DATA_START:
 .align 256
 LEVEL_DATA_END:
 
-.endproc
 
 ;-----------------------------------------------------------------------------
 ; Data to be used or copied to aux memory (will get overwritten)
 ;-----------------------------------------------------------------------------
 
 ; pretend there is more data to keep the linker happy
-.res            $1A00
+.res            $1900
 
 ;=============================================================================
 .align $100
@@ -871,7 +974,7 @@ erasePlayer1:
     ; Preload next cutscene
     inc         sceneFileNameEnd-1
     lda         sceneFileNameEnd-1
-    cmp         #'7'
+    cmp         #'0'+NUMBER_CUTSCENES
     bne         :+
     lda         #'0'
     sta         sceneFileNameEnd-1
@@ -1627,11 +1730,11 @@ loop:
     ldy         #0
     ldx         shapeOffset
     lda         (screenPtr0),y
-    ora         playerShapes,x
+    ora         PLAYER_SHAPES,x
     sta         (screenPtr0),y
     iny
     lda         (screenPtr0),y
-    ora         playerShapes+1,x
+    ora         PLAYER_SHAPES+1,x
     sta         (screenPtr0),y
     inc         shapeOffset
     inc         shapeOffset
@@ -1676,11 +1779,11 @@ loop:
     ldy         #0
     ldx         shapeOffset
     lda         (screenPtr0),y
-    and         playerShapes,x
+    and         PLAYER_SHAPES,x
     sta         (screenPtr0),y
     iny
     lda         (screenPtr0),y
-    and         playerShapes+1,x
+    and         PLAYER_SHAPES+1,x
     sta         (screenPtr0),y
     inc         shapeOffset
     inc         shapeOffset
@@ -2752,18 +2855,27 @@ fullLinePage:
 
 .align 256
 
-worldMap:       .res 16*20
+worldMap:           .res    16*20
+worldColumnType:    .res    20
+worldSpeed0:        .res    8
+worldSpeed1:        .res    8
+worldOffset0:       .res    8
+worldOffset1:       .res    8
 
 ;-----------------------------------------------------------------------------
 ; Assets
 ;-----------------------------------------------------------------------------
 
 .align 256
-.include        "playerShapes.asm"
+
+; Put player shapes at the end of the font/tiles
+;.include        "playerShapes.asm"
 
 .align 256
 tileSheet:
 .include        "font.asm"
+
+PLAYER_SHAPES = tileSheet + (16 * $70)
 
 .align 256
 cutScene:
