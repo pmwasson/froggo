@@ -19,15 +19,15 @@ COLUMN_GRASS_WATER_0        = (levelColumnDataGW0 - levelColumnData)/16
 COLUMN_WATER_GRASS_0        = (levelColumnDataWG0 - levelColumnData)/16
 COLUMN_ROAD_S_0             = (levelColumnDataRS0 - levelColumnData)/16
 COLUMN_ROAD_D_0             = (levelColumnDataRD0 - levelColumnData)/16
-COLUMN_ROAD_D_1             = (levelColumnDataRD0 - levelColumnData)/16
-COLUMN_ROAD_D_2             = (levelColumnDataRD0 - levelColumnData)/16
-COLUMN_ROAD_D_3             = (levelColumnDataRD0 - levelColumnData)/16
+COLUMN_ROAD_D_1             = (levelColumnDataRD1 - levelColumnData)/16
+COLUMN_ROAD_D_2             = (levelColumnDataRD2 - levelColumnData)/16
+COLUMN_ROAD_D_3             = (levelColumnDataRD3 - levelColumnData)/16
 COLUMN_TRAIN_D_0            = (levelColumnDataTD0 - levelColumnData)/16
 COLUMN_WATER_S_0            = (levelColumnDataWS0 - levelColumnData)/16
 COLUMN_WATER_D_0            = (levelColumnDataWD0 - levelColumnData)/16
-COLUMN_WATER_D_1            = (levelColumnDataWD0 - levelColumnData)/16
-COLUMN_WATER_D_2            = (levelColumnDataWD0 - levelColumnData)/16
-COLUMN_WATER_D_3            = (levelColumnDataWD0 - levelColumnData)/16
+COLUMN_WATER_D_1            = (levelColumnDataWD1 - levelColumnData)/16
+COLUMN_WATER_D_2            = (levelColumnDataWD2 - levelColumnData)/16
+COLUMN_WATER_D_3            = (levelColumnDataWD3 - levelColumnData)/16
 
 ; Each level is 32 bytes in AUX memory consisting of
 ;   size(bytes)     description
@@ -55,7 +55,9 @@ level0:         ; grass--road--grass--water--grass
     .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0,COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0   ; 6
     .byte       COLUMN_GRASS_4,COLUMN_GRASS_0                                                                               ; 2
     ; dynamic speeds
-    .byte       <($0180>>2),<($FF10>>2),<($00B0>>2),<($0150>>2),<($0040>>2),<($FF30>>2),<($0020>>2),<($0090>>2)
+    ;           $0180   $FF10   $00B0   $0150   $0040   $FF30   $0020   $0090
+    ;             ^^      ^^      ^^      ^^      ^^      ^^      ^^      ^^
+    .byte       $81,    $1F,    $B0,    $51,    $40,    $3F,    $20,    $90
     ; padding
     .res        4
 
@@ -65,7 +67,11 @@ level1:         ; grass--water--grass--water--grass
     .byte       COLUMN_GRASS_3,COLUMN_GRASS_WATER_0                                                                         ; 2
     .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0,COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0   ; 6
     .byte       COLUMN_GRASS_4,COLUMN_GRASS_0                                                                               ; 2
-    .byte       <($0080>>4),<($FF10>>4),<($00A0>>4),<($0130>>4),<($FF40>>4),<($FF30>>4),<($0020>>4),<($FF90>>4)
+
+    ;           $0080   $FF10   $00A0   $0130   $FF40   $FF30   $0020   $FF90
+    ;             ^^      ^^      ^^      ^^      ^^      ^^      ^^      ^^
+    .byte       $80,    $1F,    $A0,    $31,    $4F,    $3F,    $20,    $9F
+
     ; padding
     .res        4
 
@@ -111,6 +117,7 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_DYNAMIC                             ; 3 small log (8 water)
 
 
+.align 256
 levelColumnData:
 ; grass
 levelColumnDataG0:

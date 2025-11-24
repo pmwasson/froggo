@@ -63,11 +63,14 @@
 ; reuse zero page addresses
 bufferPtr0                  := mapPtr0      ; and +1
 bufferPtr1                  := maskPtr0     ; and +1
+levelPtr                    := scriptPtr0   ; and +1
 
 ; Memory Mapping
 ;---------------
 DISPATCH_CODE               = $C00                          ; Dispatch code very small (<256 bytes)
                                                             ; Keep above prodos file buffer ($800..$BFF)
+COPY_LEVEL_CODE             = DISPATCH_CODE + $20
+
 AUX_LEVEL_DATA              = $D00                          ; $D00 .. $2FFF
 COLUMN_CODE_START           = $3000                         ; page0 offset $0000..$3048, page1 $3049..$6091
 COLUMN_CODE_START_PAGE2     = COLUMN_CODE_START + $3049     ; include some padding after code to align buffers
@@ -474,7 +477,6 @@ draw1:
 
 ; Zero page usage
 currentColumn   := tempZP
-levelPtr        := scriptPtr0
 columnPtr       := mapPtr0
 
 
@@ -494,7 +496,7 @@ columnLoop:
     ldy         currentColumn
     lda         (levelPtr),y
     tax                                 ; X = column index
-    lda         levelColumnInfo,x       ; lookup column type
+    lda         AUX_LEVEL_DATA+levelColumnInfo-LEVEL_DATA_START,x       ; lookup column type
     sta         worldColumnType,y
     txa                                 ; calc column tiles address
     tay                                 ; put a copy of the index in Y
@@ -528,35 +530,31 @@ columnTileLoop:
 :
 
     inc         currentColumn
+    lda         currentColumn
     cmp         #20
     beq         :+
-    jmp         DISPATCH_CODE + (columnLoop-dispatchStart)      ; relocated jump!
+    jmp         DISPATCH_CODE + (columnLoop-dispatchStart)          ; relocated jump!
 :
     ; expand speeds
     ldx         #0                          ; x = speed index
     ldy         #20                         ; currentColumn == 20
 speedLoop:
     lda         (levelPtr),y
-    asl
-    asl
-    asl
-    asl                                     ; *16
-    sta         worldSpeed0,x               ; write lower bytes
+    and         #$F0
+    sta         worldSpeed0,x               ; write lower byte
+
     lda         (levelPtr),y
-    bmi         negativeSign
-    lsr
-    lsr
-    lsr
-    lsr                                     ; /16 (positive)
-    jmp         DISPATCH_CODE + (speedContinue-dispatchStart)
-negativeSign:
-    lsr
-    lsr
-    lsr
-    lsr                                     ; /16 (negative)
-    ora         #$f0                        ; set sign bits
+    and         #$08                        ; check if upper bit of nibble is set
+    beq         positiveSign
+    lda         (levelPtr),y
+    and         #$0F
+    ora         #$F0
+    jmp         DISPATCH_CODE + (speedContinue-dispatchStart)       ; relocated jump!
+positiveSign:
+    lda         (levelPtr),y
+    and         #$0F
 speedContinue:
-    sta         worldSpeed1,x              ; write upper bytes
+    sta         worldSpeed1,x               ; write upper byte
     inx
     iny
     cpy         #20+8
@@ -687,7 +685,7 @@ LEVEL_DATA_END:
 ;-----------------------------------------------------------------------------
 
 ; pretend there is more data to keep the linker happy
-.res            $1900
+.res            $1800
 
 ;=============================================================================
 .align $100
@@ -698,6 +696,17 @@ LEVEL_DATA_END:
 ;-----------------------------------------------------------------------------
 
 .proc main
+
+
+;    ; test load level
+;    jsr         HOME
+;    jsr         TEXT
+;    lda         #<AUX_LEVEL_DATA
+;    sta         levelPtr
+;    lda         #>AUX_LEVEL_DATA
+;    sta         levelPtr+1
+;    jsr         COPY_LEVEL_CODE
+
 
     PlaySongPtr songGameStart
     jsr         initGameState
