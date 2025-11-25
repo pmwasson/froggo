@@ -75,6 +75,8 @@ level1:         ; grass--water--grass--water--grass
     ; padding
     .res        4
 
+    .byte       $FF     ; end of levels
+
 levelColumnInfo:
 ; grass
     .byte       COLUMN_TYPE_STATIC                              ; grass - empty

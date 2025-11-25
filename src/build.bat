@@ -49,7 +49,9 @@ ac-windows -p  froggo.dsk data/scene.3  bin < karate.bin    || exit
 ac-windows -p  froggo.dsk data/scene.4  bin < cape.bin      || exit
 ac-windows -p  froggo.dsk data/scene.5  bin < thumb.bin     || exit
 ac-windows -p  froggo.dsk data/scene.6  bin < gamer.bin     || exit
+
 ac-windows -p  froggo.dsk data/scene.7  bin < car.bin       || exit
+ac-windows -p  froggo.dsk data/scene.8  bin < computer.bin  || exit
 
 :: Copy results out of the build directory
 copy froggo.dsk ..\disk || exit

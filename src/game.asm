@@ -199,7 +199,7 @@ SKIP_CHAR                   = '`' - $20
 
 LEVEL_COLUMN_START          = $2F
 
-NUMBER_CUTSCENES            = 8
+NUMBER_CUTSCENES            = 9
 
 ;-----------------------------------------------------------------------------
 ; Title image
@@ -555,6 +555,9 @@ positiveSign:
     and         #$0F
 speedContinue:
     sta         worldSpeed1,x               ; write upper byte
+    lda         #0
+    sta         worldOffset0,x              ; init offset
+    sta         worldOffset1,x              ; init offset
     inx
     iny
     cpy         #20+8
@@ -696,17 +699,6 @@ LEVEL_DATA_END:
 ;-----------------------------------------------------------------------------
 
 .proc main
-
-
-;    ; test load level
-;    jsr         HOME
-;    jsr         TEXT
-;    lda         #<AUX_LEVEL_DATA
-;    sta         levelPtr
-;    lda         #>AUX_LEVEL_DATA
-;    sta         levelPtr+1
-;    jsr         COPY_LEVEL_CODE
-
 
     PlaySongPtr songGameStart
     jsr         initGameState
@@ -1012,7 +1004,7 @@ loop:
     bne         loop
     dec         wait
     bne         loop
-    ; timeout
+    ; timeout (value == 0)
 done:
     bit         KBDSTRB
     rts
@@ -1529,7 +1521,6 @@ writeOffsetLoop:
 mapLoop:
     lda         #0
     sta         index
-drawRow:
     lda         #MAP_LEFT
     sta         tileX
 rowLoop:
@@ -1574,6 +1565,56 @@ tileLoop:
     jmp         tileLoop
 
 doneDrawMisc:
+    rts
+
+index:          .byte   0
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Draw Map
+;-----------------------------------------------------------------------------
+
+.proc drawMap2
+
+    lda         #<worldMap
+    sta         mapPtr0
+    lda         #>worldMap
+    sta         mapPtr1
+    lda         #MAP_TOP
+    sta         tileY
+
+mapLoop:
+    lda         #0
+    sta         index
+    lda         #MAP_LEFT
+    sta         tileX
+
+rowLoop:
+    ldy         index
+    lda         (mapPtr0),y
+    jsr         drawTile
+    inc         index
+    lda         tileX
+    clc
+    adc         #TILE_WIDTH
+    sta         tileX
+    cmp         #MAP_RIGHT
+    bne         rowLoop
+
+    lda         mapPtr0
+    clc
+    adc         #20
+    sta         mapPtr0
+    lda         mapPtr1
+    adc         #0
+    sta         mapPtr1
+
+    inc         tileY
+    lda         tileY
+    cmp         #MAP_BOTTOM
+    bne         mapLoop
+
     rts
 
 index:          .byte   0
@@ -2154,27 +2195,6 @@ writeXLoop:
 
 .endproc
 
-.proc loadAuxLevel
-
-    ; set level pointer
-    lda         currentLevel
-    asl
-    asl
-    asl
-    asl
-    asl                             ; *32
-    sta         scriptPtr0
-    lda         currentLevel
-    lsr
-    lsr
-    lsr                             ; /8
-    clc
-    adc         #>AUX_LEVEL_DATA    ; assume page aligned
-    sta         scriptPtr1
-
-    rts
-.endproc
-
 ;-----------------------------------------------------------------------------
 ; Load Level
 ;-----------------------------------------------------------------------------
@@ -2265,6 +2285,101 @@ doneWithColumns:
 
 index:          .byte   0
 tileIndex:      .byte   0
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Load Level
+;-----------------------------------------------------------------------------
+.proc loadLevel2
+    lda         currentLevel
+    asl
+    asl
+    asl
+    asl
+    asl         ; *32
+    adc         #<AUX_LEVEL_DATA
+    sta         levelPtr
+    lda         currentLevel
+    lsr
+    lsr
+    lsr         ; /8
+    clc
+    adc         #>AUX_LEVEL_DATA
+    sta         levelPtr+1
+    jsr         COPY_LEVEL_CODE
+
+    ; convert world map to static collision map
+    ldx         #0
+staticLoop:
+.repeat 14,index
+    ldy         worldMap+1+20*(index+1),x
+    lda         tileTypeTable,y
+    sta         tileTypeArray+18*index,x
+.endrep
+    inx
+    cpx         #18
+    beq         :+
+    jmp         staticLoop
+:
+
+    ; look for dynamic columns
+    lda         #0
+    sta         activeColumns
+    sta         dynamicIndex    
+    sta         worldColumn
+    sta         tileX
+
+dynamicLoop:
+    lda         #0
+    sta         tileY
+
+    ; tileX = dynamic column number (inc by 2), tileY = row w/in column (inc by 1)
+    ldx         worldColumn
+    lda         worldColumnType,x
+    and         #COLUMN_TYPE_DYNAMIC
+    bne         :+
+    jmp         nextDynamic
+:
+    ldy         activeColumns
+    txa
+    asl                             ; *2
+    sta         worldBufferX,y
+
+.repeat 16,index
+    lda         worldMap+20*index,x
+    jsr         dynamicUpdate
+.endrep
+    ; point to next dynamic column
+    inc         activeColumns
+    inc         tileX
+    inc         tileX               ; tileX = activeColumns*2 since buffers in pairs
+
+nextDynamic:
+    inc         worldColumn
+    lda         worldColumn
+    cmp         #40
+    beq         :+
+    jmp         dynamicLoop
+:
+    rts
+
+dynamicUpdate:
+    sta         tileIndex
+    jsr         copyTileToBuffers
+    ldy         tileIndex
+    lda         tileTypeTable,y
+    ldy         dynamicIndex
+    sta         tileDynamicType,y
+    inc         dynamicIndex
+    inc         tileY
+    ldx         worldColumn
+    rts
+
+
+tileIndex:      .byte       $0
+dynamicIndex:   .byte       $0
+worldColumn:    .byte       $0
 
 .endproc
 
@@ -2634,7 +2749,7 @@ mult18Table:    .byte   18*0, 18*1, 18*2, 18*3,  18*4,  18*5,  18*6
 .align 256
 tileTypeArray:      .res        256         ; collision detection (18x14 array)
 tileCacheArray:     .res        256         ; track tile index for BG
-tileDynamicType:    .res        MAX_COLUMN_PAIRS*COLUMN_ROWS/8
+tileDynamicType:    .res        MAX_COLUMN_PAIRS*COLUMN_ROWS/8  ; collision detection (dynamic columns)
 
 levelData:
 ; Level 1
@@ -2864,12 +2979,13 @@ fullLinePage:
 
 .align 256
 
-worldMap:           .res    16*20
-worldColumnType:    .res    20
-worldSpeed0:        .res    8
-worldSpeed1:        .res    8
-worldOffset0:       .res    8
-worldOffset1:       .res    8
+worldMap:           .res    16*20       ; Read from AUX memory
+worldColumnType:    .res    20          ; Read from AUX memory
+worldBufferX:       .res    8           ; Calc for AUX memory column types
+worldSpeed0:        .res    8           ; Read from AUX memory
+worldSpeed1:        .res    8           ; Read from AUX memory
+worldOffset0:       .res    8           ; Init when setting speed
+worldOffset1:       .res    8           ; Init when setting speed
 
 ;-----------------------------------------------------------------------------
 ; Assets

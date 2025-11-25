@@ -2,6 +2,7 @@
 
 python3 imageConvert2.py froggo2.png               ..\build\froggo.png       140 192 1 4000 || exit
 
+python3 imageConvert2.py computer-crop.png         ..\build\computer.png     140 128 0 0 || exit
 python3 imageConvert2.py karate-crop.png           ..\build\karate.png       140 128 0 0 || exit
 python3 imageConvert2.py thumb-crop.png            ..\build\thumb.png        140 128 0 0 || exit
 python3 imageConvert2.py cape-crop.png             ..\build\cape.png         140 128 0 0 || exit
