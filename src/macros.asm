@@ -58,3 +58,19 @@
     sta     stringPtr1
     jsr     playSong
 .endmacro
+
+.macro ConvertSpeed     word
+    .byte   ($F0 & word) | ($0F & (word >> 8))
+.endmacro
+
+.macro ConvertSpeeds    s0,s1,s2,s3,s4,s5,s6,s7
+    ConvertSpeed    s0
+    ConvertSpeed    s1
+    ConvertSpeed    s2
+    ConvertSpeed    s3
+    ConvertSpeed    s4
+    ConvertSpeed    s5
+    ConvertSpeed    s6
+    ConvertSpeed    s7
+.endmacro
+

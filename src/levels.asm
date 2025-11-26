@@ -56,9 +56,7 @@ level0:         ; grass--road--grass--water--grass
     .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0,COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0   ; 6
     .byte       COLUMN_GRASS_4,COLUMN_GRASS_0                                                                               ; 2
     ; dynamic speeds
-    ;           $0180   $FF10   $00B0   $0150   $0040   $FF30   $0020   $0090
-    ;             ^^      ^^      ^^      ^^      ^^      ^^      ^^      ^^
-    .byte       $81,    $1F,    $B0,    $51,    $40,    $3F,    $20,    $90
+    ConvertSpeeds   $0180, $FF10, $00B0, $0150, $0040, $FF30, $0020, $0090
     ; padding
     .res        4
 
@@ -68,11 +66,8 @@ level1:         ; grass--water--grass--water--grass
     .byte       COLUMN_GRASS_3,COLUMN_GRASS_WATER_0                                                                         ; 2
     .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_1,COLUMN_WATER_D_4,COLUMN_WATER_GRASS_0   ; 6
     .byte       COLUMN_GRASS_4,COLUMN_GRASS_0                                                                               ; 2
-
-    ;           $0080   $FF10   $00A0   $0130   $FF40   $FF30   $0020   $FF90
-    ;             ^^      ^^      ^^      ^^      ^^      ^^      ^^      ^^
-    .byte       $80,    $1F,    $A0,    $31,    $4F,    $3F,    $20,    $9F
-
+    ; dynamic speeds
+    ConvertSpeeds   $0080, $FF10, $00A0, $0130, $FF50, $FF30, $0030, $FF80
     ; padding
     .res        4
 
