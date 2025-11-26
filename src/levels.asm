@@ -4,9 +4,8 @@
 ; Level Data
 ;-----------------------------------------------------------------------------
 
-COLUMN_TYPE_STATIC          = 0
-COLUMN_TYPE_DYNAMIC         = 1
-COLUMN_TYPE_DOWN            = 2
+COLUMN_TYPE_STATIC          = $00
+COLUMN_TYPE_DYNAMIC         = $80           ; $80..$87
 
 COLUMN_GRASS_0              = (levelColumnDataG0  - levelColumnData)/16
 COLUMN_GRASS_1              = (levelColumnDataG1  - levelColumnData)/16
@@ -102,7 +101,7 @@ levelColumnInfo:
 
 ; road (dynamic)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 3 small cars (blue, purple, blue)
-    .byte       COLUMN_TYPE_DYNAMIC + COLUMN_TYPE_DOWN          ; 2 medium cars and a truck (down)
+    .byte       COLUMN_TYPE_DYNAMIC                             ; 2 medium cars and a truck (down)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 3 small cars (red, red, blue)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 2 trucks
 

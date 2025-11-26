@@ -486,7 +486,7 @@ columnPtr       := mapPtr0
 ;   - column tiles (20*16 bytes)
 ;   - column expanded speeds (8*2 bytes)
 
-copyLevelData:
+copyLevelData:                  ; aka COPY_LEVEL_CODE
     lda         #0
     sta         currentColumn
 
@@ -497,7 +497,7 @@ columnLoop:
     lda         (levelPtr),y
     tax                                 ; X = column index
     lda         AUX_LEVEL_DATA+levelColumnInfo-LEVEL_DATA_START,x       ; lookup column type
-    sta         worldColumnType,y
+    sta         worldColumnType,y       ; static or dynamic
     txa                                 ; calc column tiles address
     tay                                 ; put a copy of the index in Y
     asl
@@ -706,7 +706,7 @@ LEVEL_DATA_END:
     jsr         initDisplay
 
 reset_loop:
-    jsr         loadLevel
+    jsr         loadLevel2
     jsr         drawScreen
     jsr         initLevelState
 
@@ -1056,13 +1056,13 @@ wait:           .byte   0
 
     ; check if on dynamic column
     lda         playerX
-    lsr
+    lsr                         ; divide by 2 for tile offset
     tay
-    lda         bgTiles,y
+    lda         worldColumnType,y
     bpl         :+
     and         #$07
     tax
-    lda         bufferOffset1,x
+    lda         worldOffset1,x
     clc
     adc         playerY
     sta         initialOffset
@@ -1160,7 +1160,7 @@ doneDead:
     lsr
     lsr         ; column #
     tax
-    lda         bufferOffset1,x
+    lda         worldOffset1,x
     sta         currentOffset
     clc
     adc         playerY
@@ -1436,12 +1436,18 @@ index:          .byte   0
 ;-----------------------------------------------------------------------------
 ; Read tile cache and erase
 .proc eraseTile
+
+    lda         tileY
+    cmp         #MAP_TOP
+    beq         skip
+    cmp         #MAP_BOTTOM-TILE_HEIGHT
+    beq         skip
+
     jsr         tile2array
     tax
     lda         tileCacheArray,x
-    bmi         :+                  ; ignore active columns
     jmp         drawTile            ; chain returns
-:
+skip:
     rts
 
 .endproc
@@ -1473,12 +1479,12 @@ index:          .byte   0
 
 incOffsetLoop:
     clc
-    lda         bufferOffset0,x
-    adc         bufferSpeed0,x
-    sta         bufferOffset0,x
-    lda         bufferOffset1,x
-    adc         bufferSpeed1,x
-    sta         bufferOffset1,x
+    lda         worldOffset0,x
+    adc         worldSpeed0,x
+    sta         worldOffset0,x
+    lda         worldOffset1,x
+    adc         worldSpeed1,x
+    sta         worldOffset1,x
     inx
     cpx         activeColumns
     bne         incOffsetLoop
@@ -1495,7 +1501,7 @@ incOffsetLoop:
     ldy         #0
     sta         RAMWRTON        ; write to AUX
 writeOffsetLoop:
-    lda         bufferOffset1,x
+    lda         worldOffset1,x
     and         #$7f
     sta         (bufferPtr0),y
     inc         bufferPtr0+1
@@ -2069,14 +2075,14 @@ drawLoop:
     ; display map on both pages
     lda         #$20
     sta         drawPage
-    jsr         drawMap
+    jsr         drawMap2
     jsr         drawText
     jsr         drawRoad
 
     sta         HISCR       ; show high while drawing low
     lda         #$00
     sta         drawPage
-    jsr         drawMap
+    jsr         drawMap2
     jsr         drawText
     jsr         drawRoad
 
@@ -2183,7 +2189,7 @@ zeroLoop:
     ldy         #0
     sta         RAMWRTON        ; write to AUX
 writeXLoop:
-    lda         bufferX,x
+    lda         worldBufferX,x
     sta         (bufferPtr0),y
     inc         bufferPtr0+1
     inc         bufferPtr0+1
@@ -2289,9 +2295,12 @@ tileIndex:      .byte   0
 .endproc
 
 ;-----------------------------------------------------------------------------
-; Load Level
+; Load Level from AUX memory
 ;-----------------------------------------------------------------------------
 .proc loadLevel2
+
+    ; copy level data from AUX memory
+    ;-------------------------------------------    
     lda         currentLevel
     asl
     asl
@@ -2309,7 +2318,66 @@ tileIndex:      .byte   0
     sta         levelPtr+1
     jsr         COPY_LEVEL_CODE
 
+
+    ; look for dynamic columns
+    ;-------------------------------------------
+    lda         #0
+    sta         activeColumns
+    sta         dynamicIndex    
+    sta         worldColumn
+    sta         tileX
+
+dynamicLoop:
+    lda         #0
+    sta         tileY
+
+    ; tileX = dynamic column number (inc by 2), tileY = row w/in column (inc by 8)
+    ldx         worldColumn
+    lda         worldColumnType,x
+    and         #COLUMN_TYPE_DYNAMIC
+    bne         :+
+    jmp         nextDynamic
+:
+    ldy         activeColumns
+    txa
+    asl                             ; *2
+    sta         worldBufferX,y
+    tya                             ; buffer#
+    ora         worldColumnType,x   ; fill in buffer #
+    sta         worldColumnType,x
+    sta         dynamicTileIndex
+
+.repeat 16,index
+    lda         worldMap+20*index,x
+    jsr         dynamicUpdate
+    sta         worldMap+20*index,x     ; overwrite with dynamic column #
+.endrep
+    ; point to next dynamic column
+    inc         activeColumns
+    inc         tileX
+    inc         tileX               ; tileX = activeColumns*2 since buffers in pairs
+
+    ; some error checking ... (can be removed when done testing all the levels)
+    lda         activeColumns
+    cmp         #9
+    bne         :+
+    brk                             ; too many active columns
+:
+
+nextDynamic:
+    inc         worldColumn
+    lda         worldColumn
+    cmp         #20
+    beq         :+
+    jmp         dynamicLoop
+:
+
+    ; init buffers
+    ;-------------------------------------------
+    jsr         setActiveBuffers
+
     ; convert world map to static collision map
+    ;-------------------------------------------
     ldx         #0
 staticLoop:
 .repeat 14,index
@@ -2323,47 +2391,40 @@ staticLoop:
     jmp         staticLoop
 :
 
-    ; look for dynamic columns
-    lda         #0
-    sta         activeColumns
-    sta         dynamicIndex    
-    sta         worldColumn
-    sta         tileX
+    ; copy worldMap to erase cache
+    ;-------------------------------------------
+    lda         #<worldMap
+    clc
+    adc         #20+1               ; start 1 row and 1 col over
+    sta         mapPtr0
+    lda         #>worldMap
+    adc         #0
+    sta         mapPtr1
+    ldx         #0                  ; x = indexing into tile cache
+cacheLoop:
+    ldy         #0                  ; y = world map row offset
+cacheRowLoop:
+    lda         (mapPtr0),y
+    sta         tileCacheArray,x
+    iny
+    inx
+    cpy         #18                 ; only 18 tiles per row
+    bne         cacheRowLoop
 
-dynamicLoop:
-    lda         #0
-    sta         tileY
+    lda         mapPtr0
+    clc
+    adc         #20
+    sta         mapPtr0
+    lda         mapPtr1
+    adc         #0
+    sta         mapPtr1
+    cpx         #18*14
+    bne         cacheLoop 
 
-    ; tileX = dynamic column number (inc by 2), tileY = row w/in column (inc by 1)
-    ldx         worldColumn
-    lda         worldColumnType,x
-    and         #COLUMN_TYPE_DYNAMIC
-    bne         :+
-    jmp         nextDynamic
-:
-    ldy         activeColumns
-    txa
-    asl                             ; *2
-    sta         worldBufferX,y
-
-.repeat 16,index
-    lda         worldMap+20*index,x
-    jsr         dynamicUpdate
-.endrep
-    ; point to next dynamic column
-    inc         activeColumns
-    inc         tileX
-    inc         tileX               ; tileX = activeColumns*2 since buffers in pairs
-
-nextDynamic:
-    inc         worldColumn
-    lda         worldColumn
-    cmp         #40
-    beq         :+
-    jmp         dynamicLoop
-:
     rts
 
+    ; copy tiles to buffer
+    ;-------------------------------------------
 dynamicUpdate:
     sta         tileIndex
     jsr         copyTileToBuffers
@@ -2372,14 +2433,20 @@ dynamicUpdate:
     ldy         dynamicIndex
     sta         tileDynamicType,y
     inc         dynamicIndex
-    inc         tileY
+    lda         tileY
+    clc
+    adc         #8
+    sta         tileY
     ldx         worldColumn
+    lda         dynamicTileIndex
+
     rts
 
 
-tileIndex:      .byte       $0
-dynamicIndex:   .byte       $0
-worldColumn:    .byte       $0
+tileIndex:          .byte       $0
+dynamicIndex:       .byte       $0
+worldColumn:        .byte       $0
+dynamicTileIndex:   .byte       $0
 
 .endproc
 
@@ -2735,11 +2802,11 @@ songOuch:
 
 ; Current level data (expecting order of bgTiles, bufferX, bufferSpeed0&1)
 bgTiles:        .res        20
-bufferX:        .res        8
-bufferSpeed0:   .res        8
-bufferSpeed1:   .res        8
-bufferOffset0:  .res        8
-bufferOffset1:  .res        8
+;bufferX:        .res        8
+;bufferSpeed0:   .res        8
+;bufferSpeed1:   .res        8
+;bufferOffset0:  .res        8
+;bufferOffset1:  .res        8
 
 ; Valid index 0..13
 mult18Table:    .byte   18*0, 18*1, 18*2, 18*3,  18*4,  18*5,  18*6
