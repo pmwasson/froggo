@@ -71,7 +71,7 @@ DISPATCH_CODE               = $C00                          ; Dispatch code very
                                                             ; Keep above prodos file buffer ($800..$BFF)
 COPY_LEVEL_CODE             = DISPATCH_CODE + $20
 
-AUX_LEVEL_DATA              = $D00                          ; $D00 .. $2FFF
+AUX_LEVEL_DATA              = $E00                          ; $E00 .. $2FFF
 COLUMN_CODE_START           = $3000                         ; page0 offset $0000..$3048, page1 $3049..$6091
 COLUMN_CODE_START_PAGE2     = COLUMN_CODE_START + $3049     ; include some padding after code to align buffers
 COLUMN_BUFFER_START         = COLUMN_CODE_START + $6100     ; size=$1000
@@ -132,6 +132,13 @@ TILE_GRASS_WATER            = $4D
 TILE_WATER                  = $4E
 TILE_WATER_GRASS            = $4F
 
+TILE_GRASS_NW               = $65
+TILE_GRASS_N                = $66
+TILE_GRASS_NE               = $67
+TILE_GRASS_SW               = $6D
+TILE_GRASS_S                = $6E
+TILE_GRASS_SE               = $6F
+
 TILE_CAR1_BLUE              = $44
 TILE_CAR1_RED               = $53
 TILE_CAR1_PURPLE            = $55
@@ -154,11 +161,16 @@ TILE_LOG_C                  = $52
 TILE_TREE_A                 = $4C
 TILE_TREE_MID               = $5C       ; use in middle of stack of trees
 TILE_TREE_B                 = $54
+TILE_CROSSWALK              = $56
 TILE_ROCK                   = $58
 TILE_CONE                   = $59
 TILE_BUSH_WATER             = $5A       ; left of water
 TILE_BUSH_ROAD              = $5B       ; left of road
-TILE_COIN                   = $5F
+TILE_CARPET_LEFT            = $5E
+TILE_CARPET                 = $5F
+TILE_BRICK                  = $64
+TILE_COIN                   = $70
+TILE_CONVEYOR               = $71
 
 TILE_BUFFER0                = $80
 TILE_BUFFER1                = $81
@@ -202,8 +214,8 @@ LEVEL_COLUMN_START          = $2F
 
 NUMBER_CUTSCENES            = 9
 
-INITIAL_LEVEL               = 0
-MAX_LEVELS                  = 2
+INITIAL_LEVEL               = 3
+MAX_LEVELS                  = 4
 
 ;-----------------------------------------------------------------------------
 ; Title image
@@ -490,11 +502,11 @@ columnPtr       := mapPtr0
 ;   - column tiles (20*16 bytes)
 ;   - column expanded speeds (8*2 bytes)
 
-copyLevelData:                  ; aka COPY_LEVEL_CODE
+copyLevelData:                          ; aka COPY_LEVEL_CODE
     lda         #0
     sta         currentColumn
 
-    sta         RAMRDON         ; read from aux (including instructions)
+    sta         RAMRDON                 ; read from aux (including instructions)
 
 columnLoop:
     ldy         currentColumn
@@ -526,7 +538,7 @@ columnTileLoop:
 .repeat 16,index
     lda         (columnPtr),y
     sta         worldMap+index*20,x
-    iny         
+    iny
 .endrep
     cpy         #16
     beq         :+
@@ -567,7 +579,15 @@ speedContinue:
     cpy         #20+8
     bne         speedLoop
 
+    lda         (levelPtr),y                ; starting location
+    sta         playerTileY
+    asl
+    asl
+    asl                                     ; *8
+    sta         playerY
+
     sta         RAMRDOFF                    ; back to main memory
+
     rts
 
 dispatchEnd:
@@ -709,9 +729,9 @@ LEVEL_DATA_END:
     jsr         initDisplay
 
 reset_loop:
+    jsr         initLevelState
     jsr         loadLevel
     jsr         drawScreen
-    jsr         initLevelState
 
 game_loop:
 
@@ -1137,14 +1157,14 @@ doneDead:
 
     ; Above the top?
     lda         playerY
-    cmp         #(MAP_TOP+TILE_HEIGHT)*8-6
+    cmp         #(MAP_TOP+TILE_HEIGHT)*8
     bcs         :+
     lda         #STATE_DEAD
     jmp         updateState
 :
 
     ; Below the bottom?
-    cmp         #(MAP_BOTTOM-2*TILE_HEIGHT)*8+7
+    cmp         #(MAP_BOTTOM-1*TILE_HEIGHT)*8-7
     bcc         :+
     lda         #STATE_DEAD
     jmp         updateState
@@ -2254,6 +2274,16 @@ writeXLoop:
 ;-----------------------------------------------------------------------------
 .proc loadLevel
 
+    ; Reset buffer X data
+    ;-------------------------------------------
+    ldx         #0
+    lda         #$FF            ; default to unused
+resetBufferXLoop:
+    sta         worldBufferX,x
+    inx
+    cpx         #MAX_COLUMN_PAIRS
+    bne         resetBufferXLoop
+
     ; copy level data from AUX memory
     ;-------------------------------------------    
     lda         currentLevel
@@ -2278,7 +2308,7 @@ writeXLoop:
     ;-------------------------------------------
     lda         #0
     sta         activeColumns
-    sta         dynamicIndex    
+    sta         dynamicIndex
     sta         worldColumn
     sta         tileX
 
@@ -2374,7 +2404,7 @@ cacheRowLoop:
     adc         #0
     sta         mapPtr1
     cpx         #18*14
-    bne         cacheLoop 
+    bne         cacheLoop
 
     rts
 
@@ -2704,7 +2734,7 @@ tileTypeTable:
     .byte       TILE_TYPE_DEATH             ;53     - Car1 Red
     .byte       TILE_TYPE_BLOCKED           ;54     - Tree B
     .byte       TILE_TYPE_DEATH             ;55     - Car1 Purple
-    .byte       TILE_TYPE_BLOCKED           ;56     -
+    .byte       TILE_TYPE_FREE              ;56     - Crosswalk
     .byte       TILE_TYPE_FREE              ;57     - Road
     .byte       TILE_TYPE_FREE              ;58     - Rock
     .byte       TILE_TYPE_BLOCKED           ;59     - Cone
@@ -2712,9 +2742,40 @@ tileTypeTable:
     .byte       TILE_TYPE_BLOCKED           ;5B     - Bush (grass->road)
     .byte       TILE_TYPE_BLOCKED           ;5C     - Tree A*
     .byte       TILE_TYPE_BLOCKED           ;5D     - Divider (road->road)
-    .byte       TILE_TYPE_BLOCKED           ;5E     -
-    .byte       TILE_TYPE_FREE              ;5F     - Coin
-    .res        $20,TILE_TYPE_FREE          ;60..7f - Unused
+    .byte       TILE_TYPE_FREE              ;5E     - Carpet (left)
+    .byte       TILE_TYPE_FREE              ;5F     - Carpet
+    .byte       TILE_TYPE_FREE              ;60     - Unused
+    .byte       TILE_TYPE_FREE              ;61     - Unused
+    .byte       TILE_TYPE_FREE              ;62     - Unused
+    .byte       TILE_TYPE_FREE              ;63     - Unused
+    .byte       TILE_TYPE_BLOCKED           ;64     - Brick
+    .byte       TILE_TYPE_FREE              ;65     - Unused
+    .byte       TILE_TYPE_FREE              ;66     - Unused
+    .byte       TILE_TYPE_FREE              ;67     - Unused
+    .byte       TILE_TYPE_FREE              ;68     - Unused
+    .byte       TILE_TYPE_FREE              ;69     - Unused
+    .byte       TILE_TYPE_FREE              ;6A     - Unused
+    .byte       TILE_TYPE_FREE              ;6B     - Unused
+    .byte       TILE_TYPE_FREE              ;6C     - Unused
+    .byte       TILE_TYPE_FREE              ;6D     - Unused
+    .byte       TILE_TYPE_FREE              ;6E     - Unused
+    .byte       TILE_TYPE_FREE              ;6F     - Unused
+    .byte       TILE_TYPE_FREE              ;70     - Coin
+    .byte       TILE_TYPE_MOVEMENT          ;71     - Conveyor
+    .byte       TILE_TYPE_FREE              ;72     - Unused
+    .byte       TILE_TYPE_FREE              ;73     - Unused
+    .byte       TILE_TYPE_FREE              ;74     - Unused
+    .byte       TILE_TYPE_FREE              ;75     - Unused
+    .byte       TILE_TYPE_FREE              ;76     - Unused
+    .byte       TILE_TYPE_FREE              ;77     - Unused
+    .byte       TILE_TYPE_FREE              ;78     - Unused
+    .byte       TILE_TYPE_FREE              ;79     - Unused
+    .byte       TILE_TYPE_FREE              ;7A     - Unused
+    .byte       TILE_TYPE_FREE              ;7B     - Unused
+    .byte       TILE_TYPE_FREE              ;7C     - Unused
+    .byte       TILE_TYPE_FREE              ;7D     - Unused
+    .byte       TILE_TYPE_FREE              ;7E     - Unused
+    .byte       TILE_TYPE_FREE              ;7F     - Unused
     .byte       TILE_TYPE_BUFFER0           ;80     - Active column
     .byte       TILE_TYPE_BUFFER1           ;81     - Active column
     .byte       TILE_TYPE_BUFFER2           ;82     - Active column
@@ -2848,7 +2909,7 @@ worldOffset1:       .res    8           ; Init when setting speed
 ;-----------------------------------------------------------------------------
 
 ; Last 16 tiles are player shapes
-PLAYER_SHAPES = tileSheet + (16 * $70)
+PLAYER_SHAPES = tileSheet + (16 * $80)
 
 .align 256
 tileSheet:
