@@ -706,7 +706,7 @@ LEVEL_DATA_END:
     jsr         initDisplay
 
 reset_loop:
-    jsr         loadLevel2
+    jsr         loadLevel
     jsr         drawScreen
     jsr         initLevelState
 
@@ -1429,6 +1429,10 @@ currentOffset:      .byte   0
 
 index:          .byte   0
 
+; Valid index 0..13
+mult18Table:    .byte   18*0, 18*1, 18*2, 18*3,  18*4,  18*5,  18*6
+                .byte   18*7, 18*8, 18*9, 18*10, 18*11, 18*12, 18*13
+
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -1521,67 +1525,6 @@ writeOffsetLoop:
 ;-----------------------------------------------------------------------------
 
 .proc drawMap
-    lda         #MAP_TOP
-    sta         tileY
-
-mapLoop:
-    lda         #0
-    sta         index
-    lda         #MAP_LEFT
-    sta         tileX
-rowLoop:
-    ldy         index
-    lda         bgTiles,y
-    bmi         :+              ; skip active columns
-    jsr         drawTile
-:
-    inc         index
-    lda         tileX
-    clc
-    adc         #TILE_WIDTH
-    sta         tileX
-    cmp         #MAP_RIGHT
-    bne         rowLoop
-
-    inc         tileY
-    lda         tileY
-    cmp         #MAP_BOTTOM
-    bne         mapLoop
-
-    ldy         #0
-    jsr         drawMisc
-    rts
-
-drawMisc:                       ; draw list of tiles (x,y,#) ending with 0
-    sty         index
-
-tileLoop:
-    ldy         index
-    lda         (scriptPtr0),y
-    beq         doneDrawMisc
-    sta         tileX
-    iny
-    lda         (scriptPtr0),y
-    sta         tileY
-    iny
-    lda         (scriptPtr0),y
-    iny
-    sty         index
-    jsr         drawTile
-    jmp         tileLoop
-
-doneDrawMisc:
-    rts
-
-index:          .byte   0
-
-.endproc
-
-;-----------------------------------------------------------------------------
-; Draw Map
-;-----------------------------------------------------------------------------
-
-.proc drawMap2
 
     lda         #<worldMap
     sta         mapPtr0
@@ -2075,14 +2018,14 @@ drawLoop:
     ; display map on both pages
     lda         #$20
     sta         drawPage
-    jsr         drawMap2
+    jsr         drawMap
     jsr         drawText
     jsr         drawRoad
 
     sta         HISCR       ; show high while drawing low
     lda         #$00
     sta         drawPage
-    jsr         drawMap2
+    jsr         drawMap
     jsr         drawText
     jsr         drawRoad
 
@@ -2202,102 +2145,9 @@ writeXLoop:
 .endproc
 
 ;-----------------------------------------------------------------------------
-; Load Level
-;-----------------------------------------------------------------------------
-; Format:
-; [2]                           - link to next level
-; [20]                          - background tiles (repeated for every row)
-; [8]                           - column pair x coordinate ($FF for inactive)
-; [8]                           - column pair speed (low byte)
-; [8]                           - column pair speed (high byte)
-; [1]                           - active columns (must be even)
-; [16] x active-column-pairs    - tiles to copy to column-pair
-; [1]                           - $00 [end of column data]
-; [3] x misc-tile-count         - x,y,tile to draw on screen
-; [1]                           - $00 [end of tile list]
-;
-; -> load bg tiles, buffer - x, speed*2
-; -> sets activeColumns (used by draw road, could get rid of)
-; -> copies tiles to active buffers
-; -> copies tile type to dynamic array for collisions
-; -> sets pointer to misc tiles
-;-----------------------------------------------------------------------------
-
-.proc loadLevel
-    ; point to first level
-    lda         #<levelData
-    sta         scriptPtr0
-    lda         #>levelData
-    sta         scriptPtr1
-
-    ldy         #2
-configLoop:
-    lda         (scriptPtr0),y
-    sta         bgTiles-2,y
-    iny
-    cpy         #2+20+3*8
-    bne         configLoop
-
-    lda         (scriptPtr0),y
-    sta         activeColumns
-    iny
-    sty         index
-
-    lda         #0
-    sta         tileX
-columnLoop:
-    lda         #0
-    sta         tileY
-tileLoop:
-    ldy         index
-    lda         (scriptPtr0),y
-    beq         doneWithColumns
-    sta         tileIndex
-    jsr         copyTileToBuffers
-
-    ldx         tileIndex
-    lda         tileTypeTable,x
-    ldy         index
-    sta         tileDynamicType-LEVEL_COLUMN_START,y
-
-    inc         index
-
-    lda         tileY
-    clc
-    adc         #8
-    sta         tileY
-    cmp         #128
-    bne         tileLoop
-
-    inc         tileX
-    inc         tileX
-    jmp         columnLoop
-doneWithColumns:
-
-    ; set pointer to point to misc tiles for draw map
-    iny
-    tya
-    clc
-    adc         scriptPtr0
-    sta         scriptPtr0
-    lda         scriptPtr1
-    adc         #0
-    sta         scriptPtr1
-
-    jsr         setActiveBuffers
-    jsr         initTileArray       ; Set up collision detection
-
-    rts
-
-index:          .byte   0
-tileIndex:      .byte   0
-
-.endproc
-
-;-----------------------------------------------------------------------------
 ; Load Level from AUX memory
 ;-----------------------------------------------------------------------------
-.proc loadLevel2
+.proc loadLevel
 
     ; copy level data from AUX memory
     ;-------------------------------------------    
@@ -2449,88 +2299,6 @@ worldColumn:        .byte       $0
 dynamicTileIndex:   .byte       $0
 
 .endproc
-
-;-----------------------------------------------------------------------------
-; Init tile array
-;   Tile array used for collision detection
-;-----------------------------------------------------------------------------
-; 18x14 array < 256 so can use absoluted index addressing
-; Ignore first, last row and column (blocked from movement):
-;   Columns = 20 - 2 = 18
-;   Rows = 16 - 2 = 14
-; Array values:
-;   <$80    : bespoke type (see defines)
-;   $80..$87: use column data 0..7
-;-----------------------------------------------------------------------------
-.proc initTileArray
-
-    ; copy BG row down
-    ldy         #0
-    sty         index
-bgYLoop:
-    ldx         #0
-bgXLoop:
-    ldy         bgTiles+1,x                 ; ignore row columns 0 & 19
-    sty         tileIndex
-    lda         tileTypeTable,y
-    ldy         index
-    sta         tileTypeArray,y
-    lda         tileIndex
-    sta         tileCacheArray,y
-    inc         index
-    inx
-    cpx         #MAP_HORIZONTAL_TILES-2     ; -2 for ignore left-most/right-most
-    bne         bgXLoop
-    lda         index
-    cmp         #(MAP_HORIZONTAL_TILES-2)*(MAP_VERTICAL_TILES-2)
-    bne         bgYLoop
-
-    ; process misc tiles
-    ldy         #0
-miscTileLoop:
-    lda         (scriptPtr0),y              ; x cord
-    beq         doneMiscTiles
-    lsr                                     ; / TILE_WIDTH
-    sta         index
-    dec         index                       ; -1 to ignore left
-
-    iny
-    lda         (scriptPtr0),y              ; y cord
-    sec
-    sbc         #(MAP_TOP+1)
-    bmi         skipTile                    ; skip top row
-    tax
-    lda         mult18Table,x               ; mult Y by 18
-    clc
-    adc         index
-    sta         index
-
-    iny
-    lda         (scriptPtr0),y              ; tile #
-    sta         tileIndex
-    tax
-    lda         tileTypeTable,x
-    ldx         index
-    sta         tileTypeArray,x
-    lda         tileIndex
-    sta         tileCacheArray,x
-
-    iny
-    jmp         miscTileLoop
-
-skipTile:
-    iny                                     ; tile #
-    iny                                     ; next tile
-    jmp         miscTileLoop
-
-doneMiscTiles:
-    rts
-
-index:      .byte   0
-tileIndex:  .byte   0
-
-.endproc
-
 
 ;-----------------------------------------------------------------------------
 ; Show Pause
@@ -2687,7 +2455,6 @@ printPath:
 seed:           .word       $1234
 .include        "galois16o.asm"
 
-
 ;-----------------------------------------------------------------------------
 ; Global ProDos parameters
 ;-----------------------------------------------------------------------------
@@ -2800,94 +2567,11 @@ songOuch:
     .byte   NOTE_C4,    NOTE_C6,    NOTE_QUARTER
     .byte   NOTE_REST,  NOTE_REST,  NOTE_DONE
 
-; Current level data (expecting order of bgTiles, bufferX, bufferSpeed0&1)
-bgTiles:        .res        20
-;bufferX:        .res        8
-;bufferSpeed0:   .res        8
-;bufferSpeed1:   .res        8
-;bufferOffset0:  .res        8
-;bufferOffset1:  .res        8
-
-; Valid index 0..13
-mult18Table:    .byte   18*0, 18*1, 18*2, 18*3,  18*4,  18*5,  18*6
-                .byte   18*7, 18*8, 18*9, 18*10, 18*11, 18*12, 18*13
-
-
 .align 256
+
 tileTypeArray:      .res        256         ; collision detection (18x14 array)
 tileCacheArray:     .res        256         ; track tile index for BG
 tileDynamicType:    .res        MAX_COLUMN_PAIRS*COLUMN_ROWS/8  ; collision detection (dynamic columns)
-
-levelData:
-; Level 1
-levelData1:
-    .word   levelData2                                                          ; link to next level
-    ; Background
-    .byte   TILE_GRASS,TILE_GRASS,TILE_GRASS,TILE_GRASS_ROAD                    ; [4] grass->road
-    .byte   TILE_BUFFER0,TILE_BUFFER1,TILE_BUFFER2,TILE_ROAD,TILE_BUFFER3       ; [5] road
-    .byte   TILE_ROAD_GRASS,TILE_GRASS,TILE_GRASS_WATER                         ; [3] road->grass->water
-    .byte   TILE_BUFFER4,TILE_BUFFER5,TILE_BUFFER6,TILE_WATER,TILE_BUFFER7      ; [5] water
-    .byte   TILE_WATER_GRASS,TILE_GRASS,TILE_GRASS                              ; [3] water->grass
-    ; Scrolling columns
-    .byte     8, 10, 12, 16, 24, 26, 28, 32                                     ; column pair offset, locations ($FF for inactive)
-    .byte   $80,$10,$A0,$50,$40,$30,$20,$90                                     ; column pair speed (lower)
-    .byte   $01,$FF,$00,$01,$00,$FF,$00,$00                                     ; column pair speed (upper)
-    .byte     8                                                                 ; active column pairs
-
-    ; column pair 0
-    .byte   TILE_CAR1_BLUE,TILE_ROAD,TILE_CAR1_PURPLE,TILE_ROAD,TILE_CAR1_BLUE,TILE_ROAD,TILE_ROAD,TILE_ROAD
-    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
-
-    ;.byte   TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C,TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C
-    ;.byte   TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C,TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C
-
-    ; column pair 1
-    .byte   TILE_CAR2_A,TILE_CAR2_B,TILE_ROAD,TILE_CAR2_A,TILE_CAR2_B,TILE_ROAD,TILE_TRUCKD_A,TILE_TRUCKD_B
-    .byte   TILE_TRUCKD_C,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
-
-    ; column pair 2
-    .byte   TILE_CAR1_RED,TILE_ROAD,TILE_CAR1_RED,TILE_ROAD,TILE_CAR1_BLUE,TILE_ROAD,TILE_ROAD,TILE_ROAD
-    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
-
-    ; column pair 3
-    .byte   TILE_TRUCKU_A,TILE_TRUCKU_B,TILE_TRUCKU_C,TILE_ROAD,TILE_TRUCKU_A,TILE_TRUCKU_B,TILE_TRUCKU_C,TILE_ROAD
-    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
-
-    ; column pair 4
-    .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER
-    .byte   TILE_WATER,TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
-
-    ; column pair 5
-    .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER,TILE_WATER
-    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
-
-    ; column pair 6
-    .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER
-    .byte   TILE_WATER,TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
-
-    ; column pair 7
-    .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_LOG_A,TILE_LOG_C,TILE_WATER,TILE_WATER
-    .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
-
-    .byte   0                                                                   ; end of column data
-
-    ; Misc tiles [x,y,tile] (end with 0)
-    .byte   14, 4,TILE_CONE,14, 5,TILE_CONE,14, 6,TILE_CONE
-    .byte   14, 9,TILE_CONE,14,10,TILE_CONE
-    .byte                   14,13,TILE_CONE,14,14,TILE_CONE
-    .byte   14,17,TILE_CONE,14,18,TILE_CONE,14,19,TILE_CONE
-    .byte   2,5,TILE_TREE_A,2,6,TILE_TREE_B
-    .byte   4,4,TILE_TREE_A,4,5,TILE_TREE_MID,4,6,TILE_TREE_B
-    .byte   6,18,TILE_BUSH_ROAD
-    .byte   20,12,TILE_TREE_A,20,13,TILE_TREE_B
-    .byte   34,4,TILE_TREE_A,34,5,TILE_TREE_MID,34,6,TILE_TREE_B
-    .byte   36,4,TILE_TREE_A,36,5,TILE_TREE_MID,36,6,TILE_TREE_MID,36,7,TILE_TREE_B
-    .byte   22,4,TILE_BUSH_WATER,22,5,TILE_BUSH_WATER,22,7,TILE_BUSH_WATER,22,10,TILE_BUSH_WATER
-    .byte   22,14,TILE_BUSH_WATER,22,15,TILE_BUSH_WATER,22,18,TILE_BUSH_WATER,22,19,TILE_BUSH_WATER
-    .byte   30,8,TILE_ROCK,30,10,TILE_ROCK,30,12,TILE_ROCK,30,13,TILE_ROCK
-    .byte   0                                                                   ; end of tile list
-
-levelData2:
 
 .align 256
 
@@ -3058,16 +2742,13 @@ worldOffset1:       .res    8           ; Init when setting speed
 ; Assets
 ;-----------------------------------------------------------------------------
 
-.align 256
-
-; Put player shapes at the end of the font/tiles
-;.include        "playerShapes.asm"
+; Last 16 tiles are player shapes
+PLAYER_SHAPES = tileSheet + (16 * $70)
 
 .align 256
 tileSheet:
 .include        "font.asm"
 
-PLAYER_SHAPES = tileSheet + (16 * $70)
 
 .align 256
 cutScene:
