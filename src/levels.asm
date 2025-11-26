@@ -23,10 +23,12 @@ COLUMN_ROAD_D_2             = (levelColumnDataRD2 - levelColumnData)/16
 COLUMN_ROAD_D_3             = (levelColumnDataRD3 - levelColumnData)/16
 COLUMN_TRAIN_D_0            = (levelColumnDataTD0 - levelColumnData)/16
 COLUMN_WATER_S_0            = (levelColumnDataWS0 - levelColumnData)/16
+COLUMN_WATER_S_1            = (levelColumnDataWS1 - levelColumnData)/16
 COLUMN_WATER_D_0            = (levelColumnDataWD0 - levelColumnData)/16
 COLUMN_WATER_D_1            = (levelColumnDataWD1 - levelColumnData)/16
 COLUMN_WATER_D_2            = (levelColumnDataWD2 - levelColumnData)/16
 COLUMN_WATER_D_3            = (levelColumnDataWD3 - levelColumnData)/16
+COLUMN_WATER_D_4            = (levelColumnDataWD4 - levelColumnData)/16
 
 ; Each level is 32 bytes in AUX memory consisting of
 ;   size(bytes)     description
@@ -64,7 +66,7 @@ level1:         ; grass--water--grass--water--grass
     .byte       COLUMN_GRASS_4,COLUMN_GRASS_3,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0                                           ; 4
     .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0,COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0   ; 6
     .byte       COLUMN_GRASS_3,COLUMN_GRASS_WATER_0                                                                         ; 2
-    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0,COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0   ; 6
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_1,COLUMN_WATER_D_4,COLUMN_WATER_GRASS_0   ; 6
     .byte       COLUMN_GRASS_4,COLUMN_GRASS_0                                                                               ; 2
 
     ;           $0080   $FF10   $00A0   $0130   $FF40   $FF30   $0020   $FF90
@@ -110,12 +112,14 @@ levelColumnInfo:
 
 ; water (static)
     .byte       COLUMN_TYPE_STATIC                              ; rocks in middle
+    .byte       COLUMN_TYPE_STATIC                              ; rocks in middle
 
 ; water (dynamic)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 2 logs (7 water)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 1 medium log (11 water)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 2 logs (7 water)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 3 small log (8 water)
+    .byte       COLUMN_TYPE_DYNAMIC                             ; 1 small log
 
 
 .align 256
@@ -185,6 +189,9 @@ levelColumnDataTD0:
 levelColumnDataWS0:
     .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_ROCK,TILE_WATER,TILE_ROCK,TILE_WATER
     .byte   TILE_ROCK,TILE_ROCK,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+levelColumnDataWS1:
+    .byte   TILE_WATER,TILE_WATER,TILE_ROCK,TILE_WATER,TILE_WATER,TILE_WATER,TILE_ROCK,TILE_WATER
+    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_ROCK,TILE_WATER,TILE_WATER
 
 ; water (dynamic)
 levelColumnDataWD0:
@@ -199,3 +206,6 @@ levelColumnDataWD2:
 levelColumnDataWD3:
     .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_LOG_A,TILE_LOG_C,TILE_WATER,TILE_WATER
     .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+levelColumnDataWD4:
+    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_LOG_A,TILE_LOG_C,TILE_WATER,TILE_WATER
+    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER

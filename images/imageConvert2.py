@@ -106,8 +106,9 @@ def main():
             if (s%7 == 6):
                 dataByte = (value & 0x7f) | msb
                 line.append(dataByte)
-                value = (value & 0x80) >> 7
                 #print(f"${dataByte:02X}")
+                value = (value & 0x80) >> 7
+                msb = 0
             elif (s%7 == 5):
                 dataByte = (value & 0x7f) | msb
                 line.append(dataByte)

@@ -195,11 +195,15 @@ PLAYER_OFFSET_LEFT_2        = $80
 PLAYER_OFFSET_RIGHT_1       = $90
 PLAYER_OFFSET_RIGHT_2       = $A0
 
-SKIP_CHAR                   = '`' - $20
+NEW_WORD                    = $40
+END_OF_STRING               = $FF
 
 LEVEL_COLUMN_START          = $2F
 
 NUMBER_CUTSCENES            = 9
+
+INITIAL_LEVEL               = 0
+MAX_LEVELS                  = 2
 
 ;-----------------------------------------------------------------------------
 ; Title image
@@ -569,7 +573,6 @@ speedContinue:
 dispatchEnd:
 
 .endproc
-
 
 ;-----------------------------------------------------------------------------
 ; uncompressScreen
@@ -962,10 +965,21 @@ erasePlayer1:
     sta         displayLevel
     cld
 
+    inc         currentLevel
+    lda         currentLevel
+    cmp         #MAX_LEVELS
+    bne         :+
+    lda         #0
+    sta         currentLevel
+:         
+
     ; Drawing on high screen
 
     ; Display image
-    DrawImageParam  MAP_LEFT,MAP_TOP*8,(MAP_RIGHT-MAP_LEFT),(MAP_BOTTOM-MAP_TOP)*8,cutScene
+    ;DrawImageParam  MAP_LEFT,MAP_TOP*8,(MAP_RIGHT-MAP_LEFT),(MAP_BOTTOM-MAP_TOP)*8,cutScene
+    jsr         drawQuote
+
+
     DrawStringCord  0, 22, stringLevelComplete
 
     ; display Image
@@ -1011,7 +1025,6 @@ done:
 
 wait:           .byte   0
 .endproc
-
 
 ;-----------------------------------------------------------------------------
 ; Load Cut Scene
@@ -1573,15 +1586,25 @@ index:          .byte   0
 ;-----------------------------------------------------------------------------
 ; Draw text - add info to the screen
 ;-----------------------------------------------------------------------------
-stringBoxTop:       TileText "/------------------\"
+stringBoxTop:       TileText "/==================\"
 stringLevel:        TileText "_    LEVEL:        _"
-stringBoxBottom:    TileText "[------------------]"
+stringBoxBlank:     TileText "_                  _"
+stringBoxBottom:    TileText "[==================]"
+stringBoxQuote:     TileText "[=========*========]"
+stringBlank:        TileText "                    "
+stringThought:      QuoteText " O",1,0
+                    TileText "&"
 stringArrow:        TileText ">"
 stringFroggo:       TileText "_ @    FROGGO    @ _"
 stringGameOver:     TileText "_ @  GAME  OVER  @ _"
 stringPressKey:     TileText "_   PRESS ANY KEY  _"
 stringLevelComplete:TileText "_  LEVEL COMPLETE! _"
-stringHint:         TileText "_MOVE KEYS: A,Z,<,>_"
+;stringHint:         TileText "_MOVE KEYS: A,Z,<,>_"
+stringQuote0:       QuoteText "",1,2*1
+                    QuoteText "1-BIT CROAKS",15,15
+stringQuote1:       QuoteText "",1,2*1
+                    QuoteText "I THOUGHT FROGS",1,2*(1+2)
+                    QuoteText   "COULD SWIM!",15,15
 
 LEVEL_X = 12*TILE_WIDTH
 LEVEL_Y = 1*TILE_HEIGHT
@@ -1620,6 +1643,51 @@ LEVEL_Y = 1*TILE_HEIGHT
     rts
 
 digitTile:      .byte   $10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+.endproc
+
+
+
+.proc drawQuote
+    lda         #$7f
+    sta         invertTile
+
+    DrawStringCord  0, MAP_TOP+0,  stringBoxTop
+    DrawStringCord  0, MAP_TOP+1,  stringBoxBlank
+    DrawStringCord  0, MAP_TOP+2,  stringBoxBlank
+    DrawStringCord  0, MAP_TOP+3,  stringBoxBlank
+    DrawStringCord  0, MAP_TOP+4,  stringBoxBlank
+    DrawStringCord  0, MAP_TOP+5,  stringBoxBlank
+    DrawStringCord  0, MAP_TOP+6,  stringBoxBlank
+    ;
+    DrawStringCord  0, MAP_TOP+8,   stringBlank
+    DrawStringCord  0, MAP_TOP+9,   stringBlank
+    DrawStringCord  0, MAP_TOP+10,  stringBlank
+    DrawStringCord  0, MAP_TOP+11,  stringBlank
+    DrawStringCord  0, MAP_TOP+12,  stringBlank
+    DrawStringCord  0, MAP_TOP+13,  stringBlank
+    DrawStringCord  0, MAP_TOP+14,  stringBlank
+    DrawStringCord  0, MAP_TOP+15,  stringBlank
+
+    lda         currentLevel
+    and         #1
+    beq         doLeft
+
+    DrawImageParam  20,96,20,64,quoteImageRight
+    DrawStringCord  0, MAP_TOP+7,   stringBoxQuote
+    DrawStringCord  5, MAP_TOP+2,   stringQuote0
+
+done:
+    lda         #$00
+    sta         invertTile
+    rts
+
+doLeft:
+    DrawImageParam  0,96,20,64,quoteImageLeft
+    DrawStringCord  0, MAP_TOP+7,   stringBoxBottom
+    DrawStringCord  18, MAP_TOP+8,  stringThought
+    DrawStringCord  3, MAP_TOP+2,   stringQuote1
+    jmp         done
+
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -1673,9 +1741,11 @@ digitTile:      .byte   $10,$11,$12,$13,$14,$15,$16,$17,$18,$19
 
 drawLoop:
     lda         (tilePtr0),y
+    eor         invertTile
     sta         (screenPtr0),y
     iny
     lda         (tilePtr0),y
+    eor         invertTile
     sta         (screenPtr0),y
     dey
 
@@ -1858,28 +1928,60 @@ lastRow:        .byte   0
 ; drawString
 ;   Draw string on screen
 ;-----------------------------------------------------------------------------
+; 00cc_cccc - draw tile C and increment tileX
+; 01cc_cccc - increment tileX, draw tile C and increment tileX (new word)
+; 1yyy_xxx0 - reset to initial tileX and increment tileY by yyy and tileX by xxx0 (even)
+; 1111_1111 - end of string
 
 .proc drawString
-    ldy     #0
+    ldy         #0
+    lda         tileX
+    sta         initialX
 
-    ; Print characters until bit 7 set (end-of-string)
+    ; Print characters until end character
 drawLoop:
-    lda     (stringPtr0),y
-    bpl     :+
-    rts                 ; done
+    lda         (stringPtr0),y
+    bpl         noBit7
+    cmp         #END_OF_STRING
+    bne         :+
+    rts                     ; done
 :
-    sty     index
-    cmp     #SKIP_CHAR  ; Skip instead of draw to save time
-    beq     :+
-    jsr     drawTile
-:
-    inc     tileX
-    inc     tileX
-    ldy     index
-    iny
-    jmp     drawLoop
+    sty         index
+    and         #%00001110
+    clc
+    adc         initialX
+    sta         tileX
+    lda         (stringPtr0),y
+    lsr
+    lsr
+    lsr
+    lsr
+    and         #%00000111
+    clc
+    adc         tileY
+    sta         tileY
+    jmp         next
 
-index:      .byte   0
+noBit7:
+    and         #NEW_WORD
+    beq         :+
+    inc         tileX
+    inc         tileX
+:
+    sty         index
+    lda         (stringPtr0),y
+    and         #%00111111
+    jsr         drawTile
+
+    inc         tileX
+    inc         tileX
+next:
+    ldy         index
+    iny
+    jmp         drawLoop
+
+index:          .byte   0
+initialX:       .byte   0
 
 .endproc
 
@@ -1953,7 +2055,7 @@ drawLoop:
 
     lda         #1
     sta         displayLevel
-    lda         #0
+    lda         #INITIAL_LEVEL
     sta         currentLevel
 
     rts
@@ -1993,6 +2095,9 @@ drawLoop:
 ;-----------------------------------------------------------------------------
 
 .proc initDisplay
+    
+    lda         #0
+    sta         invertTile
 
     ; clear page2
     lda         #$00
@@ -2750,6 +2855,12 @@ tileSheet:
 .include        "font.asm"
 
 
+.align 256
+quoteImageLeft:
+.incbin         "..\build\thinking.bin"
+.align 256
+quoteImageRight:
+.incbin         "..\build\aha.bin"
 .align 256
 cutScene:
 

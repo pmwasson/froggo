@@ -9,8 +9,8 @@
 ; \------------------/ 7
 ;
 ; |-+--v-+-||-+-v--+-|
-;       FROGGER? 
-;     I DON'T EVEN 
+;       FROGGER?
+;     I DON'T EVEN
 ;      KNOWN HER!
 ; |-+--v-+-||-+-v--+-|
 ;    LOOK BOTH WAYS!

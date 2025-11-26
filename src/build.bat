@@ -54,6 +54,7 @@ ac-windows -p  froggo.dsk data/scene.7  bin < car.bin       || exit
 ac-windows -p  froggo.dsk data/scene.8  bin < computer.bin  || exit
 
 ac-windows -p  froggo.dsk data/quote.0  bin < thinking.bin  || exit
+ac-windows -p  froggo.dsk data/quote.1  bin < aha.bin       || exit
 
 
 

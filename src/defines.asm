@@ -62,9 +62,9 @@ tempZP 			:=  $09
 ; Color
 colorEven 		:=  $ce
 colorOdd 		:=  $cf
+invertTile 		:= 	$ee
 
 ; following are available to use
-;               :=  $ee
 ;               :=  $ef
 ;               :=  $fc
 ;               :=  $fd

@@ -3,8 +3,8 @@
 python3 imageConvert2.py froggo2.png               ..\build\froggo.png       140 192 1 4000 || exit
 
 
-python3 imageConvert2.py aha.png                   ..\build\aha.png          70 64 0 0 || exit
-python3 imageConvert2.py thinking-crop.png         ..\build\thinking.png     70 64 0 0 || exit
+python3 imageConvert2.py aha-crop.png              ..\build\aha.png          70 64 0 0 || exit
+python3 imageConvert2.py thinking-crop-flip.png    ..\build\thinking.png     70 64 0 0 || exit
 
 python3 imageConvert2.py computer-crop.png         ..\build\computer.png     140 128 0 0 || exit
 python3 imageConvert2.py karate-crop.png           ..\build\karate.png       140 128 0 0 || exit

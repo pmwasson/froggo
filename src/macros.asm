@@ -39,6 +39,11 @@
     .byte   $FF
 .endmacro
 
+.macro QuoteText s,numY,numX
+    MapText s
+    .byte   $80|numY*16|numX
+.endmacro
+
 .macro  byteRep b,num
     .repeat num
     .byte   b

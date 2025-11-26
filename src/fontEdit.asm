@@ -628,7 +628,7 @@ loopX:
     lda     previewIndex
     cmp     shapeIndex
     bne     :+
-    jsr     invertTile
+    jsr     invertTileBits
 :
 
     inc     tileX
@@ -1391,7 +1391,7 @@ drawLoop:
 
 .endproc
 
-.proc invertTile
+.proc invertTileBits
 
     ldx         tileY
     lda         tileX
