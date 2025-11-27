@@ -40,7 +40,7 @@
     sta         drawPage
 .endmacro
 
-.macro  DrawImageParam imgX, imgY, imgWidth, imgHeight, imgPtr
+.macro  DrawImageParam imgX, imgY, imgWidth, imgHeight, imgPtr, aux
     lda     #imgX
     sta     imageX
     lda     #imgY
@@ -53,7 +53,11 @@
     sta     tilePtr0
     lda     #>imgPtr
     sta     tilePtr1
+.ifblank aux
     jsr     drawImage
+.else
+    jsr     DRAW_IMAGE_AUX
+.endif
 .endmacro
 
 ;-----------------------------------------------------------------------------
@@ -63,19 +67,23 @@
 ; reuse zero page addresses
 bufferPtr0                  := mapPtr0      ; and +1
 bufferPtr1                  := maskPtr0     ; and +1
+codePtr                     := tilePtr0     ; and +1
 levelPtr                    := scriptPtr0   ; and +1
 
 ; Memory Mapping
 ;---------------
 DISPATCH_CODE               = $C00                          ; Dispatch code very small (<256 bytes)
                                                             ; Keep above prodos file buffer ($800..$BFF)
-COPY_LEVEL_CODE             = DISPATCH_CODE + $20
-
 AUX_LEVEL_DATA              = $E00                          ; $E00 .. $2FFF
 COLUMN_CODE_START           = $3000                         ; page0 offset $0000..$3048, page1 $3049..$6091
 COLUMN_CODE_START_PAGE2     = COLUMN_CODE_START + $3049     ; include some padding after code to align buffers
 COLUMN_BUFFER_START         = COLUMN_CODE_START + $6100     ; size=$1000
                                                             ; Total size = $7100
+; relocated addresses
+COPY_LEVEL_CODE             = DISPATCH_CODE + (initCode::copyLevelData-initCode::dispatchStart)
+DRAW_IMAGE_AUX              = DISPATCH_CODE + (initCode::drawImageAux-initCode::dispatchStart)
+QUOTE_IMAGE_LEFT            = AUX_LEVEL_DATA+quoteImageLeft-LEVEL_DATA_START
+QUOTE_IMAGE_RIGHT           = AUX_LEVEL_DATA+quoteImageRight-LEVEL_DATA_START
 
 ; Constants for draw loop unrolling
 MAX_COLUMNS                 = 16
@@ -104,6 +112,10 @@ MAP_VERTICAL_TILES          = (MAP_BOTTOM-MAP_TOP)/TILE_HEIGHT
 MAP_INDEX_MIDDLE            = 0
 MAP_INDEX_TOP               = 20
 MAP_INDEX_BOTTOM            = 40
+
+QUOTE_X                     = MAP_LEFT+TILE_WIDTH
+QUOTE_Y                     = MAP_TOP+TILE_HEIGHT
+
 
 STATE_IDLE                  = 0
 STATE_START_UP              = 1
@@ -212,9 +224,9 @@ END_OF_STRING               = $FF
 
 LEVEL_COLUMN_START          = $2F
 
-NUMBER_CUTSCENES            = 9
+NUMBER_CUTSCENES            = 10
 
-INITIAL_LEVEL               = 3
+INITIAL_LEVEL               = 0
 MAX_LEVELS                  = 4
 
 ;-----------------------------------------------------------------------------
@@ -249,8 +261,51 @@ MAX_LEVELS                  = 4
 
     jsr         initCode
     jsr         uncompressScreen
-    jsr         installLevelData
 
+    ; Install Level Data
+
+    lda         #<LEVEL_DATA_START
+    sta         bufferPtr0
+    lda         #>LEVEL_DATA_START
+    sta         bufferPtr0+1
+
+    lda         #<AUX_LEVEL_DATA
+    sta         bufferPtr1
+    lda         #>AUX_LEVEL_DATA
+    sta         bufferPtr1+1
+
+    lda         #<LEVEL_DATA_END
+    sta         codePtr
+    lda         #>LEVEL_DATA_END
+    sta         codePtr+1
+
+    sta         RAMWRTON            ; Write to AUX
+    jsr         copyMemory
+    sta         RAMWRTOFF           ; Write to Main
+
+; Menu image part of level data, but may want to move to free up space for more levels
+;    ; Install Menu Image
+;
+;    lda         #<menuImageStart
+;    sta         bufferPtr0
+;    lda         #>menuImageStart
+;    sta         bufferPtr0+1
+;
+;    lda         #<AUX_MENU_IMAGE
+;    sta         bufferPtr1
+;    lda         #>AUX_MENU_IMAGE
+;    sta         bufferPtr1+1
+;
+;    lda         #<menuImageEnd
+;    sta         codePtr
+;    lda         #>menuImageEnd
+;    sta         codePtr+1
+;
+;    sta         RAMWRTON            ; Write to AUX
+;    jsr         copyMemory
+;    sta         RAMWRTOFF           ; Write to Main
+
+    ; All done
     jmp         main
 
 .endproc
@@ -267,8 +322,6 @@ MAX_LEVELS                  = 4
 
 columnCount     := tileX
 pageCount       := tileY
-codePtr0        := tilePtr0
-codePtr1        := tilePtr1
 
     jsr         inline_print
     StringCR    "CHECKING MEMORY SIZE..."
@@ -289,9 +342,9 @@ codePtr1        := tilePtr1
 
     ; Init code pointer
     lda         #<COLUMN_CODE_START
-    sta         codePtr0
+    sta         codePtr
     lda         #>COLUMN_CODE_START
-    sta         codePtr1
+    sta         codePtr+1
 
     lda         #0
     sta         pageCount
@@ -302,7 +355,7 @@ page_loop:
     lda         #$00            ; Assuming page aligned
     sta         bufferPtr0
     lda         #>COLUMN_BUFFER_START
-    sta         bufferPtr1
+    sta         bufferPtr0+1
 
     lda         #0
     sta         columnCount
@@ -325,46 +378,46 @@ column_loop:
     ; **    ...
 
     lda         #INSTRUCTION_LDX
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
     lda         #$FF            ; end of buffer
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
-    lda         bufferPtr1
-    sta         (codePtr0),y
+    lda         bufferPtr0+1
+    sta         (codePtr),y
     iny
 
     lda         #INSTRUCTION_BPL
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
     lda         #$01            ; skip 1 byte (RTS)
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
 
     lda         #INSTRUCTION_RTS
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
 
     lda         #INSTRUCTION_LDY
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
     lda         #$FF            ; end of buffer
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
-    lda         bufferPtr1
+    lda         bufferPtr0+1
     clc
     adc         #1
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
 
     ; increment code pointer
     clc
     tya
-    adc         codePtr0
-    sta         codePtr0
-    lda         codePtr1
+    adc         codePtr
+    sta         codePtr
+    lda         codePtr+1
     adc         #0
-    sta         codePtr1
+    sta         codePtr+1
 
 write_loop:
     ldy         #0
@@ -373,37 +426,37 @@ write_loop:
     ; ** STA SCREEN_ADRS,X
 
     lda         #INSTRUCTION_LDA_Y
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
     lda         bufferPtr0
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
-    lda         bufferPtr1
-    sta         (codePtr0),y
+    lda         bufferPtr0+1
+    sta         (codePtr),y
     iny
 
     lda         #INSTRUCTION_STA_X
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
     lda         columnCount         ; If column odd, +1
     and         #1
     clc
     adc         fullLineOffset,x
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
     lda         fullLinePage,x
     adc         drawPage
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
 
     ; increment code pointer
     clc
     tya
-    adc         codePtr0
-    sta         codePtr0
-    lda         codePtr1
+    adc         codePtr
+    sta         codePtr
+    lda         codePtr+1
     adc         #0
-    sta         codePtr1
+    sta         codePtr+1
 
     ; increment buffer pointer
     inc         bufferPtr0          ; will deal with upper byte later
@@ -415,7 +468,7 @@ write_loop:
     ; move to next buffer
     lda         #0
     sta         bufferPtr0
-    inc         bufferPtr1
+    inc         bufferPtr0+1
 
     inc         columnCount
     lda         columnCount
@@ -427,16 +480,16 @@ doneColumns:
     ; ** RTS
     ldy         #0
     lda         #INSTRUCTION_RTS
-    sta         (codePtr0),y
+    sta         (codePtr),y
     iny
 
     clc
     tya
-    adc         codePtr0
-    sta         codePtr0
-    lda         codePtr1
+    adc         codePtr
+    sta         codePtr
+    lda         codePtr+1
     adc         #0
-    sta         codePtr1
+    sta         codePtr+1
 
     lda         #$20
     sta         drawPage
@@ -449,7 +502,7 @@ doneColumns:
 
 donePage:
 
-    ; Dispatch
+    ; Install Dispatch
     jsr         copyDispatch        ; copy to aux
     sta         RAMWRTOFF           ; Write to Main
     jsr         copyDispatch        ; copy to main
@@ -457,13 +510,23 @@ donePage:
     rts
 
 copyDispatch:
-    ldx         #0
-copyLoop:
-    lda         dispatchStart,x
-    sta         DISPATCH_CODE,x
-    inx
-    cpx         #dispatchEnd-dispatchStart
-    bne         copyLoop
+    ; source pointer
+    lda         #<dispatchStart
+    sta         bufferPtr0
+    lda         #>dispatchStart
+    sta         bufferPtr0+1
+    ; destination pointer
+    lda         #<DISPATCH_CODE
+    sta         bufferPtr1
+    lda         #>DISPATCH_CODE
+    sta         bufferPtr1+1
+    ; end of source
+    lda         #<dispatchEnd
+    sta         codePtr
+    lda         #>dispatchEnd
+    sta         codePtr+1
+
+    jsr         copyMemory
     rts
 
 ; align dispatch code and add padding to avoid moving addresses
@@ -488,8 +551,6 @@ draw1:
     jsr         COLUMN_CODE_START
     sta         RAMRDOFF
     rts
-
-.align 32
 
 ; Zero page usage
 currentColumn   := tempZP
@@ -590,9 +651,90 @@ speedContinue:
 
     rts
 
+    ; Draw an image located in AUX memory
+drawImageAux:
+    lda         imageY
+    tax
+    clc
+    adc         imageHeight
+    sta         tempZP
+
+yLoop:
+    lda         imageX
+    clc
+    adc         fullLineOffset,x
+    sta         screenPtr0
+    lda         fullLinePage,x
+    adc         drawPage
+    sta         screenPtr1
+
+    ldy         #0
+
+xLoop:
+    sta         RAMRDON
+    lda         (tilePtr0),y                ; only this instruction running in AUX memory
+    sta         RAMRDOFF
+    sta         (screenPtr0),y
+    iny
+    cpy         imageWidth
+    bne         xLoop
+
+    lda         tilePtr0
+    clc
+    adc         imageWidth
+    sta         tilePtr0
+    lda         tilePtr1
+    adc         #0
+    sta         tilePtr1
+
+    inx
+    cpx         tempZP
+    bne         yLoop
+    rts
+
 dispatchEnd:
 
 .endproc
+
+;-----------------------------------------------------------------------------
+; copyMemory
+;
+;   bufferPtr0  source (assumed page aligned)
+;   bufferPtr1  destination (assumed page aligned)
+;   codePointer address for last byte to copy+1
+;
+;   bufferPtr* modified during copy
+;
+;-----------------------------------------------------------------------------
+.proc copyMemory
+copyMemory:
+    ldy         #0
+pageLoop:
+    ; Assume start is page-aligned for both source and destination
+    lda         codePtr+1
+    cmp         bufferPtr0+1
+    beq         cont
+copyLoop:
+    lda         (bufferPtr0),y
+    sta         (bufferPtr1),y
+    iny
+    bne         copyLoop
+    inc         bufferPtr0+1
+    inc         bufferPtr1+1
+    bne         pageLoop            ; Always branch since not copying zero page
+    brk                             ; Should never reach here
+cont:
+    lda         codePtr
+    bne         lastLoop
+    rts                             ; already done
+lastLoop:
+    lda         (bufferPtr0),y
+    sta         (bufferPtr1),y
+    iny
+    cpy         codePtr
+    bne         lastLoop
+    rts
+.endProc
 
 ;-----------------------------------------------------------------------------
 ; uncompressScreen
@@ -659,49 +801,22 @@ colorLookup:    .byte   BG+BG*16,FG+BG*16,BG+FG*16,FG+FG*16
 
 .endproc
 
-
-;-----------------------------------------------------------------------------
-; Install Level Data to aux memory
-;-----------------------------------------------------------------------------
-
-.proc installLevelData
-
-    lda         #<LEVEL_DATA_START
-    sta         bufferPtr0
-    lda         #>LEVEL_DATA_START
-    sta         bufferPtr0+1
-
-    lda         #<AUX_LEVEL_DATA
-    sta         bufferPtr1
-    lda         #>AUX_LEVEL_DATA
-    sta         bufferPtr1+1
-
-    sta         RAMWRTON            ; Write to AUX
-
-    ldy         #0
-loop1:
-    lda         (bufferPtr0),y
-    sta         (bufferPtr1),y
-    iny
-    bne         loop1
-
-    inc         bufferPtr0+1
-    inc         bufferPtr1+1
-    lda         bufferPtr0+1
-    cmp         #>LEVEL_DATA_END
-    bne         loop1
-
-    sta         RAMWRTOFF           ; Write to Main
-
-    rts
-
-.endproc
-
 ; start and end aligned
 .align 256
 ; level column data
 LEVEL_DATA_START:
 .include        "levels.asm"
+
+.align 256
+quoteImageLeft:
+.incbin         "..\build\thinking.bin"
+quoteImageRight:
+.incbin         "..\build\aha.bin"
+menuImageRight:
+.incbin         "..\build\menu_right.bin"
+menuImageBottom:
+.incbin         "..\build\menu_bottom.bin"
+
 .align 256
 LEVEL_DATA_END:
 
@@ -711,7 +826,7 @@ LEVEL_DATA_END:
 ;-----------------------------------------------------------------------------
 
 ; pretend there is more data to keep the linker happy
-.res            $1800
+.res            $100
 
 ;=============================================================================
 .align $100
@@ -994,11 +1109,7 @@ erasePlayer1:
 :         
 
     ; Drawing on high screen
-
-    ; Display image
-    ;DrawImageParam  MAP_LEFT,MAP_TOP*8,(MAP_RIGHT-MAP_LEFT),(MAP_BOTTOM-MAP_TOP)*8,cutScene
-    jsr         drawQuote
-
+    jsr         drawCutScene
 
     DrawStringCord  0, 22, stringLevelComplete
 
@@ -1007,13 +1118,6 @@ erasePlayer1:
     PlaySongPtr songLevelComplete
 
     ; Preload next cutscene
-    inc         sceneFileNameEnd-1
-    lda         sceneFileNameEnd-1
-    cmp         #'0'+NUMBER_CUTSCENES
-    bne         :+
-    lda         #'0'
-    sta         sceneFileNameEnd-1
-:
     jsr         loadCutScene
     jsr         waitForKey
 
@@ -1025,13 +1129,21 @@ erasePlayer1:
     ; kill extra keypress
     bit         KBDSTRB
 
-    lda         #15         ; about 10 seconds
+    lda         #8          ; about 10 seconds
     sta         wait
     ldy         #0
     ldx         #0
 loop:
     lda         KBD
     bmi         done
+
+    inc         seed
+    bne         :+
+    inc         seed+1
+    bne         :+
+    inc         seed        ; can't be zero
+:
+
     dex
     bne         loop
     dey
@@ -1050,6 +1162,19 @@ wait:           .byte   0
 ; Load Cut Scene
 ;-----------------------------------------------------------------------------
 .proc loadCutScene
+    ; grab a random cutscene description
+    jsr         galois16o
+    and         #%11111             ; 1 of 32
+    asl
+    asl                             ; *4
+    tax
+    sta         cutSceneIndex
+    lda         cutSceneList,x
+    beq         image
+    rts
+image:
+    lda         cutSceneList+2,x
+    sta         sceneFileNameEnd-1
     ldx         #FILE_SCENE
     jsr         loadData
     lda         fileError
@@ -1612,19 +1737,14 @@ stringBoxBlank:     TileText "_                  _"
 stringBoxBottom:    TileText "[==================]"
 stringBoxQuote:     TileText "[=========*========]"
 stringBlank:        TileText "                    "
-stringThought:      QuoteText " O",1,0
+stringThought:      QuoteText " o",1,0
                     TileText "&"
-stringArrow:        TileText ">"
+; stringArrow:        TileText ">"
 stringFroggo:       TileText "_ @    FROGGO    @ _"
 stringGameOver:     TileText "_ @  GAME  OVER  @ _"
 stringPressKey:     TileText "_   PRESS ANY KEY  _"
 stringLevelComplete:TileText "_  LEVEL COMPLETE! _"
 ;stringHint:         TileText "_MOVE KEYS: A,Z,<,>_"
-stringQuote0:       QuoteText "",1,2*1
-                    QuoteText "1-BIT CROAKS",15,15
-stringQuote1:       QuoteText "",1,2*1
-                    QuoteText "I THOUGHT FROGS",1,2*(1+2)
-                    QuoteText   "COULD SWIM!",15,15
 
 LEVEL_X = 12*TILE_WIDTH
 LEVEL_Y = 1*TILE_HEIGHT
@@ -1633,8 +1753,8 @@ LEVEL_Y = 1*TILE_HEIGHT
     DrawStringCord  0, 0,  stringBoxTop
     DrawStringCord  0, 1,  stringLevel
     DrawStringCord  0, 2,  stringBoxBottom
-    DrawStringCord  38,3,  stringArrow
-    DrawStringCord  38,20, stringArrow
+;    DrawStringCord  38,3,  stringArrow
+;    DrawStringCord  38,20, stringArrow
     DrawStringCord  0, 21, stringBoxTop
     DrawStringCord  0, 22, stringFroggo
     DrawStringCord  0, 23, stringBoxBottom
@@ -1667,7 +1787,15 @@ digitTile:      .byte   $10,$11,$12,$13,$14,$15,$16,$17,$18,$19
 
 
 
-.proc drawQuote
+.proc drawCutScene
+    ldx         cutSceneIndex
+    lda         cutSceneList,x
+    bne         notImage
+    ; Display image
+    DrawImageParam  MAP_LEFT,MAP_TOP*8,(MAP_RIGHT-MAP_LEFT),(MAP_BOTTOM-MAP_TOP)*8,cutScene
+    rts
+
+notImage:
     lda         #$7f
     sta         invertTile
 
@@ -1688,25 +1816,37 @@ digitTile:      .byte   $10,$11,$12,$13,$14,$15,$16,$17,$18,$19
     DrawStringCord  0, MAP_TOP+14,  stringBlank
     DrawStringCord  0, MAP_TOP+15,  stringBlank
 
-    lda         currentLevel
-    and         #1
+    ldx         cutSceneIndex
+    lda         cutSceneList,x
+    cmp         #CUT_SCENE_QUOTE_LEFT
     beq         doLeft
-
-    DrawImageParam  20,96,20,64,quoteImageRight
+    cmp         #CUT_SCENE_QUOTE_RIGHT
+    beq         :+
+    brk                                     ; unknown cut scene type
+:
+    DrawImageParam  20,96,20,64,QUOTE_IMAGE_RIGHT,aux
     DrawStringCord  0, MAP_TOP+7,   stringBoxQuote
-    DrawStringCord  5, MAP_TOP+2,   stringQuote0
 
-done:
+cont:
+    ldx         cutSceneIndex
+    lda         #QUOTE_X
+    sta         tileX
+    lda         #QUOTE_Y
+    sta         tileY
+    lda         cutSceneList+2,x
+    sta         stringPtr0
+    lda         cutSceneList+3,x
+    sta         stringPtr1
+    jsr         drawString
     lda         #$00
     sta         invertTile
     rts
 
 doLeft:
-    DrawImageParam  0,96,20,64,quoteImageLeft
+    DrawImageParam  0,96,20,64,QUOTE_IMAGE_LEFT,aux
     DrawStringCord  0, MAP_TOP+7,   stringBoxBottom
     DrawStringCord  18, MAP_TOP+8,  stringThought
-    DrawStringCord  3, MAP_TOP+2,   stringQuote1
-    jmp         done
+    jmp         cont
 
 .endproc
 
@@ -2602,7 +2742,7 @@ sceneFileName:      StringLen "DATA/SCENE.0"
 sceneFileNameEnd:
 
 fileParameters:
-    .word       tileFileName,   tileSheet,  16*128,     0   
+    .word       tileFileName,   tileSheet,  16*128,     0
     .word       sceneFileName,  cutScene,   40*128,     0
 
 fileError:      .byte   0
@@ -2904,9 +3044,52 @@ worldSpeed1:        .res    8           ; Read from AUX memory
 worldOffset0:       .res    8           ; Init when setting speed
 worldOffset1:       .res    8           ; Init when setting speed
 
+CUT_SCENE_IMAGE = 0
+CUT_SCENE_QUOTE_RIGHT = 1
+CUT_SCENE_QUOTE_LEFT = 2
+
+cutSceneIndex:      .byte   0
+
+cutSceneList:
+    .byte           CUT_SCENE_IMAGE,0,"0",0
+    .byte           CUT_SCENE_IMAGE,0,"1",0
+    .byte           CUT_SCENE_IMAGE,0,"2",0
+    .byte           CUT_SCENE_IMAGE,0,"3",0
+    .byte           CUT_SCENE_IMAGE,0,"4",0
+    .byte           CUT_SCENE_IMAGE,0,"5",0
+    .byte           CUT_SCENE_IMAGE,0,"6",0
+    .byte           CUT_SCENE_IMAGE,0,"7",0
+    .byte           CUT_SCENE_IMAGE,0,"8",0
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR0
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR1
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR2
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR3
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR4
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR5
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL0
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL1
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL2
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL3
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL4
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL5
+    ; repeat until a power of 2
+    .byte           CUT_SCENE_IMAGE,0,"0",0
+    .byte           CUT_SCENE_IMAGE,0,"1",0
+    .byte           CUT_SCENE_IMAGE,0,"2",0
+    .byte           CUT_SCENE_IMAGE,0,"3",0
+    .byte           CUT_SCENE_IMAGE,0,"4",0
+    .byte           CUT_SCENE_IMAGE,0,"5",0
+    .byte           CUT_SCENE_IMAGE,0,"6",0
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR0
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR1
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL0
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL1
+
 ;-----------------------------------------------------------------------------
 ; Assets
 ;-----------------------------------------------------------------------------
+
+.include        "quotes.asm"
 
 ; Last 16 tiles are player shapes
 PLAYER_SHAPES = tileSheet + (16 * $80)
@@ -2915,15 +3098,10 @@ PLAYER_SHAPES = tileSheet + (16 * $80)
 tileSheet:
 .include        "font.asm"
 
-
-.align 256
-quoteImageLeft:
-.incbin         "..\build\thinking.bin"
-.align 256
-quoteImageRight:
-.incbin         "..\build\aha.bin"
 .align 256
 cutScene:
+
+
 
 
 

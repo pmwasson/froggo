@@ -39,8 +39,16 @@
     .byte   $FF
 .endmacro
 
-.macro QuoteText s,numY,numX
-    MapText s
+.macro QuoteText s,numX,numY
+    .repeat .strlen(s), I
+        .if     (.strat(s, I) >= 'A') & (.strat(s, I) <= 'Z')
+            .byte   .strat(s, I)+$20
+        .elseif  (.strat(s, I) >= 'a') & (.strat(s, I) <= 'z')
+            .byte   .strat(s, I)-$40
+        .else
+            .byte   .strat(s, I)-$20
+        .endif
+    .endrep
     .byte   $80|numY*16|numX
 .endmacro
 

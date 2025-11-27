@@ -23,22 +23,26 @@ python3 build:
 - [x] Smooth scrolling by unrolling loops into AUX memory
 - [x] Load title screen in same file as the game
 - [x] Load next cutscene while displaying the current one
+- [x] Rewrite level loading code so can come from AUX memory
 - [ ] Different level types
   - [ ] Trains - very fast, go from emptry to full
   - [ ] Snakes - time limit by slowly filling column
   - [ ] Crosswalk - stop time briefly so must hurry across road
   - [ ] Buttons - simple puzzle solving - enable bridges or remove barriers (crosswalk may be a subset)
-- [ ] Rewrite level loading code so can come from AUX memory
 - [ ] More levels
   - [ ] 5 levels
   - [ ] 25 levels
-  - [ ] 50 levels 	
+  - [ ] 50 levels
+- [ ] Remap keyboard
 - [ ] Start with an inactive game, alternating between starting level and helpful tips
 - [ ] Add more cutscene images
-- [ ] Add end of level messages
-  - [ ] Implement simple compression
-  - [ ] Put string in AUX memory	
+  - [ ] Remove lesser images
+  - [ ] Fill disk
+- [x] Add end of level messages
+  - [x] Implement simple compression
+  - [ ] Put string in AUX memory
 - [ ] Credits
+  - [ ] Smooth scrolling
 - [ ] Level editor?
 - [ ] Load tiles from disk so users can edit.  May want to load default with game and have a keystroke to load modified version.
   - [ ] Put the player shapes back into the tile data?
