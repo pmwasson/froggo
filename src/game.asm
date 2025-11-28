@@ -75,6 +75,7 @@ levelPtr                    := scriptPtr0   ; and +1
 DISPATCH_CODE               = $C00                          ; Dispatch code very small (<256 bytes)
                                                             ; Keep above prodos file buffer ($800..$BFF)
 AUX_LEVEL_DATA              = $E00                          ; $E00 .. $2FFF
+
 COLUMN_CODE_START           = $3000                         ; page0 offset $0000..$3048, page1 $3049..$6091
 COLUMN_CODE_START_PAGE2     = COLUMN_CODE_START + $3049     ; include some padding after code to align buffers
 COLUMN_BUFFER_START         = COLUMN_CODE_START + $6100     ; size=$1000
@@ -84,6 +85,8 @@ COPY_LEVEL_CODE             = DISPATCH_CODE + (initCode::copyLevelData-initCode:
 DRAW_IMAGE_AUX              = DISPATCH_CODE + (initCode::drawImageAux-initCode::dispatchStart)
 QUOTE_IMAGE_LEFT            = AUX_LEVEL_DATA+quoteImageLeft-LEVEL_DATA_START
 QUOTE_IMAGE_RIGHT           = AUX_LEVEL_DATA+quoteImageRight-LEVEL_DATA_START
+MENU_IMAGE_RIGHT            = AUX_LEVEL_DATA+menuImageRight-LEVEL_DATA_START
+MENU_IMAGE_BOTTOM           = AUX_LEVEL_DATA+menuImageBottom-LEVEL_DATA_START
 
 ; Constants for draw loop unrolling
 MAX_COLUMNS                 = 16
@@ -135,6 +138,9 @@ PLAYER_INIT_STATE           = STATE_IDLE
 
 MOVE_DELAY                  = 5
 DEAD_DELAY                  = 150
+
+TILE_BLANK                  = $00
+TILE_PROMPT                 = $20
 
 TILE_GRASS                  = $46
 TILE_GRASS_ROAD             = $47
@@ -846,6 +852,8 @@ LEVEL_DATA_END:
 reset_loop:
     jsr         initLevelState
     jsr         loadLevel
+
+redraw_loop:
     jsr         drawScreen
 
 game_loop:
@@ -892,6 +900,12 @@ switchTo1:
     jmp         game_loop
 :
 
+    cmp         #KEY_CTRL_C
+    bne         :+
+    jsr         showControlMenu
+    jmp         redraw_loop
+:
+
     cmp         #KEY_ESC
     bne         :+
     jmp         quit
@@ -920,19 +934,20 @@ switchTo1:
     jmp         game_loop   ; not in idle, so no movement
 :
 
-    cmp         #KEY_A
+    cmp         inputUp
+
     bne         :+
     jmp         goUp
 :
-    cmp         #KEY_Z
+    cmp         inputDown
     bne         :+
     jmp         goDown
 :
-    cmp         #KEY_RIGHT
+    cmp         inputRight
     bne         :+
     jmp         goRight
 :
-    cmp         #KEY_LEFT
+    cmp         inputLeft
     bne         :+
     jmp         goLeft
 :
@@ -1106,7 +1121,7 @@ erasePlayer1:
     bne         :+
     lda         #0
     sta         currentLevel
-:         
+:
 
     ; Drawing on high screen
     jsr         drawCutScene
@@ -1733,6 +1748,7 @@ index:          .byte   0
 ;-----------------------------------------------------------------------------
 stringBoxTop:       TileText "/==================\"
 stringLevel:        TileText "_    LEVEL:        _"
+stringPause:        TileText "_   GAME  PAUSED   _"
 stringBoxBlank:     TileText "_                  _"
 stringBoxBottom:    TileText "[==================]"
 stringBoxQuote:     TileText "[=========*========]"
@@ -1786,6 +1802,9 @@ digitTile:      .byte   $10,$11,$12,$13,$14,$15,$16,$17,$18,$19
 .endproc
 
 
+;-----------------------------------------------------------------------------
+; Draw Cut Scene - image or quote (right/left styles)
+;-----------------------------------------------------------------------------
 
 .proc drawCutScene
     ldx         cutSceneIndex
@@ -1849,6 +1868,232 @@ doLeft:
     jmp         cont
 
 .endproc
+
+
+
+;-----------------------------------------------------------------------------
+; Draw Menu
+;
+;   Pass in menu type
+;-----------------------------------------------------------------------------
+menuBoxTop:     TileText "/============\"
+menuBoxSides:   TileText "_            _"
+menuBoxBottom:  TileText "[============]"
+
+; 01234567890123
+; /------------\ 0
+; |SET KEYS -  | 1
+; | UP    : @  | 2
+; | DOWN  :    | 3
+; | LEFT  :    | 4
+; | RIGHT :    | 5
+; |            | 6
+; |^K  - RESET | 7
+; |ESC - CANCEL| 8
+; \--------v---/ 9
+
+stringMenuKeys:     QuoteText "setKeys",        3*2,1
+                    QuoteText "up    :",        3*2,1
+                    QuoteText "down  :",        3*2,1
+                    QuoteText "left  :",        3*2,1
+                    QuoteText "right :",        0,2
+                    QuoteText "^c  -Reset",     0,1
+                    QuoteText "esc -Cancel",    15,15
+
+.proc drawMenu
+
+    DrawStringCord  0, 1,  stringPause
+
+    DrawImageParam  MAP_RIGHT-12,MAP_TOP*8,12,(MAP_BOTTOM-MAP_TOP)*8,MENU_IMAGE_RIGHT,aux
+    DrawImageParam  MAP_LEFT,(MAP_BOTTOM*8)-48,MAP_RIGHT-12,48,MENU_IMAGE_BOTTOM,aux
+
+    DrawStringCord  0, MAP_TOP+0,  menuBoxTop
+    DrawStringCord  0, MAP_TOP+1,  menuBoxSides
+    DrawStringCord  0, MAP_TOP+2,  menuBoxSides
+    DrawStringCord  0, MAP_TOP+3,  menuBoxSides
+    DrawStringCord  0, MAP_TOP+4,  menuBoxSides
+    DrawStringCord  0, MAP_TOP+5,  menuBoxSides
+    DrawStringCord  0, MAP_TOP+6,  menuBoxSides
+    DrawStringCord  0, MAP_TOP+7,  menuBoxSides
+    DrawStringCord  0, MAP_TOP+8,  menuBoxSides
+    DrawStringCord  0, MAP_TOP+9,  menuBoxBottom
+
+    rts
+.endproc
+
+
+;-----------------------------------------------------------------------------
+; Show Control Menu
+;
+;-----------------------------------------------------------------------------
+
+.proc showControlMenu
+
+    jsr         drawMenu
+
+    DrawStringCord  2, MAP_TOP+1,  stringMenuKeys
+
+reset:
+    ; tile X common
+    lda         #MAP_LEFT+11*TILE_WIDTH
+    sta         tileX
+
+    ; draw current bindings
+    lda         #MAP_TOP+2
+    sta         tileY
+    lda         inputUp
+    jsr         drawKey
+    inc         tileY
+    lda         inputDown
+    jsr         drawKey
+    inc         tileY
+    lda         inputLeft
+    jsr         drawKey
+    inc         tileY
+    lda         inputRight
+    jsr         drawKey
+
+    ; display menu
+    bit         HISCR
+
+    ; get input for up
+    lda         #MAP_TOP+2
+    sta         tileY
+    lda         inputUp
+    jsr         getNewKey
+    cmp         #KEY_CTRL_C
+    beq         reset
+    cmp         #KEY_ESC
+    beq         cancel
+    sta         newUp
+    jsr         drawKey
+
+    ; get input for down
+    inc         tileY
+    lda         inputDown
+    jsr         getNewKey
+    cmp         #KEY_CTRL_C
+    beq         reset
+    cmp         #KEY_ESC
+    beq         cancel
+    sta         newDown
+    jsr         drawKey
+
+    ; get input for left
+    inc         tileY
+    lda         inputLeft
+    jsr         getNewKey
+    cmp         #KEY_CTRL_C
+    beq         reset
+    cmp         #KEY_ESC
+    beq         cancel
+    sta         newLeft
+    jsr         drawKey
+
+    ; get input for right
+    inc         tileY
+    lda         inputLeft
+    jsr         getNewKey
+    cmp         #KEY_CTRL_C
+    beq         reset
+    cmp         #KEY_ESC
+    beq         cancel
+    sta         newRight
+    jsr         drawKey
+
+finsh:
+    lda         newUp
+    sta         inputUp
+    lda         newDown
+    sta         inputDown
+    lda         newLeft
+    sta         inputLeft
+    lda         newRight
+    sta         inputRight
+
+cancel:
+    ; restore display
+    bit         LOWSCR
+    rts
+
+getNewKey:
+    jsr         keyToTile
+    jsr         waitForInput
+    rts
+
+drawKey:
+    jsr         keyToTile
+    jmp         drawTile        ; link returns
+
+keyToTile:
+    cmp         #KEY_UP
+    bne         :+
+    lda         #$3E
+    rts
+:
+    cmp         #KEY_DOWN
+    bne         :+
+    lda         #$36
+    rts
+:
+    cmp         #KEY_LEFT
+    bne         :+
+    lda         #$1C
+    rts
+:
+    cmp         #KEY_RIGHT
+    bne         :+
+    lda         #$1E
+    rts
+:
+    sec
+    sbc         #$A0
+    rts
+
+newUp:      .byte       0
+newDown:    .byte       0
+newLeft:    .byte       0
+newRight:   .byte       0
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Wait For Input
+;-----------------------------------------------------------------------------
+
+.proc waitForInput
+
+    sta         previous
+
+blinkLoop:
+    lda         #TILE_PROMPT
+    jsr         drawTile
+    jsr         wait
+    lda         previous
+    jsr         drawTile
+    jsr         wait
+    lda         KBD
+    bpl         blinkLoop
+    bit         KBDSTRB
+    rts
+
+wait:
+    ldy         #0
+    ldx         #0
+loop:
+    lda         KBD
+    bmi         done
+    dex
+    bne         loop
+    dey
+    bne         loop
+done:
+    rts
+
+previous:       .byte   0
+
+.endproc
+
 
 ;-----------------------------------------------------------------------------
 ; initTile
@@ -2794,6 +3039,12 @@ activeColumns:  .byte       0
 initialOffset:  .byte       0
 displayLevel:   .byte       0
 currentLevel:   .byte       0
+
+; settings
+inputUp:     .byte          KEY_A
+inputDown:   .byte          KEY_Z
+inputLeft:   .byte          KEY_LEFT
+inputRight:  .byte          KEY_RIGHT
 
 ; player drawing
 drawTileX0:     .byte       0
