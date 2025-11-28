@@ -87,6 +87,7 @@ QUOTE_IMAGE_LEFT            = AUX_LEVEL_DATA+quoteImageLeft-LEVEL_DATA_START
 QUOTE_IMAGE_RIGHT           = AUX_LEVEL_DATA+quoteImageRight-LEVEL_DATA_START
 MENU_IMAGE_RIGHT            = AUX_LEVEL_DATA+menuImageRight-LEVEL_DATA_START
 MENU_IMAGE_BOTTOM           = AUX_LEVEL_DATA+menuImageBottom-LEVEL_DATA_START
+PAUSE_IMAGE                 = AUX_LEVEL_DATA+(LEVEL_DATA_END-LEVEL_DATA_START)
 
 ; Constants for draw loop unrolling
 MAX_COLUMNS                 = 16
@@ -266,50 +267,41 @@ MAX_LEVELS                  = 4
     sta         TXTCLR
 
     jsr         initCode
-    jsr         uncompressScreen
 
     ; Install Level Data
-
     lda         #<LEVEL_DATA_START
     sta         bufferPtr0
     lda         #>LEVEL_DATA_START
     sta         bufferPtr0+1
-
     lda         #<AUX_LEVEL_DATA
     sta         bufferPtr1
     lda         #>AUX_LEVEL_DATA
     sta         bufferPtr1+1
-
     lda         #<LEVEL_DATA_END
     sta         codePtr
     lda         #>LEVEL_DATA_END
     sta         codePtr+1
-
     sta         RAMWRTON            ; Write to AUX
     jsr         copyMemory
     sta         RAMWRTOFF           ; Write to Main
 
-; Menu image part of level data, but may want to move to free up space for more levels
-;    ; Install Menu Image
-;
-;    lda         #<menuImageStart
-;    sta         bufferPtr0
-;    lda         #>menuImageStart
-;    sta         bufferPtr0+1
-;
-;    lda         #<AUX_MENU_IMAGE
-;    sta         bufferPtr1
-;    lda         #>AUX_MENU_IMAGE
-;    sta         bufferPtr1+1
-;
-;    lda         #<menuImageEnd
-;    sta         codePtr
-;    lda         #>menuImageEnd
-;    sta         codePtr+1
-;
-;    sta         RAMWRTON            ; Write to AUX
-;    jsr         copyMemory
-;    sta         RAMWRTOFF           ; Write to Main
+    ; Install Pause Image in AUX
+
+    lda         #<pauseImageStart
+    sta         bufferPtr0
+    lda         #>pauseImageStart
+    sta         bufferPtr0+1
+    lda         #<PAUSE_IMAGE
+    sta         bufferPtr1
+    lda         #>PAUSE_IMAGE
+    sta         bufferPtr1+1
+    lda         #<pauseImageEnd
+    sta         codePtr
+    lda         #>pauseImageEnd
+    sta         codePtr+1
+    sta         RAMWRTON            ; Write to AUX
+    jsr         copyMemory
+    sta         RAMWRTOFF           ; Write to Main
 
     ; All done
     jmp         main
@@ -742,71 +734,6 @@ lastLoop:
     rts
 .endProc
 
-;-----------------------------------------------------------------------------
-; uncompressScreen
-;
-;   Set up pause screen on low-res page
-;-----------------------------------------------------------------------------
-.proc uncompressScreen
-
-BG                  = $F
-FG                  = $4
-IMAGE               = img_pause_compressed
-
-    lda         #$00
-    sta         screenPtr0
-    lda         #$04
-    sta         screenPtr1
-
-    lda         #0
-    sta         index
-    ldy         #0
-loop:
-    ldx         index
-    lda         IMAGE,x
-    sta         tempZP
-    jsr         writeByte
-    jsr         writeByte
-    jsr         writeByte
-    jsr         writeByte
-    inc         index
-    cpy         #128+120
-    beq         next
-    cpy         #120
-    beq         skip
-    jmp         loop
-skip:
-    ldy         #128
-    jmp         loop
-next:
-    ldy         #0
-    inc         screenPtr1
-    lda         screenPtr1
-    cmp         #8
-    bne         loop
-    rts
-
-writeByte:
-    lda         tempZP
-    and         #%00000011
-    tax
-    lda         colorLookup,x
-    sta         (screenPtr0),y
-    iny
-    lda         tempZP
-    lsr
-    lsr
-    sta         tempZP
-    rts
-
-index:          .byte   0
-colorLookup:    .byte   BG+BG*16,FG+BG*16,BG+FG*16,FG+FG*16
-
-; qrcode
-.include        "..\build\qrcode.asm"
-
-.endproc
-
 ; start and end aligned
 .align 256
 ; level column data
@@ -832,7 +759,7 @@ LEVEL_DATA_END:
 ;-----------------------------------------------------------------------------
 
 ; pretend there is more data to keep the linker happy
-.res            $100
+.res            $200
 
 ;=============================================================================
 .align $100
@@ -897,17 +824,19 @@ switchTo1:
     cmp         #KEY_TAB
     bne         :+
     jsr         showPause
-    jmp         game_loop
+    jmp         redraw_loop
 :
 
     cmp         #KEY_CTRL_C
     bne         :+
-    jsr         showControlMenu
+    jsr         showSetKeysMenu
     jmp         redraw_loop
 :
 
     cmp         #KEY_ESC
     bne         :+
+    jsr         showQuit
+    bne         redraw_loop
     jmp         quit
 :
     cmp         #KEY_ASTERISK
@@ -1880,26 +1809,6 @@ menuBoxTop:     TileText "/============\"
 menuBoxSides:   TileText "_            _"
 menuBoxBottom:  TileText "[============]"
 
-; 01234567890123
-; /------------\ 0
-; |SET KEYS -  | 1
-; | UP    : @  | 2
-; | DOWN  :    | 3
-; | LEFT  :    | 4
-; | RIGHT :    | 5
-; |            | 6
-; |^K  - RESET | 7
-; |ESC - CANCEL| 8
-; \--------v---/ 9
-
-stringMenuKeys:     QuoteText "setKeys",        3*2,1
-                    QuoteText "up    :",        3*2,1
-                    QuoteText "down  :",        3*2,1
-                    QuoteText "left  :",        3*2,1
-                    QuoteText "right :",        0,2
-                    QuoteText "^c  -Reset",     0,1
-                    QuoteText "esc -Cancel",    15,15
-
 .proc drawMenu
 
     DrawStringCord  0, 1,  stringPause
@@ -1923,11 +1832,115 @@ stringMenuKeys:     QuoteText "setKeys",        3*2,1
 
 
 ;-----------------------------------------------------------------------------
-; Show Control Menu
-;
+; Show Quit
 ;-----------------------------------------------------------------------------
 
-.proc showControlMenu
+; 01234567890123
+; /------------\ 0
+; |            | 1
+; | QUIT  GAME | 2
+; |            | 3
+; |  ARE YOU   | 4
+; |   SURE?    | 5
+; |            | 6
+; |   Y/N:     | 7
+; |            | 8
+; \--------v---/ 9
+
+stringQuit:     QuoteText "",           1*2,1
+                QuoteText "quit Game",  3*2,2
+                QuoteText "areYou",     4*2,1
+                QuoteText "sure?",      1*2,2
+                QuoteText "yOrN:",      15,15
+
+.proc showQuit
+
+    jsr         drawMenu
+    DrawStringCord  2, MAP_TOP+1,  stringQuit
+
+    ; display menu
+    bit         HISCR
+
+    lda         #MAP_LEFT+(10+1)*TILE_WIDTH
+    sta         tileX
+    lda         #MAP_TOP+7
+    sta         tileY
+    lda         #TILE_BLANK
+    jsr         waitForInput
+
+    ; restore display
+    bit         LOWSCR
+
+    cmp         #KEY_Y
+    rts
+.endproc
+
+;-----------------------------------------------------------------------------
+; Show Pause
+;-----------------------------------------------------------------------------
+
+stringPauseRight:   QuoteText "  ",        0,1
+                    QuoteText "  ",        0,1
+                    QuoteText "  ",        0,1
+                    QuoteText "  ",        0,1
+                    QuoteText "  ",        0,1
+                    QuoteText "  ",        0,1
+                    QuoteText "  ",        0,1
+                    QuoteText "  ",        0,1
+                    QuoteText "  ",        0,1
+                    QuoteText "  ",        15,15
+
+.proc showPause
+
+    DrawStringCord  0, 1,  stringPause
+
+    DrawImageParam  MAP_LEFT,MAP_TOP*8,24,80,PAUSE_IMAGE,aux
+    DrawStringCord  MAP_LEFT+24, MAP_TOP,  stringPauseRight
+
+    DrawImageParam  MAP_RIGHT-12,MAP_TOP*8,12,(MAP_BOTTOM-MAP_TOP)*8,MENU_IMAGE_RIGHT,aux
+    DrawImageParam  MAP_LEFT,(MAP_BOTTOM*8)-48,MAP_RIGHT-12,48,MENU_IMAGE_BOTTOM,aux
+
+    ; display menu
+    bit         HISCR
+
+    lda         #MAP_LEFT+(12+1)*TILE_WIDTH
+    sta         tileX
+    lda         #MAP_TOP
+    sta         tileY
+    lda         #TILE_BLANK
+    jsr         waitForInput
+
+    ; restore display
+    bit         LOWSCR
+    rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Show Set Keys Menu
+;-----------------------------------------------------------------------------
+
+; 01234567890123
+; /------------\ 0
+; |SET KEYS -  | 1
+; | UP    : @  | 2
+; | DOWN  :    | 3
+; | LEFT  :    | 4
+; | RIGHT :    | 5
+; |            | 6
+; |^K  - RESET | 7
+; |ESC - CANCEL| 8
+; \--------v---/ 9
+
+stringMenuKeys:     QuoteText "setKeys",        3*2,1
+                    QuoteText "up    :",        3*2,1
+                    QuoteText "down  :",        3*2,1
+                    QuoteText "left  :",        3*2,1
+                    QuoteText "right :",        0,2
+                    QuoteText "^c  -Reset",     0,1
+                    QuoteText "esc -Cancel",    15,15
+
+.proc showSetKeysMenu
 
     jsr         drawMenu
 
@@ -2821,33 +2834,6 @@ dynamicTileIndex:   .byte       $0
 .endproc
 
 ;-----------------------------------------------------------------------------
-; Show Pause
-;-----------------------------------------------------------------------------
-.proc showPause
-    lda         PAGE2       ; remember screen we were on
-    sta         page
-    ; display pause screen
-    sta         LOWSCR
-    sta         LORES
-
-wait:
-    lda         KBD
-    bpl         wait
-    sta         KBDSTRB
-
-    sta         HIRES
-    lda         page
-    bmi         :+
-    rts                     ; still on low
-:
-    sta         HISCR       ; switch to high
-    rts
-
-page:   .byte   0
-
-.endproc
-
-;-----------------------------------------------------------------------------
 ; Monitor
 ;
 ;  Exit to monitor
@@ -3351,6 +3337,9 @@ tileSheet:
 
 .align 256
 cutScene:
+pauseImageStart:
+.incbin         "..\build\qrcode_hgr.bin"
+pauseImageEnd:
 
 
 

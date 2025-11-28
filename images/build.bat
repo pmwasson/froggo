@@ -18,6 +18,7 @@ python3 imageConvert2.py loggo-crop2.png           ..\build\log.png          140
 
 python3 imageConvert2.py menu_right.png            ..\build\menu_right.png   42 128 0 0 || exit
 python3 imageConvert2.py menu_bottom.png           ..\build\menu_bottom.png  98 48 0 0  || exit
+python3 imageConvert2.py qrcode_84x80_green.png    ..\build\qrcode_hgr.png   84 80 0 0  || exit
 
 python3 qrConvert.py qrcode.png 25 25 > ..\build\qrcode.asm || exit
 python3 parallax.py parallax.png > ..\build\parallaxData.asm || exit
