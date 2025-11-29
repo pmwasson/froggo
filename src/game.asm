@@ -185,6 +185,8 @@ TILE_ROCK                   = $58
 TILE_CONE                   = $59
 TILE_BUSH_WATER             = $5A       ; left of water
 TILE_BUSH_ROAD              = $5B       ; left of road
+TILE_SINGLE_LINE            = $5D
+TILE_DOUBLE_LINE            = $60
 TILE_ROAD_BUSH              = $73       ; right of road
 TILE_CARPET_LEFT            = $5E
 TILE_CARPET                 = $5F
@@ -235,8 +237,8 @@ LEVEL_COLUMN_START          = $2F
 
 NUMBER_CUTSCENES            = 10
 
-INITIAL_LEVEL               = 5
-MAX_LEVELS                  = 6
+INITIAL_LEVEL               = 0
+MAX_LEVELS                  = 7
 
 ;-----------------------------------------------------------------------------
 ; Title image
@@ -3160,10 +3162,10 @@ tileTypeTable:
     .byte       TILE_TYPE_BLOCKED           ;5A     - Bush (grass->water)
     .byte       TILE_TYPE_BLOCKED           ;5B     - Bush (grass->road)
     .byte       TILE_TYPE_BLOCKED           ;5C     - Tree A*
-    .byte       TILE_TYPE_BLOCKED           ;5D     - Divider (road->road)
+    .byte       TILE_TYPE_FREE              ;5D     - Divider (road->road)
     .byte       TILE_TYPE_FREE              ;5E     - Carpet (left)
     .byte       TILE_TYPE_FREE              ;5F     - Carpet
-    .byte       TILE_TYPE_FREE              ;60     - Unused
+    .byte       TILE_TYPE_FREE              ;60     - Stripe
     .byte       TILE_TYPE_FREE              ;61     - Unused
     .byte       TILE_TYPE_FREE              ;62     - Unused
     .byte       TILE_TYPE_FREE              ;63     - Unused

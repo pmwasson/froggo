@@ -31,7 +31,7 @@ python3 build:
   - [ ] Crosswalk - stop time briefly so must hurry across road
   - [ ] Buttons - simple puzzle solving - enable bridges or remove barriers (crosswalk may be a subset)
 - [ ] More levels
-  - [ ] 5 levels
+  - [x] 5 levels
   - [ ] 25 levels
   - [ ] 50 levels
 - [x] Remap keyboard

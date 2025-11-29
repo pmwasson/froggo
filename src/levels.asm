@@ -99,6 +99,20 @@ level5:         ; bricks--road--bricks
     ; starting Y
     .byte       MAP_BOTTOM-TILE_HEIGHT*4
 
+.align 32
+level6:         ; grass--road--grass
+    ; columns
+    .byte       COLUMN_GRASS_2,COLUMN_GRASS_4,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0                    ; 4
+    .byte       COLUMN_ROAD_D_6,COLUMN_ROAD_S_4,COLUMN_ROAD_D_1,COLUMN_ROAD_D_2                     ; 4
+    .byte       COLUMN_ROAD_S_4,COLUMN_ROAD_D_2,COLUMN_ROAD_S_3                                     ; 3
+    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_S_4,COLUMN_ROAD_D_7,COLUMN_ROAD_S_4                     ; 4
+    .byte       COLUMN_ROAD_D_2,COLUMN_ROAD_D_6                                                     ; 2
+    .byte       COLUMN_ROAD_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_4                                   ; 3
+    ; dynamic speeds
+    ConvertSpeeds   $FEC0, $FEB0, $FEF0, $FF00, $0140, $0100, $0120, $0110
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*8
+
 
 COLUMN_TYPE_STATIC          = $00
 COLUMN_TYPE_DYNAMIC         = $80           ; $80..$87
@@ -122,12 +136,16 @@ COLUMN_WATER_GRASS_0        = (levelColumnDataWG0 - levelColumnData)/16
 COLUMN_ROAD_S_0             = (levelColumnDataRS0 - levelColumnData)/16
 COLUMN_ROAD_S_1             = (levelColumnDataRS1 - levelColumnData)/16
 COLUMN_ROAD_S_2             = (levelColumnDataRS2 - levelColumnData)/16
+COLUMN_ROAD_S_3             = (levelColumnDataRS3 - levelColumnData)/16
+COLUMN_ROAD_S_4             = (levelColumnDataRS4 - levelColumnData)/16
 COLUMN_ROAD_D_0             = (levelColumnDataRD0 - levelColumnData)/16
 COLUMN_ROAD_D_1             = (levelColumnDataRD1 - levelColumnData)/16
 COLUMN_ROAD_D_2             = (levelColumnDataRD2 - levelColumnData)/16
 COLUMN_ROAD_D_3             = (levelColumnDataRD3 - levelColumnData)/16
 COLUMN_ROAD_D_4             = (levelColumnDataRD4 - levelColumnData)/16
 COLUMN_ROAD_D_5             = (levelColumnDataRD5 - levelColumnData)/16
+COLUMN_ROAD_D_6             = (levelColumnDataRD6 - levelColumnData)/16
+COLUMN_ROAD_D_7             = (levelColumnDataRD7 - levelColumnData)/16
 COLUMN_TRAIN_D_0            = (levelColumnDataTD0 - levelColumnData)/16
 COLUMN_WATER_S_0            = (levelColumnDataWS0 - levelColumnData)/16
 COLUMN_WATER_S_1            = (levelColumnDataWS1 - levelColumnData)/16
@@ -178,7 +196,9 @@ levelColumnInfo:
 ; road (static)
     .byte       COLUMN_TYPE_STATIC                              ; road - cones
     .byte       COLUMN_TYPE_STATIC                              ; road - crosswalk in middle
-    .byte       COLUMN_TYPE_STATIC                              ; road - sidewalk in middle
+    .byte       COLUMN_TYPE_STATIC                              ; road - blank
+    .byte       COLUMN_TYPE_STATIC                              ; road - solid line
+    .byte       COLUMN_TYPE_STATIC                              ; road - striped line
 
 ; road (dynamic)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 3 small cars (blue, purple, blue)
@@ -187,6 +207,8 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_DYNAMIC                             ; 2 trucks (up together)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 2 trucks (down, spread out)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 1 truck (down)
+    .byte       COLUMN_TYPE_DYNAMIC                             ; 1 small car (red)
+    .byte       COLUMN_TYPE_DYNAMIC                             ; 1 small car (purple)
 
 ; train (dynamic)
     .byte       COLUMN_TYPE_DYNAMIC                             ; train cars
@@ -216,8 +238,8 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_DYNAMIC                             ; conveyor belt
 
 ; brick
-    .byte       COLUMN_TYPE_STATIC                              ; brick / crosswalk (blank)
     .byte       COLUMN_TYPE_STATIC                              ; brick / crosswalk (crosswalk)
+    .byte       COLUMN_TYPE_STATIC                              ; brick / crosswalk (blank)
 
 .align 256
 levelColumnData:
@@ -253,7 +275,7 @@ levelColumnDataGR1:
     .byte   TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_GRASS_NE,TILE_GRASS_ROAD,TILE_GRASS_ROAD,TILE_GRASS_ROAD,TILE_GRASS_ROAD
 levelColumnDataGR2:
     .byte   TILE_GRASS_ROAD,TILE_BUSH_ROAD,TILE_BUSH_ROAD,TILE_BUSH_ROAD,TILE_GRASS_ROAD,TILE_GRASS_ROAD,TILE_GRASS_ROAD,TILE_GRASS_ROAD
-    .byte   TILE_BUSH_ROAD,TILE_GRASS_SE,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_GRASS_NE
+    .byte   TILE_BUSH_ROAD,TILE_GRASS_SE,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_GRASS_NE
 
 ; road2grass
 levelColumnDataRG0:
@@ -264,7 +286,7 @@ levelColumnDataRG1:
     .byte   TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_GRASS_NW,TILE_ROAD_GRASS,TILE_ROAD_GRASS,TILE_ROAD_GRASS,TILE_ROAD_GRASS
 levelColumnDataRG2:
     .byte   TILE_ROAD_GRASS,TILE_ROAD_BUSH,TILE_ROAD_GRASS,TILE_ROAD_GRASS,TILE_ROAD_BUSH,TILE_ROAD_BUSH,TILE_ROAD_GRASS,TILE_ROAD_GRASS
-    .byte   TILE_ROAD_BUSH,TILE_GRASS_SW,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_GRASS_NW
+    .byte   TILE_ROAD_BUSH,TILE_GRASS_SW,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_GRASS_NW
 
 ; grass2water
 levelColumnDataGW0:
@@ -290,6 +312,12 @@ levelColumnDataRS1:
 levelColumnDataRS2:
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+levelColumnDataRS3:
+    .byte   TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE
+    .byte   TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE
+levelColumnDataRS4:
+    .byte   TILE_ROAD,TILE_SINGLE_LINE,TILE_ROAD,TILE_ROAD,TILE_SINGLE_LINE,TILE_ROAD,TILE_ROAD,TILE_SINGLE_LINE
+    .byte   TILE_ROAD,TILE_ROAD,TILE_SINGLE_LINE,TILE_ROAD,TILE_ROAD,TILE_SINGLE_LINE,TILE_ROAD,TILE_ROAD
 
 ; road (dynamic)
 levelColumnDataRD0:
@@ -309,6 +337,12 @@ levelColumnDataRD4:
     .byte   TILE_ROAD,TILE_ROAD,TILE_TRUCKD_A,TILE_TRUCKD_B,TILE_TRUCKD_C,TILE_ROAD,TILE_ROAD,TILE_ROAD
 levelColumnDataRD5:
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_TRUCKD_A,TILE_TRUCKD_B,TILE_TRUCKD_C,TILE_ROAD,TILE_ROAD
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+levelColumnDataRD6:
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+    .byte   TILE_CAR1_RED,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+levelColumnDataRD7:
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_CAR1_PURPLE
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
 
 ; train (dynamic)
@@ -375,8 +409,8 @@ levelColumnDataHD0:
 ; brick
 levelColumnDataB0:
     .byte   TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK
-    .byte   TILE_BRICK,TILE_GRASS_S,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_GRASS_N
+    .byte   TILE_BRICK,TILE_GRASS_S,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_GRASS_N
 
 levelColumnDataB1:
     .byte   TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK
-    .byte   TILE_BRICK,TILE_GRASS_S,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_GRASS_N
+    .byte   TILE_BRICK,TILE_GRASS_S,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_GRASS_N
