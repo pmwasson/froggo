@@ -1,7 +1,6 @@
 @echo off
 
-python3 imageConvert2.py froggo2.png               ..\build\froggo.png       140 192 1 4000 || exit
-
+python3 imageConvert2.py froggo-title.png          ..\build\froggo.png       140 192 1 4000 || exit
 
 python3 imageConvert2.py aha-crop.png              ..\build\aha.png          70 64 0 0 || exit
 python3 imageConvert2.py thinking-crop-flip.png    ..\build\thinking.png     70 64 0 0 || exit
@@ -18,7 +17,8 @@ python3 imageConvert2.py loggo-crop2.png           ..\build\log.png          140
 
 python3 imageConvert2.py menu_right.png            ..\build\menu_right.png   42 128 0 0 || exit
 python3 imageConvert2.py menu_bottom.png           ..\build\menu_bottom.png  98 48 0 0  || exit
-python3 imageConvert2.py qrcode_84x80_green.png    ..\build\qrcode_hgr.png   84 80 0 0  || exit
+python3 imageConvert2.py qrcode_63x64.png          ..\build\qrcode_hgr.png   63 64 0 0  || exit
 
-python3 qrConvert.py qrcode.png 25 25 > ..\build\qrcode.asm || exit
 python3 parallax.py parallax.png > ..\build\parallaxData.asm || exit
+
+:: python3 qrConvert.py qr_code_a2sw.png 31 31 qrcode_2x.png || exit

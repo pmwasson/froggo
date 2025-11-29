@@ -24,6 +24,7 @@ python3 build:
 - [x] Load title screen in same file as the game
 - [x] Load next cutscene while displaying the current one
 - [x] Rewrite level loading code so can come from AUX memory
+- [ ] Add level timer
 - [ ] Different level types
   - [ ] Trains - very fast, go from emptry to full
   - [ ] Snakes - time limit by slowly filling column
@@ -33,7 +34,7 @@ python3 build:
   - [ ] 5 levels
   - [ ] 25 levels
   - [ ] 50 levels
-- [ ] Remap keyboard
+- [x] Remap keyboard
 - [ ] Start with an inactive game, alternating between starting level and helpful tips
 - [ ] Add more cutscene images
   - [ ] Remove lesser images

@@ -28,6 +28,9 @@ copy ..\disk\template_prodos.dsk froggo.dsk  || exit
 :: ac-windows -as froggo.dsk game bin < game.apple2  || exit
 ac-windows  -as froggo.dsk froggo.system sys < game.apple2  || exit
 
+::ac-windows -bas froggo.dsk startup < ..\src\startup.bas  || exit
+ac-windows -bas froggo.dsk hello < ..\src\hello.bas || exit
+
 :: Parallax
 ::ac-windows -p  froggo.dsk parallax.system sys < C:\cc65\target\apple2\util\loader.system || exit
 ac-windows -as froggo.dsk parallax bin < parallax.apple2  || exit
@@ -38,8 +41,6 @@ ac-windows -as froggo.dsk fedit bin < fontEdit.apple2  || exit
 
 :: Basic system for title
 ac-windows -p  froggo.dsk basic.system sys < ..\disk\BASIC.SYSTEM  || exit
-::ac-windows -bas froggo.dsk startup < ..\src\startup.bas  || exit
-ac-windows -bas froggo.dsk hello < ..\src\hello.bas || exit
 
 :: Data
 ac-windows -p  froggo.dsk data/scene.0  bin < log.bin       || exit

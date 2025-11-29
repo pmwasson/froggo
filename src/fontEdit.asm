@@ -85,23 +85,6 @@ toggle_text_off:
 :
 
     ;------------------
-    ; Esc = Toggle Page
-    ;------------------
-    cmp         #KEY_ESC
-    bne         :+
-    ; dont display anything
-    lda         PAGE2
-    bmi         toggle_page
-    bit         HISCR
-    bit         MIXCLR
-    jmp         skip_prompt
-toggle_page:
-    bit         LOWSCR
-    bit         MIXSET
-    jmp         skip_prompt
-:
-
-    ;------------------
     ; RIGHT (arrow)
     ;------------------
     cmp         #KEY_RIGHT
@@ -392,9 +375,9 @@ down_good:
 :
 
     ;------------------
-    ; Ctrl-Q = QUIT
+    ; ESC= QUIT
     ;------------------
-    cmp         #KEY_CTRL_Q
+    cmp         #KEY_ESC
     bne         :+
     jsr         inline_print
     .byte       "Quit",13,0
@@ -405,7 +388,7 @@ down_good:
     ;------------------
     ; \ = Monitor
     ;------------------
-    cmp         #$80 | '\'
+    cmp         #$80 | '*'
     bne         :+
     jsr         inline_print
     .byte       "Monitor",13,"(enter CTRL-Y to return)",13,0
@@ -490,17 +473,17 @@ finish_move:
     StringCont  "  _,+:        Previous-8/Next-8 tile"
     StringCont  "  Arrows:     Move cursor"
     StringCont  "  01234567:   Change color"
+    StringCont  "  <SP>:       Draw pixel"
     StringCont  "  Ctrl+C:     Copy"
     StringCont  "  Ctrl+V:     Paste"
-    StringCont  "  <SP>:       Draw pixel"
     StringCont  "  Ctrl+F:     Fill with current color"
     StringCont  "  Ctrl+X:     Invert colors"
     StringCont  "  !:          Dump tile"
     StringCont  "  @:          Dump all tiles"
     StringCont  "              (Capture with printer)"
     StringCont  "  ?:          This help screen"
-    StringCont  "  \:          Monitor"
-    StringCont  "  Ctrl+Q:     Quit"
+    StringCont  "  *:          Monitor"
+    StringCont  "  ESC:        Quit"
     StringCont  "  Tab:        Toggle text/graphics"
     .byte   0
 

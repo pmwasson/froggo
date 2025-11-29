@@ -3,6 +3,18 @@ import os.path
 from PIL import Image
 
 
+def scaleImage(bitArray,scale,color1):
+    height = len(bitArray)
+    width = len(bitArray[0])
+    im = Image.new("1", (width*scale,height*scale), 0)
+    for y in range(height):
+        for x in range(width):
+            if (bitArray[y][x] == color1):
+                for sx in range(scale):
+                    for sy in range(scale):
+                        im.putpixel((x*scale+sx,y*scale+sy),1)
+    return(im)
+
 def readPixels(im,width,height,bgChar,fgChar):
     xScale = im.size[0]/width
     yScale = im.size[1]/height
@@ -70,78 +82,20 @@ def printArray(bitArray):
 
 def main():
 
-    memoryRowOrder = [  0,1,16,17,32,33, 2, 3,18,19,34,35, 4, 5,20,21,36,37, 6, 7,22,23,38,39,
-                        8,9,24,25,40,41,10,11,26,27,42,43,12,13,28,29,44,45,14,15,30,31,46,47 ]
+    infile = sys.argv[1]
+    width = int(sys.argv[2])
+    height = int(sys.argv[3])
+    outfile = sys.argv[4]
 
+    source = Image.open(infile)
+    im = source.convert("1")
 
-    # infile = sys.argv[1]
-    # width = int(sys.argv[2])
-    # height = int(sys.argv[3])
+    qrcode = readPixels(im,width,height,".","#")
+    printArray(qrcode)
 
-    # source = Image.open(infile)
-    # im = source.convert("1")
+    outImage = scaleImage(qrcode,2,"#")
+    outImage.save(outfile)
 
-    # qrcode = readPixels(im,width,height,".","#")
-    # printArray(qrcode)
+    # see earlier version of this file for low-res usage
 
-    # print(f"img_qrcode_lores:")
-    # loRes(qrcode,"#",0x4,0xF)
-
-    #                      111111111122222222223333333333
-    #            0123456789012345678901234567890123456789
-    pauseScreen = [
-                "                                        ",     #0
-                " ###################################### ",     #1
-                " ##    ##   ####  ####   ###   ###  ### ",     #2
-                " ## ##### ## ## ## ## ##### ##### ## ## ",     #3
-                " ##   ###   ### ## ## #  ## #  ## ## ## ",     #4
-                " ## ##### ## ## ## ## ## ## ## ## ## ## ",     #5
-                " ## ##### ## ###  ####   ###   ###  ### ",     #6
-                " ###################################### ",     #7
-                "                                        ",     #8
-                "                                        ",     #9
-                "                                        ",     #10
-                "       #######  # ## ### #######        ",     #11
-                "       #     # # #  ###  #     #        ",     #12
-                "       # ### #  #### # # # ### #        ",     #13
-                "       # ### # #    # ## # ### #        ",     #14
-                "       # ### #  ## #     # ### #        ",     #15
-                "       #     # # # ##### #     #        ",     #16
-                "       ####### # # # # # #######        ",     #17
-                "                # # #  #                ",     #18
-                "       ##### ### #   #### # # #         ",     #19
-                "       # ##   ### #  ## # ##   #        ",     #20
-                "       ##    # ## ##### ## # #          ",     #21
-                "       #   ## ### ##   ##               ",     #22
-                "        #### # ##    ## ##### ##        ",     #23
-                "       # ##   # #    #### ##            ",     #24
-                "       # #  ####  ####  ## # ##         ",     #25
-                "       # ###    ###    ##     ##        ",     #26
-                "       # # # ##  #  #########  #        ",     #27
-                "               ####  ###   #   #        ",     #28
-                "       ####### ####### # # # ###        ",     #29
-                "       #     #   ## #  #   ##           ",     #30
-                "       # ### # ###  ## ######           ",     #31
-                "       # ### # ##### ##### #  ##        ",     #32
-                "       # ### # # # ## # #  # # #        ",     #33
-                "       #     # #### #  ###### #         ",     #34
-                "       ####### ### ###  #    ###        ",     #35
-                "                                        ",     #36
-                "                                        ",     #37
-                "                                        ",     #38
-                "                                        ",     #39
-                " ###################################### ",     #40
-                " ###    ####   ### ### ###   ##     ### ",     #41
-                " ### ### ## ### ## ### ## ##### ####### ",     #42
-                " ###    ###     ## ### ###   ##   ##### ",     #43
-                " ### ###### ### ## ### ###### # ####### ",     #44
-                " ### ###### ### ###   ####   ##     ### ",     #45
-                " ###################################### ",     #46
-                "                                        ",     #47
-                ]
-
-
-    sortedPauseScreen = [pauseScreen[i] for i in memoryRowOrder]
-    print(f"img_pause_compressed:")
-    loResCompress(sortedPauseScreen,"#")
 main()

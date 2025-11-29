@@ -185,11 +185,13 @@ TILE_ROCK                   = $58
 TILE_CONE                   = $59
 TILE_BUSH_WATER             = $5A       ; left of water
 TILE_BUSH_ROAD              = $5B       ; left of road
+TILE_ROAD_BUSH              = $73       ; right of road
 TILE_CARPET_LEFT            = $5E
 TILE_CARPET                 = $5F
 TILE_BRICK                  = $64
 TILE_COIN                   = $70
 TILE_CONVEYOR               = $71
+TILE_FLOWER                 = $72
 
 TILE_BUFFER0                = $80
 TILE_BUFFER1                = $81
@@ -233,8 +235,8 @@ LEVEL_COLUMN_START          = $2F
 
 NUMBER_CUTSCENES            = 10
 
-INITIAL_LEVEL               = 0
-MAX_LEVELS                  = 4
+INITIAL_LEVEL               = 5
+MAX_LEVELS                  = 6
 
 ;-----------------------------------------------------------------------------
 ; Title image
@@ -1850,7 +1852,7 @@ menuBoxBottom:  TileText "[============]"
 stringQuit:     QuoteText "",           1*2,1
                 QuoteText "quit Game",  3*2,2
                 QuoteText "areYou",     4*2,1
-                QuoteText "sure?",      1*2,2
+                QuoteText "sure?",      2*2,2
                 QuoteText "yOrN:",      15,15
 
 .proc showQuit
@@ -1861,7 +1863,7 @@ stringQuit:     QuoteText "",           1*2,1
     ; display menu
     bit         HISCR
 
-    lda         #MAP_LEFT+(10+1)*TILE_WIDTH
+    lda         #MAP_LEFT+10*TILE_WIDTH
     sta         tileX
     lda         #MAP_TOP+7
     sta         tileY
@@ -1879,33 +1881,18 @@ stringQuit:     QuoteText "",           1*2,1
 ; Show Pause
 ;-----------------------------------------------------------------------------
 
-stringPauseRight:   QuoteText "  ",        0,1
-                    QuoteText "  ",        0,1
-                    QuoteText "  ",        0,1
-                    QuoteText "  ",        0,1
-                    QuoteText "  ",        0,1
-                    QuoteText "  ",        0,1
-                    QuoteText "  ",        0,1
-                    QuoteText "  ",        0,1
-                    QuoteText "  ",        0,1
-                    QuoteText "  ",        15,15
 
 .proc showPause
 
-    DrawStringCord  0, 1,  stringPause
-
-    DrawImageParam  MAP_LEFT,MAP_TOP*8,24,80,PAUSE_IMAGE,aux
-    DrawStringCord  MAP_LEFT+24, MAP_TOP,  stringPauseRight
-
-    DrawImageParam  MAP_RIGHT-12,MAP_TOP*8,12,(MAP_BOTTOM-MAP_TOP)*8,MENU_IMAGE_RIGHT,aux
-    DrawImageParam  MAP_LEFT,(MAP_BOTTOM*8)-48,MAP_RIGHT-12,48,MENU_IMAGE_BOTTOM,aux
+    jsr         drawMenu
+    DrawImageParam  MAP_LEFT+TILE_WIDTH,(MAP_TOP+1)*8,18,64,PAUSE_IMAGE,aux
 
     ; display menu
     bit         HISCR
 
-    lda         #MAP_LEFT+(12+1)*TILE_WIDTH
+    lda         #MAP_LEFT+12*TILE_WIDTH
     sta         tileX
-    lda         #MAP_TOP
+    lda         #MAP_TOP+8
     sta         tileY
     lda         #TILE_BLANK
     jsr         waitForInput
@@ -2046,7 +2033,7 @@ keyToTile:
 :
     cmp         #KEY_DOWN
     bne         :+
-    lda         #$36
+    lda         #$1B
     rts
 :
     cmp         #KEY_LEFT
@@ -2061,6 +2048,12 @@ keyToTile:
 :
     sec
     sbc         #$A0
+
+    cmp         #$40
+    bcc         :+
+    sec
+    sbc         #$20
+:
     rts
 
 newUp:      .byte       0
@@ -2953,6 +2946,55 @@ printPath:
 
 .endproc
 
+
+.proc fullPageScroll2to1
+;   >$2000, >$2400, >$2800, >$2C00, >$3000, >$3400, >$3800, >$3C00  ; *
+;   >$2080, >$2480, >$2880, >$2C80, >$3080, >$3480, >$3880, >$3C80  ; *
+;   >$2100, >$2500, >$2900, >$2D00, >$3100, >$3500, >$3900, >$3D00
+;   >$2180, >$2580, >$2980, >$2D80, >$3180, >$3580, >$3980, >$3D80
+;   >$2200, >$2600, >$2A00, >$2E00, >$3200, >$3600, >$3A00, >$3E00
+;   >$2280, >$2680, >$2A80, >$2E80, >$3280, >$3680, >$3A80, >$3E80
+;   >$2300, >$2700, >$2B00, >$2F00, >$3300, >$3700, >$3B00, >$3F00
+;   >$2380, >$2780, >$2B80, >$2F80, >$3380, >$3780, >$3B80, >$3F80
+;   >$2028, >$2428, >$2828, >$2C28, >$3028, >$3428, >$3828, >$3C28  ; *
+;   >$20A8, >$24A8, >$28A8, >$2CA8, >$30A8, >$34A8, >$38A8, >$3CA8  ; *
+;   >$2128, >$2528, >$2928, >$2D28, >$3128, >$3528, >$3928, >$3D28
+;   >$21A8, >$25A8, >$29A8, >$2DA8, >$31A8, >$35A8, >$39A8, >$3DA8
+;   >$2228, >$2628, >$2A28, >$2E28, >$3228, >$3628, >$3A28, >$3E28
+;   >$22A8, >$26A8, >$2AA8, >$2EA8, >$32A8, >$36A8, >$3AA8, >$3EA8
+;   >$2328, >$2728, >$2B28, >$2F28, >$3328, >$3728, >$3B28, >$3F28
+;   >$23A8, >$27A8, >$2BA8, >$2FA8, >$33A8, >$37A8, >$3BA8, >$3FA8
+;   >$2050, >$2450, >$2850, >$2C50, >$3050, >$3450, >$3850, >$3C50  ; *
+;   >$20D0, >$24D0, >$28D0, >$2CD0, >$30D0, >$34D0, >$38D0, >$3CD0  ; *
+;   >$2150, >$2550, >$2950, >$2D50, >$3150, >$3550, >$3950, >$3D50
+;   >$21D0, >$25D0, >$29D0, >$2DD0, >$31D0, >$35D0, >$39D0, >$3DD0
+;   >$2250, >$2650, >$2A50, >$2E50, >$3250, >$3650, >$3A50, >$3E50
+;   >$22D0, >$26D0, >$2AD0, >$2ED0, >$32D0, >$36D0, >$3AD0, >$3ED0
+;   >$2350, >$2750, >$2B50, >$2F50, >$3350, >$3750, >$3B50, >$3F50
+;   >$23D0, >$27D0, >$2BD0, >$2FD0, >$33D0, >$37D0, >$3BD0, >$3FD0
+
+
+    lda         $4400,x
+    sta         $2000,x
+    lda         $4800,x
+    sta         $2400,x
+    lda         $4C00,x
+    sta         $2800,x
+    lda         $5000,x
+    sta         $2C00,x
+    lda         $5400,x
+    sta         $3000,x
+    lda         $5800,x
+    sta         $3400,x
+    lda         $5C00,x
+    sta         $3800,x
+    lda         $4080,x
+    sta         $3C00,x
+
+
+.endproc
+
+
 ;-----------------------------------------------------------------------------
 ; Utilities
 ;-----------------------------------------------------------------------------
@@ -3139,8 +3181,8 @@ tileTypeTable:
     .byte       TILE_TYPE_FREE              ;6F     - Unused
     .byte       TILE_TYPE_FREE              ;70     - Coin
     .byte       TILE_TYPE_MOVEMENT          ;71     - Conveyor
-    .byte       TILE_TYPE_FREE              ;72     - Unused
-    .byte       TILE_TYPE_FREE              ;73     - Unused
+    .byte       TILE_TYPE_FREE              ;72     - Flower
+    .byte       TILE_TYPE_BLOCKED           ;73     - Bush
     .byte       TILE_TYPE_FREE              ;74     - Unused
     .byte       TILE_TYPE_FREE              ;75     - Unused
     .byte       TILE_TYPE_FREE              ;76     - Unused
