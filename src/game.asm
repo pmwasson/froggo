@@ -176,6 +176,10 @@ TILE_TRAIN_C                = $71
 TILE_LOG_A                  = $42
 TILE_LOG_B                  = $4A
 TILE_LOG_C                  = $52
+TILE_TURTLE_A               = $74
+TILE_TURTLE_B               = $7C
+TILE_TURTLE_SINK_A          = $75
+TILE_TURTLE_SINK_B          = $7D
 
 TILE_TREE_A                 = $4C
 TILE_TREE_MID               = $5C       ; use in middle of stack of trees
@@ -237,8 +241,8 @@ LEVEL_COLUMN_START          = $2F
 
 NUMBER_CUTSCENES            = 10
 
-INITIAL_LEVEL               = 0
-MAX_LEVELS                  = 7
+INITIAL_LEVEL               = 7
+MAX_LEVELS                  = 8
 
 ;-----------------------------------------------------------------------------
 ; Title image
@@ -3185,16 +3189,16 @@ tileTypeTable:
     .byte       TILE_TYPE_MOVEMENT          ;71     - Conveyor
     .byte       TILE_TYPE_FREE              ;72     - Flower
     .byte       TILE_TYPE_BLOCKED           ;73     - Bush
-    .byte       TILE_TYPE_FREE              ;74     - Unused
-    .byte       TILE_TYPE_FREE              ;75     - Unused
+    .byte       TILE_TYPE_MOVEMENT          ;74     - Turtle
+    .byte       TILE_TYPE_MOVEMENT          ;75     - Turtle
     .byte       TILE_TYPE_FREE              ;76     - Unused
     .byte       TILE_TYPE_FREE              ;77     - Unused
     .byte       TILE_TYPE_FREE              ;78     - Unused
     .byte       TILE_TYPE_FREE              ;79     - Unused
     .byte       TILE_TYPE_FREE              ;7A     - Unused
     .byte       TILE_TYPE_FREE              ;7B     - Unused
-    .byte       TILE_TYPE_FREE              ;7C     - Unused
-    .byte       TILE_TYPE_FREE              ;7D     - Unused
+    .byte       TILE_TYPE_MOVEMENT          ;7C     - Turtle
+    .byte       TILE_TYPE_MOVEMENT          ;7D     - Turtle
     .byte       TILE_TYPE_FREE              ;7E     - Unused
     .byte       TILE_TYPE_FREE              ;7F     - Unused
     .byte       TILE_TYPE_BUFFER0           ;80     - Active column

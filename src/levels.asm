@@ -22,14 +22,16 @@
 ; Each level is 20 columns, with 16 tiles in each column 16 (20*16 = 320 tile total)
 ; There is a maximum of 8 dynamic columns, each of which has a type (1 byte), speed (2 bytes)
 
+; Levels
+;------------------------------------------------------------------------------
 .align 32
 level0:         ; grass--road--grass--water--grass
     ; columns
-    .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0                                            ; 4
-    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_D_1,COLUMN_ROAD_D_2,COLUMN_ROAD_S_0,COLUMN_ROAD_D_3,COLUMN_ROAD_GRASS_0         ; 6
-    .byte       COLUMN_GRASS_3,COLUMN_GRASS_WATER_0                                                                         ; 2
-    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0,COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0   ; 6
-    .byte       COLUMN_GRASS_4,COLUMN_GRASS_0                                                                               ; 2
+    .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
+    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_D_1,COLUMN_ROAD_D_2,COLUMN_ROAD_S_0
+    .byte       COLUMN_ROAD_D_3,COLUMN_ROAD_GRASS_0,COLUMN_GRASS_3,COLUMN_GRASS_WATER_0
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0
+    .byte       COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0,COLUMN_GRASS_4,COLUMN_GRASS_0
     ; dynamic speeds
     ConvertSpeeds   $0180, $FF10, $00B0, $0150, $0040, $FF30, $0020, $0090
     ; starting Y
@@ -37,11 +39,11 @@ level0:         ; grass--road--grass--water--grass
 
 .align 32
 level1:         ; grass--water--grass--water--grass
-    .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2                                         ; 4
-    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0,COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0   ; 6
-    .byte       COLUMN_GRASS_3,COLUMN_GRASS_WATER_0                                                                         ; 2
-    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_1,COLUMN_WATER_D_4,COLUMN_WATER_S_2       ; 6
-    .byte       COLUMN_WATER_GRASS_0,COLUMN_GRASS_0                                                                         ; 2
+    .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0
+    .byte       COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0,COLUMN_GRASS_3,COLUMN_GRASS_WATER_0
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_1
+    .byte       COLUMN_WATER_D_4,COLUMN_WATER_S_2,COLUMN_WATER_GRASS_0,COLUMN_GRASS_0
     ; dynamic speeds
     ConvertSpeeds   $0080, $FF10, $00A0, $0130, $FF50, $FF30, $0040, $FF40
     ; starting Y
@@ -50,11 +52,11 @@ level1:         ; grass--water--grass--water--grass
 .align 32
 level2:         ; grass--road--grass--road--grass
     ; columns
-    .byte       COLUMN_GRASS_5,COLUMN_GRASS_6,COLUMN_GRASS_ROAD_1                                                           ; 3
-    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_S_1,COLUMN_ROAD_D_2,COLUMN_ROAD_S_1,COLUMN_ROAD_D_0,COLUMN_ROAD_S_1             ; 6
-    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_GRASS_1,COLUMN_GRASS_6                                                          ; 3
-    .byte       COLUMN_GRASS_ROAD_1,COLUMN_ROAD_D_0,COLUMN_ROAD_S_1,COLUMN_ROAD_D_2,COLUMN_ROAD_S_1,COLUMN_ROAD_D_3         ; 6
-    .byte       COLUMN_ROAD_GRASS_1,COLUMN_GRASS_6                                                                          ; 2
+    .byte       COLUMN_GRASS_5,COLUMN_GRASS_6,COLUMN_GRASS_ROAD_1,COLUMN_ROAD_D_0
+    .byte       COLUMN_ROAD_S_1,COLUMN_ROAD_D_2,COLUMN_ROAD_S_1,COLUMN_ROAD_D_0
+    .byte       COLUMN_ROAD_S_1,COLUMN_ROAD_D_0,COLUMN_ROAD_GRASS_1,COLUMN_GRASS_6
+    .byte       COLUMN_GRASS_ROAD_1,COLUMN_ROAD_D_0,COLUMN_ROAD_S_1,COLUMN_ROAD_D_2
+    .byte       COLUMN_ROAD_S_1,COLUMN_ROAD_D_3,COLUMN_ROAD_GRASS_1,COLUMN_GRASS_6
     ; dynamic speeds
     ConvertSpeeds   $0280, $FD40, $01C0, $FD00, $01F0, $0190, $01F0, $0000
     ; starting Y
@@ -63,10 +65,11 @@ level2:         ; grass--road--grass--road--grass
 .align 32
 level3:         ; building
     ; columns
-    .byte       COLUMN_HOUSE_0,COLUMN_HOUSE_0,COLUMN_HOUSE_3                                                                ; 3
-    .byte       COLUMN_HOUSE_1,COLUMN_HOUSE_2,COLUMN_HOUSE_4,COLUMN_HOUSE_D_0,COLUMN_HOUSE_4,COLUMN_HOUSE_4,COLUMN_HOUSE_D_0  ; 7
-    .byte       COLUMN_HOUSE_D_0,COLUMN_HOUSE_5,COLUMN_HOUSE_5,COLUMN_HOUSE_D_0,COLUMN_HOUSE_5,COLUMN_HOUSE_6,COLUMN_HOUSE_2  ; 7
-    .byte       COLUMN_HOUSE_3,COLUMN_HOUSE_0,COLUMN_HOUSE_0                                                                ; 3
+    .byte       COLUMN_HOUSE_0,COLUMN_HOUSE_0,COLUMN_HOUSE_3,COLUMN_HOUSE_1
+    .byte       COLUMN_HOUSE_2,COLUMN_HOUSE_4,COLUMN_HOUSE_D_0,COLUMN_HOUSE_4
+    .byte       COLUMN_HOUSE_4,COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0,COLUMN_HOUSE_5
+    .byte       COLUMN_HOUSE_5,COLUMN_HOUSE_D_0,COLUMN_HOUSE_5,COLUMN_HOUSE_6
+    .byte       COLUMN_HOUSE_2,COLUMN_HOUSE_3,COLUMN_HOUSE_0,COLUMN_HOUSE_0
     ; dynamic speeds
     ConvertSpeeds   $00C0, $0080, $FF80, $FF40, $0010, $0010, $0010, $0010
     ; starting Y
@@ -75,11 +78,11 @@ level3:         ; building
 .align 32
 level4:         ; grass--road--grass--water--grass
     ; columns
-    .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_WATER_1                                           ; 4
-    .byte       COLUMN_WATER_D_3,COLUMN_WATER_D_2,COLUMN_WATER_S_2,COLUMN_WATER_D_1,COLUMN_WATER_D_0,COLUMN_WATER_GRASS_0   ; 6
-    .byte       COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0                                                                          ; 2
-    .byte       COLUMN_ROAD_D_5,COLUMN_ROAD_D_4,COLUMN_ROAD_D_4,COLUMN_ROAD_D_4,COLUMN_ROAD_GRASS_0,COLUMN_GRASS_3          ; 6
-    .byte       COLUMN_GRASS_4,COLUMN_GRASS_0                                                                               ; 2
+    .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_WATER_1
+    .byte       COLUMN_WATER_D_3,COLUMN_WATER_D_2,COLUMN_WATER_S_2,COLUMN_WATER_D_1
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_GRASS_0,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
+    .byte       COLUMN_ROAD_D_5,COLUMN_ROAD_D_4,COLUMN_ROAD_D_4,COLUMN_ROAD_D_4
+    .byte       COLUMN_ROAD_GRASS_0,COLUMN_GRASS_3,COLUMN_GRASS_4,COLUMN_GRASS_0
     ; dynamic speeds
     ConvertSpeeds   $0060, $FF50, $00A0, $0090, $FEB0, $FF20, $FF60, $FF30
     ; starting Y
@@ -88,12 +91,11 @@ level4:         ; grass--road--grass--water--grass
 .align 32
 level5:         ; bricks--road--bricks
     ; columns
-    .byte       COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1             ; 4
-    .byte       COLUMN_BRICK_0,COLUMN_GRASS_ROAD_2                                      ; 2
-    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_D_5,COLUMN_ROAD_D_2,COLUMN_ROAD_D_0         ; 4
-    .byte       COLUMN_ROAD_D_5,COLUMN_ROAD_D_1,COLUMN_ROAD_D_5,COLUMN_ROAD_D_2         ; 4
-    .byte       COLUMN_ROAD_GRASS_2,COLUMN_BRICK_0                                      ; 2
-    .byte       COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0             ; 4
+    .byte       COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1
+    .byte       COLUMN_BRICK_0,COLUMN_GRASS_ROAD_2,COLUMN_ROAD_D_0,COLUMN_ROAD_D_5
+    .byte       COLUMN_ROAD_D_2,COLUMN_ROAD_D_0,COLUMN_ROAD_D_5,COLUMN_ROAD_D_1
+    .byte       COLUMN_ROAD_D_5,COLUMN_ROAD_D_2,COLUMN_ROAD_GRASS_2,COLUMN_BRICK_0
+    .byte       COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0
     ; dynamic speeds
     ConvertSpeeds   $0060, $FF50, $00A0, $0090, $FF30, $FF20, $FF60, $00D0
     ; starting Y
@@ -102,21 +104,30 @@ level5:         ; bricks--road--bricks
 .align 32
 level6:         ; grass--road--grass
     ; columns
-    .byte       COLUMN_GRASS_2,COLUMN_GRASS_4,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0                    ; 4
-    .byte       COLUMN_ROAD_D_6,COLUMN_ROAD_S_4,COLUMN_ROAD_D_1,COLUMN_ROAD_D_2                     ; 4
-    .byte       COLUMN_ROAD_S_4,COLUMN_ROAD_D_2,COLUMN_ROAD_S_3                                     ; 3
-    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_S_4,COLUMN_ROAD_D_7,COLUMN_ROAD_S_4                     ; 4
-    .byte       COLUMN_ROAD_D_2,COLUMN_ROAD_D_6                                                     ; 2
-    .byte       COLUMN_ROAD_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_4                                   ; 3
+    .byte       COLUMN_GRASS_2,COLUMN_GRASS_4,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
+    .byte       COLUMN_ROAD_D_6,COLUMN_ROAD_S_4,COLUMN_ROAD_D_1,COLUMN_ROAD_D_2
+    .byte       COLUMN_ROAD_S_4,COLUMN_ROAD_D_2,COLUMN_ROAD_S_3,COLUMN_ROAD_D_0
+    .byte       COLUMN_ROAD_S_4,COLUMN_ROAD_D_7,COLUMN_ROAD_S_4,COLUMN_ROAD_D_2
+    .byte       COLUMN_ROAD_D_6,COLUMN_ROAD_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_4
     ; dynamic speeds
     ConvertSpeeds   $FEC0, $FEB0, $FEF0, $FF00, $0140, $0100, $0120, $0110
     ; starting Y
     .byte       MAP_TOP+TILE_HEIGHT*8
 
+.align 32
+level7:         ; grass--water--grass
+    .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2
+    .byte       COLUMN_WATER_D_5,COLUMN_WATER_D_6,COLUMN_WATER_D_2,COLUMN_WATER_S_0
+    .byte       COLUMN_WATER_D_3,COLUMN_WATER_S_2,COLUMN_WATER_S_2,COLUMN_WATER_S_2
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_1
+    .byte       COLUMN_WATER_D_4,COLUMN_WATER_S_2,COLUMN_WATER_GRASS_0,COLUMN_GRASS_0
+    ; dynamic speeds
+    ConvertSpeeds   $00A0, $0100, $00A0, $0130, $FF50, $FF30, $0040, $FF40
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*8
 
-COLUMN_TYPE_STATIC          = $00
-COLUMN_TYPE_DYNAMIC         = $80           ; $80..$87
-
+; Column Indexes:
+;------------------------------------------------------------------------------
 COLUMN_GRASS_0              = (levelColumnDataG0  - levelColumnData)/16
 COLUMN_GRASS_1              = (levelColumnDataG1  - levelColumnData)/16
 COLUMN_GRASS_2              = (levelColumnDataG2  - levelColumnData)/16
@@ -155,6 +166,8 @@ COLUMN_WATER_D_1            = (levelColumnDataWD1 - levelColumnData)/16
 COLUMN_WATER_D_2            = (levelColumnDataWD2 - levelColumnData)/16
 COLUMN_WATER_D_3            = (levelColumnDataWD3 - levelColumnData)/16
 COLUMN_WATER_D_4            = (levelColumnDataWD4 - levelColumnData)/16
+COLUMN_WATER_D_5            = (levelColumnDataWD5 - levelColumnData)/16
+COLUMN_WATER_D_6            = (levelColumnDataWD6 - levelColumnData)/16
 COLUMN_HOUSE_0              = (levelColumnDataH0  - levelColumnData)/16
 COLUMN_HOUSE_1              = (levelColumnDataH1  - levelColumnData)/16
 COLUMN_HOUSE_2              = (levelColumnDataH2  - levelColumnData)/16
@@ -165,6 +178,9 @@ COLUMN_HOUSE_6              = (levelColumnDataH6  - levelColumnData)/16
 COLUMN_HOUSE_D_0            = (levelColumnDataHD0 - levelColumnData)/16
 COLUMN_BRICK_0              = (levelColumnDataB0  - levelColumnData)/16
 COLUMN_BRICK_1              = (levelColumnDataB1  - levelColumnData)/16
+
+COLUMN_TYPE_STATIC          = $00
+COLUMN_TYPE_DYNAMIC         = $80           ; $80..$87
 
 levelColumnInfo:
 ; grass
@@ -224,6 +240,8 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_DYNAMIC                             ; 2 logs (7 water)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 3 small log (8 water)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 1 small log
+    .byte       COLUMN_TYPE_DYNAMIC                             ; turtles test1
+    .byte       COLUMN_TYPE_DYNAMIC                             ; turtles test2
 
 ; house
     .byte       COLUMN_TYPE_STATIC                              ; entry
@@ -377,6 +395,14 @@ levelColumnDataWD3:
 levelColumnDataWD4:
     .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_LOG_A,TILE_LOG_C,TILE_WATER,TILE_WATER
     .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+levelColumnDataWD5:
+    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+    .byte   TILE_TURTLE_A,TILE_TURTLE_B,TILE_WATER,TILE_TURTLE_A
+    .byte   TILE_TURTLE_B,TILE_WATER,TILE_TURTLE_A,TILE_TURTLE_B
+levelColumnDataWD6:
+    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+    .byte   TILE_TURTLE_SINK_A,TILE_TURTLE_SINK_B,TILE_WATER,TILE_TURTLE_SINK_A
+    .byte   TILE_TURTLE_SINK_B,TILE_WATER,TILE_TURTLE_SINK_A,TILE_TURTLE_SINK_B
 
 ; house
 levelColumnDataH0:
