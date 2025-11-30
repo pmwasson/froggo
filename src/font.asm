@@ -128,12 +128,7 @@
 .byte $0C,$50,$20,$45,$28,$17,$38,$15,$28,$1D,$68,$15,$20,$45,$0C,$50   ;73 - Road/Bush
 .byte $D5,$AA,$A2,$91,$A2,$91,$FA,$97,$A9,$A5,$A9,$A5,$E9,$A5,$F9,$A7   ;74 - Turtle A
 .byte $D5,$AA,$A5,$A9,$A5,$A9,$D5,$AA,$D5,$AA,$A5,$A1,$A9,$A5,$E9,$A5   ;75 - Turtle sinking A
-.byte $D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$95,$AA,$C5,$A8   ;76 - Turtle sunk A
-
-;.byte $D5,$AA,$A2,$91,$A2,$91,$FA,$97,$A9,$A5,$A9,$A5,$E9,$A5,$F9,$A7   ;74 - Turtle A
-;.byte $D5,$AA,$A5,$A9,$A5,$A9,$D5,$AA,$D5,$AA,$A5,$A1,$A9,$A5,$E9,$A5   ;75 - Turtle sinking A
-;.byte $D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$95,$AA,$C5,$A8   ;76 - Turtle sunk A
-
+.byte $D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA   ;76 - Turtle sunk A
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00   ;77 -
 
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00   ;78 -
@@ -142,12 +137,7 @@
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00   ;7B -
 .byte $E9,$A5,$A9,$A5,$A9,$A5,$F9,$A7,$A2,$91,$D2,$92,$D2,$92,$D5,$AA   ;7C - Turtle B
 .byte $E9,$A5,$A9,$A5,$A5,$A9,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA   ;7D - Turtle sinking B
-.byte $C5,$A8,$95,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA   ;7E - Turtle sunk B
-
-;.byte $E9,$A5,$A9,$A5,$A9,$A5,$FA,$97,$A2,$91,$A2,$91,$D5,$AA,$D5,$AA   ;7C - Turtle B
-;.byte $A9,$A5,$A5,$A9,$D5,$AA,$D5,$AA,$A5,$A9,$A5,$A9,$D5,$AA,$D5,$AA   ;7D - Turtle sinking B
-;.byte $C5,$A8,$95,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA   ;7E - Turtle sunk B
-
+.byte $D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA,$D5,$AA   ;7E - Turtle sunk B
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00   ;7F -
 
 ; Player shapes: 80 .. 8F
