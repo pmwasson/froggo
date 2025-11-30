@@ -116,15 +116,25 @@ level6:         ; grass--road--grass
 
 .align 32
 level7:         ; grass--water--grass
+
     .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2
-    .byte       COLUMN_WATER_D_5,COLUMN_WATER_D_6,COLUMN_WATER_D_2,COLUMN_WATER_S_0
-    .byte       COLUMN_WATER_D_3,COLUMN_WATER_S_2,COLUMN_WATER_S_2,COLUMN_WATER_S_2
-    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_1
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_6,COLUMN_WATER_D_2,COLUMN_WATER_S_0
+    .byte       COLUMN_WATER_D_3,COLUMN_WATER_S_2,COLUMN_WATER_S_3,COLUMN_WATER_S_2
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_0,COLUMN_WATER_D_5,COLUMN_WATER_S_3
     .byte       COLUMN_WATER_D_4,COLUMN_WATER_S_2,COLUMN_WATER_GRASS_0,COLUMN_GRASS_0
+
+;    .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
+;    .byte       COLUMN_WATER_S_2,COLUMN_WATER_D_5,COLUMN_WATER_D_5,COLUMN_WATER_S_1
+;    .byte       COLUMN_WATER_D_5,COLUMN_WATER_S_0,COLUMN_WATER_S_3,COLUMN_WATER_S_2
+;    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_5,COLUMN_WATER_D_5,COLUMN_WATER_S_2
+;    .byte       COLUMN_WATER_D_5,COLUMN_WATER_S_2,COLUMN_WATER_GRASS_0,COLUMN_GRASS_0
+
     ; dynamic speeds
-    ConvertSpeeds   $00A0, $0100, $00A0, $0130, $FF50, $FF30, $0040, $FF40
+    ConvertSpeeds   $0060, $0090, $FF80, $FF40, $0060, $FF50, $0040, $FF40
     ; starting Y
     .byte       MAP_TOP+TILE_HEIGHT*8
+    ; even / odd column timing (turtles)
+    .byte       $21,$30
 
 ; Column Indexes:
 ;------------------------------------------------------------------------------
@@ -161,6 +171,7 @@ COLUMN_TRAIN_D_0            = (levelColumnDataTD0 - levelColumnData)/16
 COLUMN_WATER_S_0            = (levelColumnDataWS0 - levelColumnData)/16
 COLUMN_WATER_S_1            = (levelColumnDataWS1 - levelColumnData)/16
 COLUMN_WATER_S_2            = (levelColumnDataWS2 - levelColumnData)/16
+COLUMN_WATER_S_3            = (levelColumnDataWS3 - levelColumnData)/16
 COLUMN_WATER_D_0            = (levelColumnDataWD0 - levelColumnData)/16
 COLUMN_WATER_D_1            = (levelColumnDataWD1 - levelColumnData)/16
 COLUMN_WATER_D_2            = (levelColumnDataWD2 - levelColumnData)/16
@@ -180,6 +191,7 @@ COLUMN_BRICK_0              = (levelColumnDataB0  - levelColumnData)/16
 COLUMN_BRICK_1              = (levelColumnDataB1  - levelColumnData)/16
 
 COLUMN_TYPE_STATIC          = $00
+COLUMN_TYPE_TURTLES         = $10
 COLUMN_TYPE_DYNAMIC         = $80           ; $80..$87
 
 levelColumnInfo:
@@ -233,6 +245,7 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_STATIC                              ; rocks in middle
     .byte       COLUMN_TYPE_STATIC                              ; rocks spread out
     .byte       COLUMN_TYPE_STATIC                              ; rocks matching shore (pair with r2g0)
+    .byte       COLUMN_TYPE_STATIC                              ; more rocks
 
 ; water (dynamic)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 2 logs (7 water)
@@ -240,8 +253,8 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_DYNAMIC                             ; 2 logs (7 water)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 3 small log (8 water)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 1 small log
-    .byte       COLUMN_TYPE_DYNAMIC                             ; turtles test1
-    .byte       COLUMN_TYPE_DYNAMIC                             ; turtles test2
+    .byte       COLUMN_TYPE_DYNAMIC+COLUMN_TYPE_TURTLES         ; turtles test1
+    .byte       COLUMN_TYPE_DYNAMIC+COLUMN_TYPE_TURTLES         ; turtles test2
 
 ; house
     .byte       COLUMN_TYPE_STATIC                              ; entry
@@ -378,6 +391,9 @@ levelColumnDataWS1:
 levelColumnDataWS2:
     .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_ROCK,TILE_ROCK,TILE_WATER,TILE_ROCK
     .byte   TILE_ROCK,TILE_ROCK,TILE_WATER,TILE_WATER,TILE_ROCK,TILE_ROCK,TILE_WATER,TILE_WATER
+levelColumnDataWS3:
+    .byte   TILE_ROCK,TILE_WATER,TILE_WATER,TILE_ROCK,TILE_ROCK,TILE_ROCK,TILE_ROCK,TILE_ROCK
+    .byte   TILE_ROCK,TILE_ROCK,TILE_ROCK,TILE_ROCK,TILE_ROCK,TILE_ROCK,TILE_ROCK,TILE_WATER
 
 ; water (dynamic)
 levelColumnDataWD0:
@@ -396,13 +412,13 @@ levelColumnDataWD4:
     .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_LOG_A,TILE_LOG_C,TILE_WATER,TILE_WATER
     .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
 levelColumnDataWD5:
-    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
     .byte   TILE_TURTLE_A,TILE_TURTLE_B,TILE_WATER,TILE_TURTLE_A
     .byte   TILE_TURTLE_B,TILE_WATER,TILE_TURTLE_A,TILE_TURTLE_B
-levelColumnDataWD6:
     .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+levelColumnDataWD6:
     .byte   TILE_TURTLE_SINK_A,TILE_TURTLE_SINK_B,TILE_WATER,TILE_TURTLE_SINK_A
     .byte   TILE_TURTLE_SINK_B,TILE_WATER,TILE_TURTLE_SINK_A,TILE_TURTLE_SINK_B
+    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
 
 ; house
 levelColumnDataH0:

@@ -180,6 +180,8 @@ TILE_TURTLE_A               = $74
 TILE_TURTLE_B               = $7C
 TILE_TURTLE_SINK_A          = $75
 TILE_TURTLE_SINK_B          = $7D
+TILE_TURTLE_SUNK_A          = $76
+TILE_TURTLE_SUNK_B          = $7E
 
 TILE_TREE_A                 = $4C
 TILE_TREE_MID               = $5C       ; use in middle of stack of trees
@@ -208,10 +210,17 @@ TILE_BUFFER5                = $85
 TILE_BUFFER6                = $86
 TILE_BUFFER7                = $87
 
-TILE_TYPE_FREE              = $00
-TILE_TYPE_MOVEMENT          = $01
-TILE_TYPE_BLOCKED           = $02
-TILE_TYPE_DEATH             = $04
+TILE_TYPE_FREE              = %00000000
+TILE_TYPE_MOVEMENT          = %00000001
+TILE_TYPE_BLOCKED           = %00000010
+TILE_TYPE_DEATH             = %00000100
+TILE_TYPE_ANIMATE_A         = %00001000
+TILE_TYPE_ANIMATE_B         = %00010000
+
+TILE_TYPE_MOVEMENT_AA       = TILE_TYPE_MOVEMENT | TILE_TYPE_ANIMATE_A
+TILE_TYPE_MOVEMENT_AB       = TILE_TYPE_MOVEMENT | TILE_TYPE_ANIMATE_B
+TILE_TYPE_DEATH_AA          = TILE_TYPE_DEATH    | TILE_TYPE_ANIMATE_A
+TILE_TYPE_DEATH_AB          = TILE_TYPE_DEATH    | TILE_TYPE_ANIMATE_B
 
 TILE_TYPE_BUFFER0           = $80
 TILE_TYPE_BUFFER1           = $90
@@ -647,11 +656,15 @@ speedContinue:
     bne         speedLoop
 
     lda         (levelPtr),y                ; starting location
-    sta         playerTileY
-    asl
-    asl
-    asl                                     ; *8
-    sta         playerY
+    sta         playerStartingTileY
+
+    iny
+    lda         (levelPtr),y
+    sta         columnTimingEven
+
+    iny
+    lda         (levelPtr),y
+    sta         columnTimingOdd
 
     sta         RAMRDOFF                    ; back to main memory
 
@@ -785,14 +798,21 @@ LEVEL_DATA_END:
     jsr         initDisplay
 
 reset_loop:
-    jsr         initLevelState
     jsr         loadLevel
+    jsr         initLevelState
 
 redraw_loop:
     jsr         drawScreen
 
 game_loop:
 
+    ; Timer
+    inc         time
+    bne         :+
+    inc         time+1
+:
+
+    jsr         animateColumns
     jsr         drawRoad
     jsr         updatePlayer
 
@@ -1134,6 +1154,141 @@ image:
     jsr         monitor
 :
     rts
+.endproc
+
+;-----------------------------------------------------------------------------
+; Animate Columns
+;-----------------------------------------------------------------------------
+.proc animateColumns
+
+    lda         columnTimingEven            ; timing=0, do nothing
+    beq         checkOdd
+even:
+    lda         columnTriggerEven
+    cmp         time
+    bne         checkOdd
+
+    ; set next trigger
+    lda         time
+    clc
+    adc         columnTimingEven
+    sta         columnTriggerEven
+    inc         columnStateEven
+    lda         columnStateEven
+    ldx         #0                          ; starting column
+    ldy         #0*16
+    jsr         animate
+
+checkOdd:
+    lda         columnTimingOdd             ; timing=0, do nothing
+    beq         done
+    lda         columnTriggerOdd
+    cmp         time
+    bne         done
+
+    ; set next trigger
+    lda         time
+    clc
+    adc         columnTimingOdd
+    sta         columnTriggerOdd
+    inc         columnStateOdd
+    lda         columnStateOdd
+    ldx         #1*2                        ; starting column
+    ldy         #1*16
+    jsr         animate
+done:
+    rts
+
+animate:
+
+    ; if checking all columns is too slow, could mark columns to check
+
+    sty         index
+
+    and         #$7
+    ; when more than turtles, could also OR in a offset for other transitions (like trains)
+    tay
+    lda         newTypeTableA,y
+    bne         :+
+    rts
+:
+
+    sta         typeA
+    lda         newTileTableA,y
+    sta         tileA
+    lda         newTypeTableB,y
+    sta         typeB
+    lda         newTileTableB,y
+    sta         tileB
+
+    ; tileX = buffer pair
+    stx         tileX
+
+columnLoop:
+    lda         #0
+    sta         tileY
+
+rowLoop:
+    ldy         index
+    lda         tileDynamicType,y
+    and         #TILE_TYPE_ANIMATE_A
+    beq         :+
+    lda         typeA
+    sta         tileDynamicType,y
+    lda         tileA
+    jsr         copyTileToBuffers
+    jmp         cont
+:
+    lda         tileDynamicType,y
+    and         #TILE_TYPE_ANIMATE_B
+    beq         :+
+    lda         typeB
+    sta         tileDynamicType,y
+    lda         tileB
+    jsr         copyTileToBuffers
+:
+cont:
+    lda         tileY
+    clc
+    adc         #8
+    sta         tileY
+    inc         index
+    lda         index
+    and         #$f
+    bne         rowLoop
+
+    lda         tileX
+    clc
+    adc         #4
+    sta         tileX
+    lda         index
+    clc
+    adc         #$10        ; skip a column
+    sta         index
+
+    cmp         #$80
+    bcc         columnLoop
+    rts
+
+index:      .byte   0
+typeA:      .byte   0
+tileA:      .byte   0
+typeB:      .byte   0
+tileB:      .byte   0
+state:      .byte   0
+base:       .byte   0
+
+
+newTypeTableA:
+    .byte   0, 0, 0, 0, TILE_TYPE_MOVEMENT_AA, TILE_TYPE_DEATH_AA, TILE_TYPE_MOVEMENT_AA, TILE_TYPE_MOVEMENT_AA
+newTileTableA:
+    .byte   0, 0, 0, 0, TILE_TURTLE_SINK_A,    TILE_TURTLE_SUNK_A, TILE_TURTLE_SINK_A,    TILE_TURTLE_A
+
+newTypeTableB:
+    .byte   0, 0, 0, 0, TILE_TYPE_MOVEMENT_AB, TILE_TYPE_DEATH_AB, TILE_TYPE_MOVEMENT_AB, TILE_TYPE_MOVEMENT_AB
+newTileTableB:
+    .byte   0, 0, 0, 0, TILE_TURTLE_SINK_B,    TILE_TURTLE_SUNK_B, TILE_TURTLE_SINK_B,    TILE_TURTLE_B
+
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -2491,19 +2646,31 @@ drawLoop:
     sta         eraseTileX1_0
     sta         eraseTileX0_1
     sta         eraseTileX1_1
-    lda         #PLAYER_INIT_Y*8
-    sta         playerY
-    lda         #PLAYER_INIT_Y
-    sta         playerTileY
+    lda         playerStartingTileY
     sta         eraseTileY0_0
     sta         eraseTileY1_0
     sta         eraseTileY0_1
     sta         eraseTileY1_1
+    sta         playerTileY
+    asl
+    asl
+    asl                                     ; *8
+    sta         playerY
     lda         #PLAYER_INIT_STATE
     jsr         updateState
     lda         #0
     sta         count
     sta         count+1
+    sta         time
+    sta         time+1
+
+    lda         columnTimingEven
+    sta         columnTriggerEven
+    lda         columnTimingOdd
+    sta         columnTriggerOdd
+    lda         #0
+    sta         columnStateEven
+    sta         columnStateOdd
     rts
 .endproc
 
@@ -2682,7 +2849,7 @@ resetBufferXLoop:
     bne         resetBufferXLoop
 
     ; copy level data from AUX memory
-    ;-------------------------------------------    
+    ;-------------------------------------------
     lda         currentLevel
     asl
     asl
@@ -3016,8 +3183,8 @@ seed:           .word       $1234
 FILE_TILE           = 0*8
 FILE_SCENE          = 1*8
 
-tileFileName:       StringLen "DATA/TILE.0"
-sceneFileName:      StringLen "DATA/SCENE.0"
+tileFileName:       StringLen "/FROGGO/DATA/TILE.0"
+sceneFileName:      StringLen "/FROGGO/DATA/SCENE.0"
 sceneFileNameEnd:
 
 fileParameters:
@@ -3064,40 +3231,57 @@ quit_params:
 ;-----------------------------------------------------------------------------
 ; Globals
 ;-----------------------------------------------------------------------------
-count:          .word       0
-playerX:        .byte       0
-playerY:        .byte       0
-playerTileY:    .byte       0
-playerState:    .byte       STATE_IDLE
-activeColumns:  .byte       0
-initialOffset:  .byte       0
-displayLevel:   .byte       0
-currentLevel:   .byte       0
+time:               .word       0           ; Global time
+count:              .word       0           ; Player state counter
+playerX:            .byte       0
+playerY:            .byte       0
+playerTileY:        .byte       0
+playerStartingTileY:.byte       0
+playerState:        .byte       STATE_IDLE
+activeColumns:      .byte       0
+initialOffset:      .byte       0
+displayLevel:       .byte       0
+currentLevel:       .byte       0
+columnTimingEven:   .byte       0
+columnTimingOdd:    .byte       0
+columnTriggerEven:  .byte       0
+columnTriggerOdd:   .byte       0
+columnStateEven:    .byte       0
+columnStateOdd:     .byte       0
 
 ; settings
-inputUp:     .byte          KEY_A
-inputDown:   .byte          KEY_Z
-inputLeft:   .byte          KEY_LEFT
-inputRight:  .byte          KEY_RIGHT
+inputUp:            .byte       KEY_A
+inputDown:          .byte       KEY_Z
+inputLeft:          .byte       KEY_LEFT
+inputRight:         .byte       KEY_RIGHT
 
 ; player drawing
-drawTileX0:     .byte       0
-drawTileY0:     .byte       0
-drawTileX1:     .byte       0
-drawTileY1:     .byte       0
-eraseTileX0_0:  .byte       0
-eraseTileY0_0:  .byte       0
-eraseTileX1_0:  .byte       0
-eraseTileY1_0:  .byte       0
-eraseTileX0_1:  .byte       0
-eraseTileY0_1:  .byte       0
-eraseTileX1_1:  .byte       0
-eraseTileY1_1:  .byte       0
+drawTileX0:         .byte       0
+drawTileY0:         .byte       0
+drawTileX1:         .byte       0
+drawTileY1:         .byte       0
+eraseTileX0_0:      .byte       0
+eraseTileY0_0:      .byte       0
+eraseTileX1_0:      .byte       0
+eraseTileY1_0:      .byte       0
+eraseTileX0_1:      .byte       0
+eraseTileY0_1:      .byte       0
+eraseTileX1_1:      .byte       0
+eraseTileY1_1:      .byte       0
 
-imageX:         .byte       0
-imageY:         .byte       0
-imageWidth:     .byte       0
-imageHeight:    .byte       0
+imageX:             .byte       0
+imageY:             .byte       0
+imageWidth:         .byte       0
+imageHeight:        .byte       0
+
+; Current level data
+worldMap:           .res    16*20       ; Tile map - Read from AUX memory
+worldColumnType:    .res    20          ; Column types - Read from AUX memory
+worldBufferX:       .res    8           ; Dynamic column location - Calc for AUX memory column types
+worldSpeed0:        .res    8           ; Change in offset - Read from AUX memory
+worldSpeed1:        .res    8           ; Change in offset - Read from AUX memory
+worldOffset0:       .res    8           ; Display offset - Init when setting speed
+worldOffset1:       .res    8           ; Display offset - Init when setting speed
 
 ; 2tone Songs
 songGameStart:
@@ -3189,17 +3373,17 @@ tileTypeTable:
     .byte       TILE_TYPE_MOVEMENT          ;71     - Conveyor
     .byte       TILE_TYPE_FREE              ;72     - Flower
     .byte       TILE_TYPE_BLOCKED           ;73     - Bush
-    .byte       TILE_TYPE_MOVEMENT          ;74     - Turtle
-    .byte       TILE_TYPE_MOVEMENT          ;75     - Turtle
-    .byte       TILE_TYPE_FREE              ;76     - Unused
+    .byte       TILE_TYPE_MOVEMENT_AA       ;74     - Turtle
+    .byte       TILE_TYPE_MOVEMENT_AA       ;75     - Turtle (sinking)
+    .byte       TILE_TYPE_DEATH_AA          ;76     - Turtle (sunk)
     .byte       TILE_TYPE_FREE              ;77     - Unused
     .byte       TILE_TYPE_FREE              ;78     - Unused
     .byte       TILE_TYPE_FREE              ;79     - Unused
     .byte       TILE_TYPE_FREE              ;7A     - Unused
     .byte       TILE_TYPE_FREE              ;7B     - Unused
-    .byte       TILE_TYPE_MOVEMENT          ;7C     - Turtle
-    .byte       TILE_TYPE_MOVEMENT          ;7D     - Turtle
-    .byte       TILE_TYPE_FREE              ;7E     - Unused
+    .byte       TILE_TYPE_MOVEMENT_AB       ;7C     - Turtle
+    .byte       TILE_TYPE_MOVEMENT_AB       ;7D     - Turtle (sinking)
+    .byte       TILE_TYPE_DEATH_AB          ;76     - Turtle (sunk)
     .byte       TILE_TYPE_FREE              ;7F     - Unused
     .byte       TILE_TYPE_BUFFER0           ;80     - Active column
     .byte       TILE_TYPE_BUFFER1           ;81     - Active column
@@ -3209,6 +3393,15 @@ tileTypeTable:
     .byte       TILE_TYPE_BUFFER5           ;85     - Active column
     .byte       TILE_TYPE_BUFFER6           ;86     - Active column
     .byte       TILE_TYPE_BUFFER7           ;87     - Active column
+    .res        8,TILE_TYPE_BLOCKED         ;88..8F - Reserved for future columns
+    .byte       TILE_TYPE_BUFFER0           ;90     - Active column + Animate
+    .byte       TILE_TYPE_BUFFER1           ;91     - Active column + Animate
+    .byte       TILE_TYPE_BUFFER2           ;92     - Active column + Animate
+    .byte       TILE_TYPE_BUFFER3           ;93     - Active column + Animate
+    .byte       TILE_TYPE_BUFFER4           ;94     - Active column + Animate
+    .byte       TILE_TYPE_BUFFER5           ;95     - Active column + Animate
+    .byte       TILE_TYPE_BUFFER6           ;96     - Active column + Animate
+    .byte       TILE_TYPE_BUFFER7           ;97     - Active column + Animate
 
 
 ; pack lookup tables on page (192 + 24 + 24 = 240)
@@ -3320,14 +3513,6 @@ fullLinePage:
     .byte       >$23D0, >$27D0, >$2BD0, >$2FD0, >$33D0, >$37D0, >$3BD0, >$3FD0
 
 .align 256
-
-worldMap:           .res    16*20       ; Read from AUX memory
-worldColumnType:    .res    20          ; Read from AUX memory
-worldBufferX:       .res    8           ; Calc for AUX memory column types
-worldSpeed0:        .res    8           ; Read from AUX memory
-worldSpeed1:        .res    8           ; Read from AUX memory
-worldOffset0:       .res    8           ; Init when setting speed
-worldOffset1:       .res    8           ; Init when setting speed
 
 CUT_SCENE_IMAGE = 0
 CUT_SCENE_QUOTE_RIGHT = 1
