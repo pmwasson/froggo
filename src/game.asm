@@ -83,11 +83,15 @@ COLUMN_BUFFER_START         = COLUMN_CODE_START + $6100     ; size=$1000
 ; relocated addresses
 COPY_LEVEL_CODE             = DISPATCH_CODE + (initCode::copyLevelData-initCode::dispatchStart)
 DRAW_IMAGE_AUX              = DISPATCH_CODE + (initCode::drawImageAux-initCode::dispatchStart)
-QUOTE_IMAGE_LEFT            = AUX_LEVEL_DATA+quoteImageLeft-LEVEL_DATA_START
-QUOTE_IMAGE_RIGHT           = AUX_LEVEL_DATA+quoteImageRight-LEVEL_DATA_START
 MENU_IMAGE_RIGHT            = AUX_LEVEL_DATA+menuImageRight-LEVEL_DATA_START
 MENU_IMAGE_BOTTOM           = AUX_LEVEL_DATA+menuImageBottom-LEVEL_DATA_START
-PAUSE_IMAGE                 = AUX_LEVEL_DATA+(LEVEL_DATA_END-LEVEL_DATA_START)
+
+AUX_IMAGES_START            = AUX_LEVEL_DATA+(LEVEL_DATA_END-LEVEL_DATA_START)
+AUX_IMAGES_END              = AUX_IMAGES_START+(auxImagesEnd-auxImagesStart)
+
+QUOTE_IMAGE_LEFT            = AUX_IMAGES_START+(quoteImageLeft-auxImagesStart)
+QUOTE_IMAGE_RIGHT           = AUX_IMAGES_START+(quoteImageRight-auxImagesStart)
+PAUSE_IMAGE                 = AUX_IMAGES_START+(pauseImage-auxImagesStart)
 
 ; Constants for draw loop unrolling
 MAX_COLUMNS                 = 16
@@ -302,19 +306,19 @@ MAX_LEVELS                  = 8
     jsr         copyMemory
     sta         RAMWRTOFF           ; Write to Main
 
-    ; Install Pause Image in AUX
+    ; Install Images in AUX
 
-    lda         #<pauseImageStart
+    lda         #<auxImagesStart    ; main memory starting address
     sta         bufferPtr0
-    lda         #>pauseImageStart
+    lda         #>auxImagesStart
     sta         bufferPtr0+1
-    lda         #<PAUSE_IMAGE
+    lda         #<AUX_IMAGES_START  ; AUX memory starting address
     sta         bufferPtr1
-    lda         #>PAUSE_IMAGE
+    lda         #>AUX_IMAGES_START
     sta         bufferPtr1+1
-    lda         #<pauseImageEnd
+    lda         #<auxImagesEnd      ; main memory ending address
     sta         codePtr
-    lda         #>pauseImageEnd
+    lda         #>auxImagesEnd
     sta         codePtr+1
     sta         RAMWRTON            ; Write to AUX
     jsr         copyMemory
@@ -762,10 +766,6 @@ LEVEL_DATA_START:
 .include        "levels.asm"
 
 .align 256
-quoteImageLeft:
-.incbin         "..\build\thinking.bin"
-quoteImageRight:
-.incbin         "..\build\aha.bin"
 menuImageRight:
 .incbin         "..\build\menu_right.bin"
 menuImageBottom:
@@ -780,7 +780,7 @@ LEVEL_DATA_END:
 ;-----------------------------------------------------------------------------
 
 ; pretend there is more data to keep the linker happy
-.res            $200
+.res            $A00
 
 ;=============================================================================
 .align $100
@@ -3568,11 +3568,25 @@ PLAYER_SHAPES = tileSheet + (16 * $80)
 tileSheet:
 .include        "font.asm"
 
+; put images moving into AUX memory here, to be overwritten by cutscenes later
+
 .align 256
 cutScene:
-pauseImageStart:
+auxImagesStart:
+
+.align 256
+quoteImageLeft:
+.incbin         "..\build\thinking.bin"
+
+.align 256
+quoteImageRight:
+.incbin         "..\build\aha.bin"
+
+.align 256
+pauseImage:
 .incbin         "..\build\qrcode_hgr.bin"
-pauseImageEnd:
+
+auxImagesEnd:
 
 
 

@@ -18,7 +18,7 @@
 ;   20              column types
 ;   16              column speeds -- expanded by original 2 nibbles to 2 bytes
 ;   16              column offsets -- always reset to zero
-; 
+;
 ; Each level is 20 columns, with 16 tiles in each column 16 (20*16 = 320 tile total)
 ; There is a maximum of 8 dynamic columns, each of which has a type (1 byte), speed (2 bytes)
 
@@ -245,8 +245,8 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_DYNAMIC                             ; 2 logs (7 water)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 3 small log (8 water)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 1 small log
-    .byte       COLUMN_TYPE_DYNAMIC+COLUMN_TYPE_TURTLES         ; turtles test1
-    .byte       COLUMN_TYPE_DYNAMIC+COLUMN_TYPE_TURTLES         ; turtles test2
+    .byte       COLUMN_TYPE_DYNAMIC+COLUMN_TYPE_TURTLES         ; 3 turtles
+    .byte       COLUMN_TYPE_DYNAMIC+COLUMN_TYPE_TURTLES         ; turtles / logs
 
 ; house
     .byte       COLUMN_TYPE_STATIC                              ; entry
@@ -408,9 +408,8 @@ levelColumnDataWD5:
     .byte   TILE_TURTLE_B,TILE_WATER,TILE_TURTLE_A,TILE_TURTLE_B
     .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
 levelColumnDataWD6:
-    .byte   TILE_TURTLE_SINK_A,TILE_TURTLE_SINK_B,TILE_WATER,TILE_TURTLE_SINK_A
-    .byte   TILE_TURTLE_SINK_B,TILE_WATER,TILE_TURTLE_SINK_A,TILE_TURTLE_SINK_B
-    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+    .byte   TILE_TURTLE_A,TILE_TURTLE_B,TILE_WATER,TILE_WATER,TILE_LOG_A,TILE_LOG_C,TILE_WATER,TILE_WATER
+    .byte   TILE_TURTLE_A,TILE_TURTLE_B,TILE_WATER,TILE_WATER,TILE_LOG_A,TILE_LOG_C,TILE_WATER,TILE_WATER
 
 ; house
 levelColumnDataH0:
