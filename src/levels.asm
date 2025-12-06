@@ -9,7 +9,9 @@
 ;   -----------     --------------------------
 ;   20              column indexes
 ;   8               dynamic column speeds
-;   4               padding
+;   1               starting Y
+;   2               even/odd animation timing
+;   1               state offset
 ;
 ; This gets expanded with some redundancy to main memory as
 ;   20*16           tiles for display
@@ -22,9 +24,11 @@
 ; Each level is 20 columns, with 16 tiles in each column 16 (20*16 = 320 tile total)
 ; There is a maximum of 8 dynamic columns, each of which has a type (1 byte), speed (2 bytes)
 
+STATE_OFFSET_TURTLES    = 8*0
+STATE_OFFSET_TRAINS     = 8*1
+
 ; Levels
 ;------------------------------------------------------------------------------
-.align 32
 level0:         ; grass--road--grass--water--grass
     ; columns
     .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
@@ -36,8 +40,9 @@ level0:         ; grass--road--grass--water--grass
     ConvertSpeeds   $0180, $FF10, $00B0, $0150, $0040, $FF30, $0020, $0090
     ; starting Y
     .byte       MAP_BOTTOM-TILE_HEIGHT*2
+    ; animation (not used)
+    .byte       0,0,0
 
-.align 32
 level1:         ; grass--water--grass--water--grass
     .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2
     .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0
@@ -48,8 +53,9 @@ level1:         ; grass--water--grass--water--grass
     ConvertSpeeds   $0080, $FF10, $00A0, $0130, $FF50, $FF30, $0040, $FF40
     ; starting Y
     .byte       MAP_TOP+TILE_HEIGHT*8
+    ; animation (not used)
+    .byte       0,0,0
 
-.align 32
 level2:         ; grass--road--grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_5,COLUMN_GRASS_6,COLUMN_GRASS_ROAD_1,COLUMN_ROAD_D_0
@@ -61,8 +67,9 @@ level2:         ; grass--road--grass--road--grass
     ConvertSpeeds   $0280, $FD40, $01C0, $FD00, $01F0, $0190, $01F0, $0000
     ; starting Y
     .byte       MAP_TOP+TILE_HEIGHT*8
+    ; animation (not used)
+    .byte       0,0,0
 
-.align 32
 level3:         ; building
     ; columns
     .byte       COLUMN_HOUSE_0,COLUMN_HOUSE_0,COLUMN_HOUSE_3,COLUMN_HOUSE_1
@@ -74,8 +81,9 @@ level3:         ; building
     ConvertSpeeds   $00C0, $0080, $FF80, $FF40, $0010, $0010, $0010, $0010
     ; starting Y
     .byte       MAP_TOP+TILE_HEIGHT*8
+    ; animation (not used)
+    .byte       0,0,0
 
-.align 32
 level4:         ; grass--road--grass--water--grass
     ; columns
     .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_WATER_1
@@ -87,8 +95,9 @@ level4:         ; grass--road--grass--water--grass
     ConvertSpeeds   $0060, $FF50, $00A0, $0090, $FEB0, $FF20, $FF60, $FF30
     ; starting Y
     .byte       MAP_BOTTOM-TILE_HEIGHT*4
+    ; animation (not used)
+    .byte       0,0,0
 
-.align 32
 level5:         ; bricks--road--bricks
     ; columns
     .byte       COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1
@@ -100,8 +109,9 @@ level5:         ; bricks--road--bricks
     ConvertSpeeds   $0060, $FF50, $00A0, $0090, $FF30, $FF20, $FF60, $00D0
     ; starting Y
     .byte       MAP_BOTTOM-TILE_HEIGHT*4
+    ; animation (not used)
+    .byte       0,0,0
 
-.align 32
 level6:         ; grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_2,COLUMN_GRASS_4,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
@@ -113,8 +123,9 @@ level6:         ; grass--road--grass
     ConvertSpeeds   $FEC0, $FEB0, $FEF0, $FF00, $0140, $0100, $0120, $0110
     ; starting Y
     .byte       MAP_TOP+TILE_HEIGHT*8
+    ; animation (not used)
+    .byte       0,0,0
 
-.align 32
 level7:         ; grass--water--grass (turtles)
     .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2
     .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_6,COLUMN_WATER_D_2,COLUMN_WATER_S_0
@@ -127,6 +138,24 @@ level7:         ; grass--water--grass (turtles)
     .byte       MAP_TOP+TILE_HEIGHT*8
     ; even / odd column timing (turtles)
     .byte       $21,$30
+    ; state offset ()
+    .byte       STATE_OFFSET_TURTLES
+
+level8:         ; grass--road--grass
+    ; columns
+    .byte       COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_1
+    .byte       COLUMN_GRASS_ROAD_0,COLUMN_ROAD_D_6,COLUMN_ROAD_D_2,COLUMN_ROAD_GRASS_0
+    .byte       COLUMN_TRAIN_D_0,COLUMN_TRAIN_D_0,COLUMN_TRAIN_D_0,COLUMN_TRAIN_D_0
+    .byte       COLUMN_GRASS_ROAD_0,COLUMN_ROAD_D_7,COLUMN_ROAD_S_4,COLUMN_ROAD_D_2
+    .byte       COLUMN_ROAD_GRASS_0,COLUMN_GRASS_4,COLUMN_GRASS_1,COLUMN_GRASS_4
+    ; dynamic speeds
+    ConvertSpeeds   $FEC0, $FEB0, $0700, $0780, $0600, $0680, $0110, $0100
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*8
+    ; animation
+    .byte       $2F,$3F
+    ; state offset ()
+    .byte       STATE_OFFSET_TRAINS
 
 ; Column Indexes:
 ;------------------------------------------------------------------------------
@@ -336,8 +365,10 @@ levelColumnDataRS2:
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
 levelColumnDataRS3:
-    .byte   TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE
-    .byte   TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE
+    .byte   TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS
+    .byte   TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS
+    .byte   TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS
+    .byte   TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS
 levelColumnDataRS4:
     .byte   TILE_ROAD,TILE_SINGLE_LINE,TILE_ROAD,TILE_ROAD,TILE_SINGLE_LINE,TILE_ROAD,TILE_ROAD,TILE_SINGLE_LINE
     .byte   TILE_ROAD,TILE_ROAD,TILE_SINGLE_LINE,TILE_ROAD,TILE_ROAD,TILE_SINGLE_LINE,TILE_ROAD,TILE_ROAD
@@ -370,8 +401,10 @@ levelColumnDataRD7:
 
 ; train (dynamic)
 levelColumnDataTD0:
-    .byte   TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C,TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C
-    .byte   TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C,TILE_TRAIN_A,TILE_TRAIN_B,TILE_TRAIN_B,TILE_TRAIN_C
+    .byte   TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS
+    .byte   TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS
+    .byte   TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS
+    .byte   TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS
 
 ; water (static)
 levelColumnDataWS0:

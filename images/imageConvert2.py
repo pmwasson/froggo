@@ -56,7 +56,7 @@ def writeScreen(srcWidth,srcHeight,remap,data,output,replace):
 paletteNames    = [ "black",        "purple",       "green",        "blue",         "orange",       "white"        ]
 paletteColors   = [ (  0,  0,   0 ),(217, 60,  240),( 38, 195,  15),( 38, 151, 240),(217, 104,  15),(255, 255, 255)]
 paletteBits     = [ 0,              1,              2,              1,              2,              3]
-paletteMSB      = [ 0,              0,              0,              1,              1,              0]
+paletteMSB      = [ -1,             0,              0,              1,              1,              -1]
 
 def closestMatch(colors):
     minScore = 9999999
@@ -81,6 +81,7 @@ def main():
     height = int(sys.argv[4])
     remap = int(sys.argv[5])
     jumpAddress = int(sys.argv[6],16)
+    defaultMSB = int(sys.argv[7])
 
     source = Image.open(infile)
     print(";",infile,source.format, source.size, source.mode)
@@ -94,7 +95,7 @@ def main():
     oddData = []
     for y in range(im.size[1]):
         value = 0
-        msb = 0
+        msb = defaultMSB << 7
         line = []
         for x in range(im.size[0]):
             s = x*2
@@ -102,19 +103,18 @@ def main():
             # print(x,y,color,paletteNames[color],paletteBits[color],paletteMSB[color],paletteMSB[color] << 7)
             # write out 2 bits for each pixel into a 7-bit bytes
             value = value | (paletteBits[color] << s%7)
-            msb = msb | (paletteMSB[color] << 7)
+            if (paletteMSB[color] >= 0):
+                msb = (paletteMSB[color] << 7)
             if (s%7 == 6):
                 dataByte = (value & 0x7f) | msb
                 line.append(dataByte)
                 #print(f"${dataByte:02X}")
                 value = (value & 0x80) >> 7
-                msb = 0
             elif (s%7 == 5):
                 dataByte = (value & 0x7f) | msb
                 line.append(dataByte)
                 #print(f"${dataByte:02X}")
                 value = 0
-                msb = 0
 
         allData.append(line)
         evenData.append(line[0::2])

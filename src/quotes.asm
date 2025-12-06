@@ -21,6 +21,9 @@ stringQuoteR4:      QuoteText "",2*1,2
                     QuoteText "toSlowDown!",15,15
 stringQuoteR5:      QuoteText "",2*2,2
                     QuoteText "youGotThis!",15,15
+stringQuoteR6:      QuoteText "",2*1,2
+                    QuoteText "lookBeforeYou",2*7,1
+                    QuoteText "leap!",15,15
 stringQuoteL0:      QuoteText "",2*1,2
                     QuoteText "amILivingInA",2*3,1
                     QuoteText "simulation?",15,15
@@ -39,17 +42,7 @@ stringQuoteL5:      QuoteText "",2*5,1
                     QuoteText "frogger?",2*2,1
                     QuoteText "iDon'tEven",2*4,1
                     QuoteText "knownHer!",15,15
+stringQuoteL6:      QuoteText "",2*2,2
+                    QuoteText "iDon'tTrust",2*2,1
+                    QuoteText "thatTurtle.",15,15
 
-; Menu
-
-; 01234567890123
-; /------------\ 0
-; |SET KEYS -  | 1
-; | UP    : @  | 2
-; | DOWN  :    | 3
-; | LEFT  :    | 4
-; | RIGHT :    | 5
-; |            | 6
-; |^K  - RESET | 7
-; |ESC - CANCEL| 8
-; \--------v---/ 9

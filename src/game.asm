@@ -74,9 +74,9 @@ levelPtr                    := scriptPtr0   ; and +1
 ;---------------
 DISPATCH_CODE               = $C00                          ; Dispatch code very small (<256 bytes)
                                                             ; Keep above prodos file buffer ($800..$BFF)
-AUX_LEVEL_DATA              = $E00                          ; $E00 .. $2FFF
-
-COLUMN_CODE_START           = $3000                         ; page0 offset $0000..$3048, page1 $3049..$6091
+AUX_LEVEL_DATA              = $E00                          ; $E00  .. $2FFF
+                                                            ; $3000 .. $3FFF images
+COLUMN_CODE_START           = $4000                         ; page0 offset $0000..$3048, page1 $3049..$6091
 COLUMN_CODE_START_PAGE2     = COLUMN_CODE_START + $3049     ; include some padding after code to align buffers
 COLUMN_BUFFER_START         = COLUMN_CODE_START + $6100     ; size=$1000
                                                             ; Total size = $7100
@@ -173,9 +173,12 @@ TILE_TRUCKD_C               = $50
 TILE_TRUCKU_A               = $41
 TILE_TRUCKU_B               = $49
 TILE_TRUCKU_C               = $51
+
+TILE_TRAIN_TRACKS           = $60
 TILE_TRAIN_A                = $61
-TILE_TRAIN_B                = $69
-TILE_TRAIN_C                = $71
+TILE_TRAIN_B                = $62
+TILE_TRAIN_C                = $63
+TILE_TRAIN_TRACKS_WARNING   = $77
 
 TILE_LOG_A                  = $42
 TILE_LOG_B                  = $4A
@@ -196,7 +199,6 @@ TILE_CONE                   = $59
 TILE_BUSH_WATER             = $5A       ; left of water
 TILE_BUSH_ROAD              = $5B       ; left of road
 TILE_SINGLE_LINE            = $5D
-TILE_DOUBLE_LINE            = $60
 TILE_ROAD_BUSH              = $73       ; right of road
 TILE_CARPET_LEFT            = $5E
 TILE_CARPET                 = $5F
@@ -252,10 +254,10 @@ END_OF_STRING               = $FF
 
 LEVEL_COLUMN_START          = $2F
 
-NUMBER_CUTSCENES            = 10
+NUMBER_CUTSCENES            = 32
 
-INITIAL_LEVEL               = 7
-MAX_LEVELS                  = 8
+MAX_LEVELS                  = 9
+INITIAL_LEVEL               = MAX_LEVELS-1
 
 ;-----------------------------------------------------------------------------
 ; Title image
@@ -276,7 +278,7 @@ MAX_LEVELS                  = 8
     jsr         TEXT        ; put cursor at the bottom
 
     ; restore image
-    lda         #127
+    lda         #$7f
     sta         $2000
     sta         $2001
     sta         $2002
@@ -670,6 +672,11 @@ speedContinue:
     lda         (levelPtr),y
     sta         columnTimingOdd
 
+    iny
+    lda         (levelPtr),y
+    sta         columnStateOffset
+
+
     sta         RAMRDOFF                    ; back to main memory
 
     rts
@@ -793,8 +800,9 @@ LEVEL_DATA_END:
 .proc main
 
     PlaySongPtr songGameStart
-    jsr         initGameState
     jsr         waitForKey
+    jsr         randomizeCutScenes  ; randomize cutscenes after waiting for 'random' seed
+    jsr         initGameState
     jsr         initDisplay
 
 reset_loop:
@@ -1130,17 +1138,80 @@ done:
 wait:           .byte   0
 .endproc
 
+
+;-----------------------------------------------------------------------------
+; Randomize Cut Scene
+;-----------------------------------------------------------------------------
+.proc randomizeCutScenes
+    lda         #0
+    sta         index
+
+loop:
+    jsr         galois16o
+    and         #$1f            ; 32 cut-scenes
+    asl
+    asl                         ; * 4
+    tax
+
+    ; copy random entry to temp storage
+    lda         cutSceneList+0,x
+    sta         copyEntry+0
+    lda         cutSceneList+1,x
+    sta         copyEntry+1
+    lda         cutSceneList+2,x
+    sta         copyEntry+2
+    lda         cutSceneList+3,x
+    sta         copyEntry+3
+
+    ; copy index to random entry
+    ldy         index
+    lda         cutSceneList+0,y
+    sta         cutSceneList+0,x
+    lda         cutSceneList+1,y
+    sta         cutSceneList+1,x
+    lda         cutSceneList+2,y
+    sta         cutSceneList+2,x
+    lda         cutSceneList+3,y
+    sta         cutSceneList+3,x
+
+    ; copy temp to index
+    lda         copyEntry+0
+    sta         cutSceneList+0,y
+    lda         copyEntry+1
+    sta         cutSceneList+1,y
+    lda         copyEntry+2
+    sta         cutSceneList+2,y
+    lda         copyEntry+3
+    sta         cutSceneList+3,y
+
+    lda         index
+    clc
+    adc         #4
+    sta         index
+    cmp         #NUMBER_CUTSCENES*4
+    bne         loop
+
+    rts
+
+index:          .byte   0
+copyEntry:      .res    4
+
+.endproc
+
 ;-----------------------------------------------------------------------------
 ; Load Cut Scene
 ;-----------------------------------------------------------------------------
 .proc loadCutScene
-    ; grab a random cutscene description
-    jsr         galois16o
-    and         #%11111             ; 1 of 32
-    asl
-    asl                             ; *4
-    tax
+    lda         cutSceneIndex
+    clc
+    adc         #4
     sta         cutSceneIndex
+    cmp         #NUMBER_CUTSCENES*4
+    bne         :+
+    lda         #0
+    sta         cutSceneIndex
+:
+    ldx         cutSceneIndex
     lda         cutSceneList,x
     beq         image
     rts
@@ -1200,19 +1271,23 @@ done:
     rts
 
 animate:
-
+    ; A = state, x = column, y = column*16
     ; if checking all columns is too slow, could mark columns to check
-
+    sta         state
     sty         index
+    stx         tileX                   ; tileX = buffer pair
 
     and         #$7
-    ; when more than turtles, could also OR in a offset for other transitions (like trains)
+    ora         columnStateOffset
+
     tay
-    lda         newTypeTableA,y
+    lda         actionTable,y
     bne         :+
     rts
 :
-
+    cmp         #ACTION_MORPH
+    bne         checkReplace
+    lda         newTypeTableA,y
     sta         typeA
     lda         newTileTableA,y
     sta         tileA
@@ -1221,14 +1296,11 @@ animate:
     lda         newTileTableB,y
     sta         tileB
 
-    ; tileX = buffer pair
-    stx         tileX
-
-columnLoop:
+morphColumnLoop:
     lda         #0
     sta         tileY
 
-rowLoop:
+morphRowLoop:
     ldy         index
     lda         tileDynamicType,y
     and         #TILE_TYPE_ANIMATE_A
@@ -1255,7 +1327,7 @@ cont:
     inc         index
     lda         index
     and         #$f
-    bne         rowLoop
+    bne         morphRowLoop
 
     lda         tileX
     clc
@@ -1267,7 +1339,56 @@ cont:
     sta         index
 
     cmp         #$80
-    bcc         columnLoop
+    bcc         morphColumnLoop
+    rts
+
+checkReplace:
+    sta         action
+    ; really should make this programmable, but just forcing in the train
+
+replaceColumnLoop:
+    lda         #0
+    sta         tileY
+
+replaceRowLoop:
+    ldy         index
+    lda         tileDynamicType,y
+    and         #TILE_TYPE_ANIMATE_A
+    beq         :+
+
+    sta         SPEAKER                 ; train noise
+
+    lda         index
+    and         #$3                     ; 0..3
+    ora         action                  ; 4, 8 or 12
+    tax
+    lda         replaceTypeTable,x
+    sta         tileDynamicType,y
+    lda         replaceTileTable,x
+    jsr         copyTileToBuffers
+
+:
+    lda         tileY
+    clc
+    adc         #8
+    sta         tileY
+    inc         index
+    lda         index
+    and         #$f
+    bne         replaceRowLoop
+
+    lda         tileX
+    clc
+    adc         #4
+    sta         tileX
+    lda         index
+    clc
+    adc         #$10        ; skip a column
+    sta         index
+
+    cmp         #$80
+    bcc         replaceColumnLoop
+
     rts
 
 index:      .byte   0
@@ -1276,9 +1397,19 @@ tileA:      .byte   0
 typeB:      .byte   0
 tileB:      .byte   0
 state:      .byte   0
+action:     .byte   0
 base:       .byte   0
 
+ACTION_MORPH                = 1
+ACTION_REPLACE_WARNING      = 4
+ACTION_REPLACE_TRAIN        = 8
+ACTION_REPLACE_TRACKS       = 12
 
+actionTable:
+    .byte   0, 0, 0, 0, ACTION_MORPH,          ACTION_MORPH,          ACTION_MORPH,          ACTION_MORPH       ; 0: turtles
+    .byte   0, 0, ACTION_REPLACE_WARNING, 0, ACTION_REPLACE_TRAIN, 0, 0, ACTION_REPLACE_TRACKS                  ; 8: train
+
+; Morph substitutions
 newTypeTableA:
     .byte   0, 0, 0, 0, TILE_TYPE_MOVEMENT_AA, TILE_TYPE_DEATH_AA, TILE_TYPE_MOVEMENT_AA, TILE_TYPE_MOVEMENT_AA
 newTileTableA:
@@ -1288,6 +1419,18 @@ newTypeTableB:
     .byte   0, 0, 0, 0, TILE_TYPE_MOVEMENT_AB, TILE_TYPE_DEATH_AB, TILE_TYPE_MOVEMENT_AB, TILE_TYPE_MOVEMENT_AB
 newTileTableB:
     .byte   0, 0, 0, 0, TILE_TURTLE_SINK_B,    TILE_TURTLE_SUNK_B, TILE_TURTLE_SINK_B,    TILE_TURTLE_B
+
+replaceTypeTable:
+    .byte   0,                  0,                  0,                  0                       ; unused
+    .byte   TILE_TYPE_ANIMATE_A,TILE_TYPE_ANIMATE_A,TILE_TYPE_ANIMATE_A,TILE_TYPE_ANIMATE_A     ; warning
+    .byte   TILE_TYPE_DEATH_AA, TILE_TYPE_DEATH_AA, TILE_TYPE_DEATH_AA, TILE_TYPE_DEATH_AA      ; train
+    .byte   TILE_TYPE_ANIMATE_A,TILE_TYPE_ANIMATE_A,TILE_TYPE_ANIMATE_A,TILE_TYPE_ANIMATE_A     ; tracks
+
+replaceTileTable:
+    .byte   0,0,0,0                                                                                                 ; unused
+    .byte   TILE_TRAIN_TRACKS_WARNING,TILE_TRAIN_TRACKS_WARNING,TILE_TRAIN_TRACKS_WARNING,TILE_TRAIN_TRACKS_WARNING ; warning
+    .byte   TILE_TRAIN_A,             TILE_TRAIN_B,             TILE_TRAIN_B,             TILE_TRAIN_C              ; train
+    .byte   TILE_TRAIN_TRACKS        ,TILE_TRAIN_TRACKS        ,TILE_TRAIN_TRACKS        ,TILE_TRAIN_TRACKS         ; tracks
 
 .endproc
 
@@ -2582,7 +2725,7 @@ initialX:       .byte   0
     sta         bufferPtr1+1
     inc         bufferPtr1+1
 
-    ldx         #8              ; 8 rows
+    ldx         #7              ; first 7 rows
     ldy         #0
 
     sta         CLR80COL        ; Use RAMWRT for aux mem
@@ -2608,10 +2751,36 @@ drawLoop:
     dex
     bne         drawLoop
 
+    ; unroll last row for special case of not writing last 2 bytes
+
+    ldy         #0
+    lda         (tilePtr0),y
+    sta         (bufferPtr0),y
+    inc         tilePtr0
+    ldy         #0
+    lda         (tilePtr0),y
+    sta         (bufferPtr1),y
+
+    lda         tileY
+    cmp         #$80-8
+    bcs         :+                  ; skip if were to overwrite last 2 bytes of buffer
+
+    dec         tilePtr0
+    ldy         #0
+    lda         (tilePtr0),y
+    ldy         #$80
+    sta         (bufferPtr0),y
+    inc         tilePtr0
+    ldy         #0
+    lda         (tilePtr0),y
+    ldy         #$80
+    sta         (bufferPtr1),y
+:
     sta         RAMWRTOFF       ; Write to MAIN
     rts
 
 .endproc
+
 
 ;-----------------------------------------------------------------------------
 ; initGameState
@@ -2679,7 +2848,7 @@ drawLoop:
 ;-----------------------------------------------------------------------------
 
 .proc initDisplay
-    
+
     lda         #0
     sta         invertTile
 
@@ -2856,6 +3025,7 @@ resetBufferXLoop:
     asl
     asl
     asl         ; *32
+    clc
     adc         #<AUX_LEVEL_DATA
     sta         levelPtr
     lda         currentLevel
@@ -2866,7 +3036,6 @@ resetBufferXLoop:
     adc         #>AUX_LEVEL_DATA
     sta         levelPtr+1
     jsr         COPY_LEVEL_CODE
-
 
     ; look for dynamic columns
     ;-------------------------------------------
@@ -3248,6 +3417,7 @@ columnTriggerEven:  .byte       0
 columnTriggerOdd:   .byte       0
 columnStateEven:    .byte       0
 columnStateOdd:     .byte       0
+columnStateOffset:  .byte       0
 
 ; settings
 inputUp:            .byte       KEY_A
@@ -3273,6 +3443,9 @@ imageX:             .byte       0
 imageY:             .byte       0
 imageWidth:         .byte       0
 imageHeight:        .byte       0
+
+cutSceneIndex:      .byte       (NUMBER_CUTSCENES-1)*4     ; start on last, so wrap around to first
+
 
 ; Current level data
 worldMap:           .res    16*20       ; Tile map - Read from AUX memory
@@ -3353,10 +3526,10 @@ tileTypeTable:
     .byte       TILE_TYPE_FREE              ;5D     - Divider (road->road)
     .byte       TILE_TYPE_FREE              ;5E     - Carpet (left)
     .byte       TILE_TYPE_FREE              ;5F     - Carpet
-    .byte       TILE_TYPE_FREE              ;60     - Stripe
-    .byte       TILE_TYPE_FREE              ;61     - Unused
-    .byte       TILE_TYPE_FREE              ;62     - Unused
-    .byte       TILE_TYPE_FREE              ;63     - Unused
+    .byte       TILE_TYPE_ANIMATE_A         ;60     - Train Tracks
+    .byte       TILE_TYPE_DEATH_AA          ;61     - Train A
+    .byte       TILE_TYPE_DEATH_AA          ;62     - Train B
+    .byte       TILE_TYPE_DEATH_AA          ;63     - Train C
     .byte       TILE_TYPE_BLOCKED           ;64     - Brick
     .byte       TILE_TYPE_FREE              ;65     - Unused
     .byte       TILE_TYPE_FREE              ;66     - Unused
@@ -3376,7 +3549,7 @@ tileTypeTable:
     .byte       TILE_TYPE_MOVEMENT_AA       ;74     - Turtle
     .byte       TILE_TYPE_MOVEMENT_AA       ;75     - Turtle (sinking)
     .byte       TILE_TYPE_DEATH_AA          ;76     - Turtle (sunk)
-    .byte       TILE_TYPE_FREE              ;77     - Unused
+    .byte       TILE_TYPE_ANIMATE_A         ;60     - Train Tracks (warning)
     .byte       TILE_TYPE_FREE              ;78     - Unused
     .byte       TILE_TYPE_FREE              ;79     - Unused
     .byte       TILE_TYPE_FREE              ;7A     - Unused
@@ -3518,8 +3691,6 @@ CUT_SCENE_IMAGE = 0
 CUT_SCENE_QUOTE_RIGHT = 1
 CUT_SCENE_QUOTE_LEFT = 2
 
-cutSceneIndex:      .byte   0
-
 cutSceneList:
     .byte           CUT_SCENE_IMAGE,0,"0",0
     .byte           CUT_SCENE_IMAGE,0,"1",0
@@ -3530,30 +3701,30 @@ cutSceneList:
     .byte           CUT_SCENE_IMAGE,0,"6",0
     .byte           CUT_SCENE_IMAGE,0,"7",0
     .byte           CUT_SCENE_IMAGE,0,"8",0
+    .byte           CUT_SCENE_IMAGE,0,"9",0
     .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR0
     .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR1
     .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR2
     .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR3
     .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR4
     .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR5
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR6
     .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL0
     .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL1
     .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL2
     .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL3
     .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL4
     .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL5
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL6
     ; repeat until a power of 2
-    .byte           CUT_SCENE_IMAGE,0,"0",0
-    .byte           CUT_SCENE_IMAGE,0,"1",0
     .byte           CUT_SCENE_IMAGE,0,"2",0
     .byte           CUT_SCENE_IMAGE,0,"3",0
     .byte           CUT_SCENE_IMAGE,0,"4",0
     .byte           CUT_SCENE_IMAGE,0,"5",0
     .byte           CUT_SCENE_IMAGE,0,"6",0
-    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR0
-    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR1
-    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL0
-    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL1
+    .byte           CUT_SCENE_IMAGE,0,"7",0
+    .byte           CUT_SCENE_IMAGE,0,"8",0
+    .byte           CUT_SCENE_IMAGE,0,"9",0
 
 ;-----------------------------------------------------------------------------
 ; Assets

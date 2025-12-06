@@ -24,9 +24,12 @@ python3 build:
 - [x] Load title screen in same file as the game
 - [x] Load next cutscene while displaying the current one
 - [x] Rewrite level loading code so can come from AUX memory
+- [x] Added turtles
+- [ ] Redo music (get help from Ben)
 - [ ] Add level timer
 - [ ] Different level types
-  - [ ] Trains - very fast, go from emptry to full
+  - [X] Turtles
+  - [X] Trains - very fast, go from emptry to full
   - [ ] Snakes - time limit by slowly filling column
   - [ ] Crosswalk - stop time briefly so must hurry across road
   - [ ] Buttons - simple puzzle solving - enable bridges or remove barriers (crosswalk may be a subset)
@@ -34,6 +37,8 @@ python3 build:
   - [x] 5 levels
   - [ ] 25 levels
   - [ ] 50 levels
+- [ ] Scoring
+  - [ ] Save high score
 - [x] Remap keyboard
 - [ ] Start with an inactive game, alternating between starting level and helpful tips
 - [ ] Add more cutscene images
