@@ -1,13 +1,15 @@
 @echo off
 
+python3 imageConvert2.py parallax-logo.png  ..\build\parallax-logo.png       56 16 0 0 1 || exit
+
 python3 imageConvert2.py froggo-title.png          ..\build\froggo.png       140 192 1 4000 0 || exit
 
 python3 imageConvert2.py aha-crop.png              ..\build\aha.png          70 64 0 0 0 || exit
 python3 imageConvert2.py thinking-crop-flip.png    ..\build\thinking.png     70 64 0 0 0 || exit
 
-python3 imageConvert2.py astro-crop.png            ..\build\astro.png        140 128 0 0 0  || exit
-python3 imageConvert2.py turtle-crop.png           ..\build\turtle.png       140 128 0 0 0  || exit
-python3 imageConvert2.py red-car-crop.png          ..\build\red-car.png      140 128 0 0 1  || exit
+python3 imageConvert2.py astro-crop.png            ..\build\astro.png        140 128 0 0 0 || exit
+python3 imageConvert2.py turtle-crop.png           ..\build\turtle.png       140 128 0 0 0 || exit
+python3 imageConvert2.py red-car-crop.png          ..\build\red-car.png      140 128 0 0 1 || exit
 python3 imageConvert2.py scared-crop.png           ..\build\scared.png       140 128 0 0 0 || exit
 python3 imageConvert2.py karate-crop.png           ..\build\karate.png       140 128 0 0 0 || exit
 python3 imageConvert2.py thumb-crop.png            ..\build\thumb.png        140 128 0 0 0 || exit

@@ -238,16 +238,17 @@ TILE_TYPE_BUFFER6           = $E0
 TILE_TYPE_BUFFER7           = $F0
 
 PLAYER_OFFSET_IDLE          = $00
-PLAYER_OFFSET_IDLE_MASK     = $10
-PLAYER_OFFSET_DEAD          = $20
-PLAYER_OFFSET_UP_1          = $30
-PLAYER_OFFSET_UP_2          = $40
-PLAYER_OFFSET_DOWN_1        = $50
-PLAYER_OFFSET_DOWN_2        = $60
-PLAYER_OFFSET_LEFT_1        = $70
-PLAYER_OFFSET_LEFT_2        = $80
-PLAYER_OFFSET_RIGHT_1       = $90
-PLAYER_OFFSET_RIGHT_2       = $A0
+PLAYER_OFFSET_UP_1          = $10
+PLAYER_OFFSET_DOWN_1        = $20
+PLAYER_OFFSET_LEFT_1        = $30
+PLAYER_OFFSET_LEFT_2        = $40
+PLAYER_OFFSET_DEAD          = $50
+
+PLAYER_OFFSET_IDLE_MASK     = $80
+PLAYER_OFFSET_UP_2          = $90
+PLAYER_OFFSET_DOWN_2        = $A0
+PLAYER_OFFSET_RIGHT_1       = $B0
+PLAYER_OFFSET_RIGHT_2       = $C0
 
 NEW_WORD                    = $40
 END_OF_STRING               = $FF
@@ -801,6 +802,7 @@ LEVEL_DATA_END:
 
     PlaySongPtr songGameStart
     jsr         waitForKey
+restart_loop:
     jsr         randomizeCutScenes  ; randomize cutscenes after waiting for 'random' seed
     jsr         initGameState
     jsr         initDisplay
@@ -869,6 +871,12 @@ switchTo1:
     jmp         redraw_loop
 :
 
+    cmp         #KEY_CTRL_L
+    bne         :+
+    jsr         showLoadTiles
+    bne         redraw_loop
+    jmp         restart_loop
+:
     cmp         #KEY_ESC
     bne         :+
     jsr         showQuit
@@ -2178,6 +2186,60 @@ stringQuit:     QuoteText "",           1*2,1
     bit         LOWSCR
 
     cmp         #KEY_Y
+    rts
+.endproc
+
+;-----------------------------------------------------------------------------
+; Show Load Tiles
+;-----------------------------------------------------------------------------
+
+; 01234567890123
+; /------------\ 0
+; |            | 1
+; |LOAD TILES: | 2
+; | GAME WILL  | 3
+; | RESTART    | 4
+; | AFTER LOAD | 5
+; | CONTINUE?  | 6
+; | Y/N:       | 7
+; |            | 8
+; \--------v---/ 9
+
+stringLoadTiles:    QuoteText "loadTiles:", 1*2,2
+                    QuoteText "gameWill",   1*2,1
+                    QuoteText "restart",    1*2,1
+                    QuoteText "afterLoad",  1*2,1
+                    QuoteText "continue?",  1*2,2
+                    QuoteText "yOrN:",      15,15
+
+.proc showLoadTiles
+
+    jsr         drawMenu
+    DrawStringCord  2, MAP_TOP+1,  stringLoadTiles
+
+    ; display menu
+    bit         HISCR
+
+    lda         #MAP_LEFT+10*TILE_WIDTH
+    sta         tileX
+    lda         #MAP_TOP+8
+    sta         tileY
+    lda         #TILE_BLANK
+    jsr         waitForInput
+
+    ; restore display
+    bit         LOWSCR
+
+    cmp         #KEY_Y
+    beq         :+
+    rts
+:
+    ldx         #FILE_TILE
+    jsr         loadData
+    lda         fileError
+    beq         :+
+    jsr         monitor
+:
     rts
 .endproc
 

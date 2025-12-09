@@ -9,8 +9,9 @@ ca65 -I ..\src -t apple2 ..\src\game.asm -l game.dis  -o ..\build\game.o || exit
 cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\game.asm apple2.lib -o game.apple2 -C ..\src\start2000.cfg || exit
 
 :: Font Edit
-::ca65 -I ..\src -t apple2 ..\src\fontEdit.asm -l fontEdit.dis -o ..\build\fontEdit.o || exit
+ca65 -I ..\src -t apple2 ..\src\fontEdit.asm -l fontEdit.dis -o ..\build\fontEdit.o || exit
 cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\fontEdit.asm apple2.lib -l fontEdit.dis -o fontEdit.apple2 -C ..\src\start6000.cfg || exit
+cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\tileSet0.asm apple2.lib -o tileSet0.apple2 -C ..\src\start6000.cfg  || exit
 
 :: Parallax
 ::ca65 -I ..\src -t apple2 ..\src\parallax.asm -l parallax.dis -o ..\build\parallax.o || exit
@@ -53,6 +54,8 @@ ac-windows -p  froggo.dsk data/scene.6  bin < astro.bin     || exit
 ac-windows -p  froggo.dsk data/scene.7  bin < scared.bin    || exit
 ac-windows -p  froggo.dsk data/scene.8  bin < red-car.bin   || exit
 ac-windows -p  froggo.dsk data/scene.9  bin < turtle.bin    || exit
+
+ac-windows -as froggo.dsk data/tile.0   bin < tileSet0.apple2 || exit
 
 :: Copy results out of the build directory
 copy froggo.dsk ..\disk || exit

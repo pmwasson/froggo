@@ -28,8 +28,8 @@ python3 build:
 - [ ] Redo music (get help from Ben)
 - [ ] Add level timer
 - [ ] Different level types
-  - [X] Turtles
-  - [X] Trains - very fast, go from emptry to full
+  - [x] Turtles
+  - [x] Trains - very fast, go from emptry to full
   - [ ] Snakes - time limit by slowly filling column
   - [ ] Crosswalk - stop time briefly so must hurry across road
   - [ ] Buttons - simple puzzle solving - enable bridges or remove barriers (crosswalk may be a subset)
@@ -41,8 +41,8 @@ python3 build:
   - [ ] Save high score
 - [x] Remap keyboard
 - [ ] Start with an inactive game, alternating between starting level and helpful tips
-- [ ] Add more cutscene images
-  - [ ] Remove lesser images
+- [x] Add more cutscene images
+  - [x] Remove lesser images
   - [ ] Fill disk
 - [x] Add end of level messages
   - [x] Implement simple compression

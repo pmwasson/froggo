@@ -46,13 +46,7 @@ offset3Mask     =   $00     ; every time
     jsr         parallaxConsantColorRowsScreen1
 
     sta         HISCR
-
-    lda         #$00
-    sta         drawPage
-    jsr         drawTitle
-    lda         #$20
-    sta         drawPage
-    jsr         drawTitle
+    jsr         drawLogo
 
     lda         #1
     sta         music           ; well sorta music
@@ -354,6 +348,71 @@ soundData:
     .byte   1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1
     .byte   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
+.endproc
+
+;-----------------------------------------------------------------------------
+; Draw Logo
+;-----------------------------------------------------------------------------
+
+.proc drawLogo
+
+LOGO_OFFSET = 11
+
+    ldx         #15
+loop:
+    lda         logo+$00,x
+    sta         $21A8+LOGO_OFFSET,x
+    sta         $41A8+LOGO_OFFSET,x
+    lda         logo+$10,x
+    sta         $25A8+LOGO_OFFSET,x
+    sta         $45A8+LOGO_OFFSET,x
+    lda         logo+$20,x
+    sta         $29A8+LOGO_OFFSET,x
+    sta         $49A8+LOGO_OFFSET,x
+    lda         logo+$30,x
+    sta         $2DA8+LOGO_OFFSET,x
+    sta         $4DA8+LOGO_OFFSET,x
+    lda         logo+$40,x
+    sta         $31A8+LOGO_OFFSET,x
+    sta         $51A8+LOGO_OFFSET,x
+    lda         logo+$50,x
+    sta         $35A8+LOGO_OFFSET,x
+    sta         $55A8+LOGO_OFFSET,x
+    lda         logo+$60,x
+    sta         $39A8+LOGO_OFFSET,x
+    sta         $59A8+LOGO_OFFSET,x
+    lda         logo+$70,x
+    sta         $3DA8+LOGO_OFFSET,x
+    sta         $5DA8+LOGO_OFFSET,x
+    lda         logo+$80,x
+    sta         $2228+LOGO_OFFSET,x
+    sta         $4228+LOGO_OFFSET,x
+    lda         logo+$90,x
+    sta         $2628+LOGO_OFFSET,x
+    sta         $4628+LOGO_OFFSET,x
+    lda         logo+$A0,x
+    sta         $2A28+LOGO_OFFSET,x
+    sta         $4A28+LOGO_OFFSET,x
+    lda         logo+$B0,x
+    sta         $2E28+LOGO_OFFSET,x
+    sta         $4E28+LOGO_OFFSET,x
+    lda         logo+$C0,x
+    sta         $3228+LOGO_OFFSET,x
+    sta         $5228+LOGO_OFFSET,x
+    lda         logo+$D0,x
+    sta         $3628+LOGO_OFFSET,x
+    sta         $5628+LOGO_OFFSET,x
+    lda         logo+$E0,x
+    sta         $3A28+LOGO_OFFSET,x
+    sta         $5A28+LOGO_OFFSET,x
+    lda         logo+$F0,x
+    sta         $3E28+LOGO_OFFSET,x
+    sta         $5E28+LOGO_OFFSET,x
+    dex
+    bmi         done
+    jmp         loop
+done:
+    rts
 
 .endproc
 
@@ -604,8 +663,12 @@ fullLinePage:
 .include        "..\build\parallaxData.asm"
 
 .align 256
+logo:
+.incbin         "..\build\parallax-logo.bin"
+
+.align 256
 tileSheet:
-.include        "font.asm"
+;.include        "font.asm"
 
 
 

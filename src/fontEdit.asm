@@ -16,11 +16,12 @@
 ; Constants
 ;-----------------------------------------------------------------------------
 
-TILE_COUNT = 128
+TILE_COUNT      = 128+32
+MAP_WIDTH       = 20
+MAP_HEIGHT      = 24
 
-MAP_WIDTH = 20
-MAP_HEIGHT = 24
-
+PREVIEW_WIDTH   = 8             ; 8 or 16
+PREVIEW_X       = 2+(MAP_WIDTH-PREVIEW_WIDTH)/2
 ;-----------------------------------------------------------------------------
 ; Main program
 ;-----------------------------------------------------------------------------
@@ -168,8 +169,11 @@ down_good:
     bne         :+
     inc         shapeIndex
     lda         shapeIndex
-    and         #TILE_COUNT-1       ; assume power of 2
+    cmp         #TILE_COUNT
+    bne         keyNextCont
+    lda         #0
     sta         shapeIndex
+keyNextCont:
     jsr         inline_print
     String      "Next shape: "
     jmp         finish_shape
@@ -182,9 +186,14 @@ down_good:
     bne         :+
     lda         shapeIndex
     clc
-    adc         #8
-    and         #TILE_COUNT-1       ; assume power of 2
+    adc         #PREVIEW_WIDTH
     sta         shapeIndex
+    cmp         #TILE_COUNT
+    bcc         keyNextPCont
+    clc
+    adc         #256-TILE_COUNT
+    sta         shapeIndex
+keyNextPCont:
     jsr         inline_print
     String      "Next shape: "
     jmp         finish_shape
@@ -195,10 +204,12 @@ down_good:
     ;------------------
     cmp         #$80 | '-'
     bne         :+
-    dec         shapeIndex
     lda         shapeIndex
-    and         #TILE_COUNT-1       ; assume power of 2
+    bne         keyPrevCont
+    lda         #TILE_COUNT
     sta         shapeIndex
+keyPrevCont:
+    dec         shapeIndex
     jsr         inline_print
     String      "Previous shape: "
     jmp         finish_shape
@@ -211,9 +222,14 @@ down_good:
     bne         :+
     lda         shapeIndex
     sec
-    sbc         #8
-    and         #TILE_COUNT-1       ; assume power of 2
+    sbc         #PREVIEW_WIDTH
     sta         shapeIndex
+    cmp         #TILE_COUNT
+    bcc         keyPrevPCont
+    clc
+    adc         #TILE_COUNT
+    sta         shapeIndex
+keyPrevPCont:
     jsr         inline_print
     String      "Previous shape: "
     jmp         finish_shape
@@ -482,7 +498,7 @@ finish_move:
     StringCont  "  @:          Dump all tiles"
     StringCont  "              (Capture with printer)"
     StringCont  "  ?:          This help screen"
-    StringCont  "  *:          Monitor"
+    StringCont  "  *:          Monitor (printer:1^P)"
     StringCont  "  ESC:        Quit"
     StringCont  "  Tab:        Toggle text/graphics"
     .byte   0
@@ -589,19 +605,22 @@ loopX:
 
     ; current shape
 
-    lda     #4
+    lda     #1
     sta     tileX
-    lda     #0
+    lda     #4
     sta     tileY
 
     lda     shapeIndex
     jsr     drawTile
 
     lda     #0
+    sta     tileY
+
+    lda     #0
     sta     previewIndex
 
 loopY:
-    lda     #8
+    lda     #PREVIEW_X
     sta     tileX
 
 loopX:
@@ -617,12 +636,12 @@ loopX:
     inc     tileX
     inc     previewIndex
     lda     previewIndex
-    and     #$07
+    and     #PREVIEW_WIDTH-1
     bne     loopX
 
     inc     tileY
     lda     previewIndex
-    and     #TILE_COUNT-1
+    cmp     #TILE_COUNT
     bne     loopY
 
     rts
