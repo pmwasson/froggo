@@ -60,11 +60,21 @@
 .endif
 .endmacro
 
+
+.macro PlaySongPtr song
+    lda     #<song
+    sta     songPtr
+    lda     #>song
+    sta     songPtr+1
+    jsr     electricDuetPlayer
+.endmacro
+
 ;-----------------------------------------------------------------------------
 ; Constants
 ;-----------------------------------------------------------------------------
 
 ; reuse zero page addresses
+songPtr                     := curY         ; and +1
 bufferPtr0                  := mapPtr0      ; and +1
 bufferPtr1                  := maskPtr0     ; and +1
 codePtr                     := tilePtr0     ; and +1
@@ -257,8 +267,8 @@ LEVEL_COLUMN_START          = $2F
 
 NUMBER_CUTSCENES            = 32
 
-MAX_LEVELS                  = 9
-INITIAL_LEVEL               = MAX_LEVELS-1
+MAX_LEVELS                  = 12
+INITIAL_LEVEL               = 0 ; MAX_LEVELS-1
 
 ;-----------------------------------------------------------------------------
 ; Title image
@@ -3403,9 +3413,9 @@ printPath:
 ; Utilities
 ;-----------------------------------------------------------------------------
 .include        "inline_print.asm"
-.include        "tones.asm"
 seed:           .word       $1234
 .include        "galois16o.asm"
+.include        "electricDuet.asm"
 
 ;-----------------------------------------------------------------------------
 ; Global ProDos parameters
@@ -3520,31 +3530,31 @@ worldOffset1:       .res    8           ; Display offset - Init when setting spe
 
 ; 2tone Songs
 songGameStart:
-    .byte   NOTE_C4,    NOTE_C6,    NOTE_HALF
-    .byte   NOTE_D4,    NOTE_D6,    NOTE_HALF
-    .byte   NOTE_E4,    NOTE_E6,    NOTE_HALF
-    .byte   NOTE_C4,    NOTE_C6,    NOTE_HALF
-    .byte   NOTE_D4,    NOTE_D6,    NOTE_HALF
-    .byte   NOTE_E4,    NOTE_E6,    NOTE_HALF
-    .byte   NOTE_REST,  NOTE_REST,  NOTE_DONE
+    .byte   NOTE_16TH,  NOTE_C2,    NOTE_C4
+    .byte   NOTE_16TH,  NOTE_D2,    NOTE_D4
+    .byte   NOTE_16TH,  NOTE_E2,    NOTE_E4
+    .byte   NOTE_16TH,  NOTE_C2,    NOTE_C4
+    .byte   NOTE_16TH,  NOTE_D2,    NOTE_D4
+    .byte   NOTE_16TH,  NOTE_E2,    NOTE_E4
+    .byte   NOTE_DONE,  NOTE_REST,  NOTE_REST
 
 songLevelComplete:
-    .byte   NOTE_C4,    NOTE_C5,    NOTE_HALF
-    .byte   NOTE_C5,    NOTE_C6,    NOTE_HALF
-    .byte   NOTE_C6,    NOTE_C7,    NOTE_HALF
-    .byte   NOTE_REST,  NOTE_REST,  NOTE_DONE
+    .byte   NOTE_16TH,  NOTE_C2,    NOTE_C3
+    .byte   NOTE_16TH,  NOTE_C3,    NOTE_C4
+    .byte   NOTE_16TH,  NOTE_C4,    NOTE_C5
+    .byte   NOTE_DONE,  NOTE_REST,  NOTE_REST
 
 songDead:
-    .byte   NOTE_E5,    NOTE_REST,  NOTE_HALF
-    .byte   NOTE_REST,  NOTE_REST,  NOTE_QUARTER
-    .byte   NOTE_D5,    NOTE_REST,  NOTE_HALF
-    .byte   NOTE_REST,  NOTE_REST,  NOTE_QUARTER
-    .byte   NOTE_C5,    NOTE_C4,    NOTE_HALF
-    .byte   NOTE_REST,  NOTE_REST,  NOTE_DONE
+    .byte   NOTE_16TH,      NOTE_E3,    NOTE_REST
+    .byte   NOTE_32ND,      NOTE_REST,  NOTE_REST
+    .byte   NOTE_16TH,      NOTE_D3,    NOTE_REST
+    .byte   NOTE_32ND,      NOTE_REST,  NOTE_REST
+    .byte   NOTE_16TH,      NOTE_C3,    NOTE_C2
+    .byte   NOTE_DONE,      NOTE_REST,  NOTE_REST
 
 songOuch:
-    .byte   NOTE_C4,    NOTE_C6,    NOTE_QUARTER
-    .byte   NOTE_REST,  NOTE_REST,  NOTE_DONE
+    .byte   NOTE_32ND,      NOTE_C2,    NOTE_B2
+    .byte   NOTE_DONE,      NOTE_REST,  NOTE_REST
 
 .align 256
 

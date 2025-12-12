@@ -58,15 +58,6 @@
     .endrep
 .endmacro
 
-
-.macro PlaySongPtr song
-    lda     #<song
-    sta     stringPtr0
-    lda     #>song
-    sta     stringPtr1
-    jsr     playSong
-.endmacro
-
 .macro ConvertSpeed     word
     .byte   ($F0 & word) | ($0F & (word >> 8))
 .endmacro

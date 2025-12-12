@@ -29,6 +29,8 @@ STATE_OFFSET_TRAINS     = 8*1
 
 ; Levels
 ;------------------------------------------------------------------------------
+
+; medium
 level0:         ; grass--road--grass--water--grass
     ; columns
     .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
@@ -43,6 +45,7 @@ level0:         ; grass--road--grass--water--grass
     ; animation (not used)
     .byte       0,0,0
 
+; medium
 level1:         ; grass--water--grass--water--grass
     .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2
     .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0
@@ -56,6 +59,7 @@ level1:         ; grass--water--grass--water--grass
     ; animation (not used)
     .byte       0,0,0
 
+; medium (actually easy, but looks hard)
 level2:         ; grass--road--grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_5,COLUMN_GRASS_6,COLUMN_GRASS_ROAD_1,COLUMN_ROAD_D_0
@@ -70,6 +74,7 @@ level2:         ; grass--road--grass--road--grass
     ; animation (not used)
     .byte       0,0,0
 
+; easy (maybe medium so not first in game)
 level3:         ; building
     ; columns
     .byte       COLUMN_HOUSE_0,COLUMN_HOUSE_0,COLUMN_HOUSE_3,COLUMN_HOUSE_1
@@ -84,6 +89,7 @@ level3:         ; building
     ; animation (not used)
     .byte       0,0,0
 
+; hard (trucks at end)
 level4:         ; grass--road--grass--water--grass
     ; columns
     .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_WATER_1
@@ -98,6 +104,7 @@ level4:         ; grass--road--grass--water--grass
     ; animation (not used)
     .byte       0,0,0
 
+; medium
 level5:         ; bricks--road--bricks
     ; columns
     .byte       COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1
@@ -112,6 +119,8 @@ level5:         ; bricks--road--bricks
     ; animation (not used)
     .byte       0,0,0
 
+
+; easy
 level6:         ; grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_2,COLUMN_GRASS_4,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
@@ -126,6 +135,7 @@ level6:         ; grass--road--grass
     ; animation (not used)
     .byte       0,0,0
 
+; medium (turtles)
 level7:         ; grass--water--grass (turtles)
     .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2
     .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_6,COLUMN_WATER_D_2,COLUMN_WATER_S_0
@@ -141,6 +151,7 @@ level7:         ; grass--water--grass (turtles)
     ; state offset ()
     .byte       STATE_OFFSET_TURTLES
 
+; easy (trains)
 level8:         ; grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_1
@@ -156,6 +167,52 @@ level8:         ; grass--road--grass
     .byte       $2F,$3F
     ; state offset ()
     .byte       STATE_OFFSET_TRAINS
+
+; easy (good first level)
+level9:         ; grass--road--grass
+    ; columns
+    .byte       COLUMN_GRASS_1,COLUMN_GRASS_2,COLUMN_GRASS_4,COLUMN_GRASS_4
+    .byte       COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0,COLUMN_ROAD_D_6,COLUMN_ROAD_D_1
+    .byte       COLUMN_ROAD_D_2,COLUMN_ROAD_D_2,COLUMN_ROAD_D_2,COLUMN_ROAD_D_6
+    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_D_7,COLUMN_ROAD_GRASS_0,COLUMN_GRASS_4
+    .byte       COLUMN_GRASS_2,COLUMN_GRASS_1,COLUMN_GRASS_4,COLUMN_GRASS_0
+    ; dynamic speeds
+    ConvertSpeeds   $FF30, $FF80, $FF30, $FF40, $0090, $00E0, $0070, $0120
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*8
+    ; animation (not used)
+    .byte       0,0,0
+
+; medium (run upstream)
+level10:        ; building
+    ; columns
+    .byte       COLUMN_HOUSE_0,COLUMN_HOUSE_3,COLUMN_HOUSE_1,COLUMN_HOUSE_4
+    .byte       COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0,COLUMN_HOUSE_5,COLUMN_HOUSE_D_0
+    .byte       COLUMN_HOUSE_D_0,COLUMN_HOUSE_4,COLUMN_HOUSE_4,COLUMN_HOUSE_D_0
+    .byte       COLUMN_HOUSE_D_0,COLUMN_HOUSE_5,COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0
+    .byte       COLUMN_HOUSE_4,COLUMN_HOUSE_7,COLUMN_HOUSE_3,COLUMN_HOUSE_0
+    ; dynamic speeds
+    ConvertSpeeds   $00C0, $0080, $FF80, $FF40, $00F0, $0090, $FEF0, $FF80
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*8
+    ; animation (not used)
+    .byte       0,0,0
+
+; hard (turtles)
+level11:        ; grass--water--grass (turtles)
+    .byte       COLUMN_GRASS_0,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
+    .byte       COLUMN_WATER_D_5,COLUMN_WATER_GRASS_0,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
+    .byte       COLUMN_WATER_D_5,COLUMN_WATER_GRASS_0,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
+    .byte       COLUMN_WATER_D_5,COLUMN_WATER_GRASS_0,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
+    .byte       COLUMN_WATER_D_5,COLUMN_WATER_GRASS_0,COLUMN_GRASS_4,COLUMN_GRASS_4
+    ; dynamic speeds
+    ConvertSpeeds   $0050, $0090, $0040, $00B0, $0060, $00D0, $00C0, $0030
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*8
+    ; even / odd column timing (turtles)
+    .byte       $21,$27
+    ; state offset ()
+    .byte       STATE_OFFSET_TURTLES
 
 ; Column Indexes:
 ;------------------------------------------------------------------------------
@@ -207,6 +264,7 @@ COLUMN_HOUSE_3              = (levelColumnDataH3  - levelColumnData)/16
 COLUMN_HOUSE_4              = (levelColumnDataH4  - levelColumnData)/16
 COLUMN_HOUSE_5              = (levelColumnDataH5  - levelColumnData)/16
 COLUMN_HOUSE_6              = (levelColumnDataH6  - levelColumnData)/16
+COLUMN_HOUSE_7              = (levelColumnDataH7  - levelColumnData)/16
 COLUMN_HOUSE_D_0            = (levelColumnDataHD0 - levelColumnData)/16
 COLUMN_BRICK_0              = (levelColumnDataB0  - levelColumnData)/16
 COLUMN_BRICK_1              = (levelColumnDataB1  - levelColumnData)/16
@@ -285,6 +343,7 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_STATIC                              ; open at top
     .byte       COLUMN_TYPE_STATIC                              ; open at bottom
     .byte       COLUMN_TYPE_STATIC                              ; middle (adjust carpet)
+    .byte       COLUMN_TYPE_STATIC                              ; middle
 
 ; house (dynamic)
     .byte       COLUMN_TYPE_DYNAMIC                             ; conveyor belt
@@ -466,6 +525,9 @@ levelColumnDataH5:
 levelColumnDataH6:
     .byte   TILE_BRICK,TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET_LEFT
     .byte   TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET,TILE_CARPET,TILE_CARPET,TILE_CARPET,TILE_BRICK
+levelColumnDataH7:
+    .byte   TILE_BRICK,TILE_CARPET,TILE_CARPET,TILE_CARPET,TILE_CARPET,TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET_LEFT
+    .byte   TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_CARPET_LEFT,TILE_BRICK
 
 ; house (dynamic)
 levelColumnDataHD0:

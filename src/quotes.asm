@@ -33,8 +33,8 @@ stringQuoteL1:      QuoteText "",2*1,2
 stringQuoteL2:      QuoteText "",2*1,2
                     QuoteText "whyDidTheFrog",2*1,1
                     QuoteText "crossTheRoad?",15,15
-stringQuoteL3:      QuoteText "",2*4,2
-                    QuoteText "@Ribbit @",15,15
+stringQuoteL3:      QuoteText "",2*5,2
+                    QuoteText "Ribbit!",15,15
 stringQuoteL4:      QuoteText "",2*3,2
                     QuoteText "alwaysLook",2*4,1
                     QuoteText "bothWays!",15,15

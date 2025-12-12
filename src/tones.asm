@@ -125,6 +125,16 @@ songLoop:
 done:
     rts
 
+TEST_SONG   = $300
+
+test:                       ; type song in at $300 and call
+    lda         #<TEST_SONG
+    sta         songPtr
+    lda         #>TEST_SONG
+    sta         songPtr+1
+    jsr         playSong
+    rts
+
 index:  .byte   0
 
 .endproc
@@ -158,7 +168,7 @@ t2_loop:                        ;   none    T1      T2      T1&T2
     ldx         tone1           ;   x       3       x       3
     dey                         ;   x       2       x       2
     bne         t2_yes1no2      ;   x       3       x       2
-    sta         SPEAKER         ;   x       x       x       4
+    sta         SPEAKER         ;   x       x       x       4       ; T1&T2 == same time
     ldy         tone2           ;   x       x       x       2
     dec         duration1       ;   x       x       x       6
     bne         t2_loop         ;   x       x       x       3
@@ -227,3 +237,130 @@ duration2:  .byte   0
 dummy:      .byte   0
 
 .endproc
+
+;-----------------------------------------------------------------------------
+; Play PWM
+;
+;   X = tone1, Y = tone2, A = duration
+;-----------------------------------------------------------------------------
+
+; make sure branches are within the same page
+.align 256
+
+.proc playPWM
+
+index0      :=      curX
+index1      :=      curY
+FREQ_INC    =       20
+
+    lda         #0
+    sta         index0
+    sta         index1
+loop:
+    lda         index0
+    clc
+    adc         #FREQ_INC
+    sta         index0
+    lda         index1
+    adc         #0
+    sta         index1
+    tax
+    lda         sample64,x      ; 4
+    sta         vbranchA+1      ; 4
+    sta         SPEAKER         ; 4
+vbranchA:                       ;       set jump 0..15 (always taken)
+    bpl         :+              ; 3     [15 cycles]
+:                               ; 2 * (63-n)
+.repeat(63)
+    nop
+.endrep
+    eor         #$0f            ; 2     flip
+    sta         vbranchB+1      ; 4
+    sta         SPEAKER         ; 4
+vbranchB:
+    bpl         :+              ; 3     [13 cycles]
+:                               ; 2 * n
+.repeat(63)
+    nop
+.endrep
+    jmp         loop            ; 3     [3 cycle]
+
+                                ; 31 + 63*2 = 157 cycles
+.align 256
+sample16:
+    .byte   8,  8,  8,  8,  8,  9,  9,  9,  9,  9,  10, 10, 10, 10, 10, 11
+    .byte   11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13
+    .byte   13, 13, 14, 14, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 15, 15
+    .byte   15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15
+    .byte   15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15
+    .byte   15, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 13, 13, 13
+    .byte   13, 13, 13, 13, 12, 12, 12, 12, 12, 12, 11, 11, 11, 11, 11, 11
+    .byte   10, 10, 10, 10, 10, 9,  9,  9,  9,  9,  8,  8,  8,  8,  8,  8
+    .byte   7,  7,  7,  7,  7,  6,  6,  6,  6,  6,  5,  5,  5,  5,  5,  4
+    .byte   4,  4,  4,  4,  4,  3,  3,  3,  3,  3,  3,  2,  2,  2,  2,  2
+    .byte   2,  2,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  0,  0,  0,  0
+    .byte   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+    .byte   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+    .byte   0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2
+    .byte   2,  2,  2,  2,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  4
+    .byte   5,  5,  5,  5,  5,  6,  6,  6,  6,  6,  7,  7,  7,  7,  7,  8
+
+sample64:
+    .byte  32, 33, 34, 35, 35, 36, 37, 38, 39, 39, 40, 41, 42, 42, 43, 44
+    .byte  44, 45, 46, 47, 47, 48, 49, 49, 50, 51, 51, 52, 52, 53, 54, 54
+    .byte  55, 55, 56, 56, 57, 57, 58, 58, 59, 59, 59, 60, 60, 60, 61, 61
+    .byte  61, 62, 62, 62, 62, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63
+    .byte  63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 62, 62, 62, 62, 61, 61
+    .byte  61, 60, 60, 60, 59, 59, 59, 58, 58, 57, 57, 56, 56, 55, 55, 54
+    .byte  54, 53, 52, 52, 51, 51, 50, 49, 49, 48, 47, 47, 46, 45, 44, 44
+    .byte  43, 42, 42, 41, 40, 39, 39, 38, 37, 36, 35, 35, 34, 33, 32, 32
+    .byte  31, 30, 29, 28, 28, 27, 26, 25, 24, 24, 23, 22, 21, 21, 20, 19
+    .byte  19, 18, 17, 16, 16, 15, 14, 14, 13, 12, 12, 11, 11, 10,  9, 9
+    .byte  8,  8,  7,  7,  6,  6,  5,  5,  4,  4,  4,  3,  3,  3,  2,  2
+    .byte  2,  1,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+    .byte  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  2,  2
+    .byte  2,  3,  3,  3,  4,  4,  4,  5,  5,  6,  6,  7,  7,  8,  8,  9
+    .byte  9,  10, 11, 11, 12, 12, 13, 14, 14, 15, 16, 16, 17, 18, 19, 19
+    .byte  20, 21, 21, 22, 23, 24, 24, 25, 26, 27, 28, 28, 29, 30, 31, 32
+
+
+length0:
+    sta         SPEAKER     ; 3
+    sta         SPEAKER     ; 3
+
+
+
+.endproc
+
+.proc playDutyCycle
+
+    stx         tone1
+    sty         tone2
+
+play1:
+    sta         SPEAKER
+loop1:
+    lda         KBD
+    bmi         done
+    dex
+    bne         loop1
+    ldy         tone2
+    jmp         play2
+
+play2:
+    sta         SPEAKER
+loop2:
+    lda         KBD
+    bmi         done
+    dey
+    bne         loop2
+    ldx         tone1
+    jmp         play1
+
+done:
+    sta         KBDSTRB
+    rts
+
+.endproc
+
+
