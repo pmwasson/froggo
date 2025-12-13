@@ -815,7 +815,6 @@ LEVEL_DATA_END:
 restart_loop:
     jsr         randomizeCutScenes  ; randomize cutscenes after waiting for 'random' seed
     jsr         initGameState
-    jsr         initDisplay
 
 reset_loop:
     jsr         loadLevel
@@ -872,6 +871,12 @@ switchTo1:
     cmp         #KEY_TAB
     bne         :+
     jsr         showPause
+    jmp         redraw_loop
+:
+
+    cmp         #KEY_QUESTION
+    bne         :+
+    jsr         showCredits
     jmp         redraw_loop
 :
 
@@ -2280,6 +2285,21 @@ stringLoadTiles:    QuoteText "loadTiles:", 1*2,2
 .endproc
 
 ;-----------------------------------------------------------------------------
+; Show Credits
+;-----------------------------------------------------------------------------
+
+
+.proc showCredits
+
+    jsr         scrollCredits
+
+    ; restore display
+    bit         LOWSCR
+    rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
 ; Show Set Keys Menu
 ;-----------------------------------------------------------------------------
 
@@ -2945,6 +2965,8 @@ drawLoop:
 ;-----------------------------------------------------------------------------
 
 .proc drawScreen
+    jsr         initDisplay
+
     ; display map on both pages
     lda         #$20
     sta         drawPage
@@ -3416,6 +3438,7 @@ printPath:
 seed:           .word       $1234
 .include        "galois16o.asm"
 .include        "electricDuet.asm"
+.include        "credits.asm"
 
 ;-----------------------------------------------------------------------------
 ; Global ProDos parameters

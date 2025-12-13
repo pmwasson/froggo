@@ -161,6 +161,7 @@ KEY_SPACE       = $A0
 KEY_ASTERISK    = $AA
 KEY_0           = $B0
 KEY_9           = $B9
+KEY_QUESTION 	= $BF
 KEY_A           = $C1
 KEY_B           = $C2
 KEY_C           = $C3
