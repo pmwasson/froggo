@@ -9,7 +9,7 @@ ca65 -I ..\src -t apple2 ..\src\game.asm -l game.dis  -o ..\build\game.o || exit
 cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\game.asm apple2.lib -o game.apple2 -C ..\src\start2000.cfg || exit
 
 :: Font Edit
-ca65 -I ..\src -t apple2 ..\src\fontEdit.asm -l fontEdit.dis -o ..\build\fontEdit.o || exit
+::ca65 -I ..\src -t apple2 ..\src\fontEdit.asm -l fontEdit.dis -o ..\build\fontEdit.o || exit
 cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\fontEdit.asm apple2.lib -l fontEdit.dis -o fontEdit.apple2 -C ..\src\start6000.cfg || exit
 cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\tileSet0.asm apple2.lib -o tileSet0.apple2 -C ..\src\start6000.cfg  || exit
 
@@ -30,18 +30,18 @@ copy ..\disk\template_prodos.dsk froggo.dsk  || exit
 ac-windows  -as froggo.dsk froggo.system sys < game.apple2  || exit
 
 ::ac-windows -bas froggo.dsk startup < ..\src\startup.bas  || exit
-ac-windows -bas froggo.dsk hello < ..\src\hello.bas || exit
+::ac-windows -bas froggo.dsk hello < ..\src\hello.bas || exit
 
 :: Parallax
-::ac-windows -p  froggo.dsk parallax.system sys < C:\cc65\target\apple2\util\loader.system || exit
+ac-windows -p  froggo.dsk parallax.system sys < C:\cc65\target\apple2\util\loader.system || exit
 ac-windows -as froggo.dsk parallax bin < parallax.apple2  || exit
 
 :: Font Edit
-::ac-windows -p  froggo.dsk fedit.system sys < C:\cc65\target\apple2\util\loader.system || exit
+ac-windows -p  froggo.dsk fedit.system sys < C:\cc65\target\apple2\util\loader.system || exit
 ac-windows -as froggo.dsk fedit bin < fontEdit.apple2  || exit
 
 :: Basic system for title
-ac-windows -p  froggo.dsk basic.system sys < ..\disk\BASIC.SYSTEM  || exit
+::ac-windows -p  froggo.dsk basic.system sys < ..\disk\BASIC.SYSTEM  || exit
 
 :: Data
 ac-windows -p  froggo.dsk data/scene.0  bin < log.bin       || exit

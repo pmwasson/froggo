@@ -2004,7 +2004,7 @@ index:          .byte   0
 ;-----------------------------------------------------------------------------
 ; Draw text - add info to the screen
 ;-----------------------------------------------------------------------------
-stringBoxTop:       TileText "/==================\"
+stringBoxTop:       TileText "#==================\"
 stringLevel:        TileText "_    LEVEL:        _"
 stringPause:        TileText "_   GAME  PAUSED   _"
 stringBoxBlank:     TileText "_                  _"
@@ -2134,7 +2134,7 @@ doLeft:
 ;
 ;   Pass in menu type
 ;-----------------------------------------------------------------------------
-menuBoxTop:     TileText "/============\"
+menuBoxTop:     TileText "#============\"
 menuBoxSides:   TileText "_            _"
 menuBoxBottom:  TileText "[============]"
 
@@ -2291,7 +2291,7 @@ stringLoadTiles:    QuoteText "loadTiles:", 1*2,2
 
 .proc showCredits
 
-    jsr         scrollCredits
+    jsr         playCredits
 
     ; restore display
     bit         LOWSCR
