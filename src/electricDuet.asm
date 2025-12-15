@@ -129,6 +129,13 @@ NOTE_64TH           = 4
 NOTE_128ND_DOT      = 3
 NOTE_128ND          = 2
 
+NOTE_112            = 112       ; $70 - not standard
+NOTE_56             = 56        ; $38 - not standard
+NOTE_51             = 56        ; $33 - not standard
+NOTE_20             = 20        ; $14 - not standard
+NOTE_9              = 9         ; $09 - not standard
+
+
 .align 256
 
 .proc electricDuetPlayer
@@ -267,40 +274,196 @@ BRANCH_BD:      BVS     BRANCH_62       ; 4 *!*
 .align 256
 
 peasantSong:
-.byte   $18, $20, $40, $20, $24, $48, $09, $26, $4C, $02, $00, $00, $18, $26, $4C, $18
-.byte   $18, $30, $20, $19, $33, $09, $1C, $39, $02, $00, $00, $14, $1C, $39, $02, $00
-.byte   $00, $14, $1C, $39, $02, $1C, $00, $18, $2B, $39, $18, $26, $40, $18, $24, $48
-.byte   $18, $1C, $4C, $18, $20, $40, $0C, $20, $80, $0C, $24, $80, $18, $26, $60, $18
-.byte   $20, $98, $18, $2B, $90, $0C, $2B, $80, $0C, $24, $80, $18, $26, $C0, $18, $20
-.byte   $98, $18, $2B, $90, $0C, $2B, $80, $0C, $24, $80, $14, $26, $C0, $02, $00, $C0
-.byte   $18, $26, $00, $18, $18, $72, $18, $19, $66, $18, $1C, $60, $0C, $1C, $72, $09
-.byte   $20, $72, $02, $00, $72, $20, $20, $33, $09, $22, $39, $02, $00, $00, $18, $22
-.byte   $39, $18, $2B, $30, $18, $19, $33, $18, $1C, $30, $18, $20, $33, $0C, $20, $39
-.byte   $09, $22, $39, $02, $00, $00, $20, $22, $39, $09, $26, $39, $02, $00, $39, $18
-.byte   $26, $40, $18, $20, $98, $18, $2B, $90, $0C, $2B, $80, $0C, $24, $80, $18, $26
-.byte   $60, $18, $20, $98, $30, $2B, $80, $18, $2B, $FF, $18, $24, $FF, $38, $26, $C0
-.byte   $0C, $00, $00, $18, $20, $40, $20, $24, $48, $09, $26, $4C, $02, $00, $00, $18
-.byte   $26, $4C, $18, $18, $30, $20, $19, $33, $09, $1C, $39, $02, $00, $00, $14, $1C
-.byte   $39, $02, $00, $00, $14, $1C, $39, $02, $1C, $00, $18, $2B, $39, $18, $26, $40
-.byte   $18, $24, $48, $18, $1C, $4C, $18, $20, $40, $0C, $20, $80, $0C, $24, $80, $18
-.byte   $26, $60, $18, $20, $98, $18, $2B, $90, $0C, $2B, $80, $0C, $24, $80, $18, $26
-.byte   $C0, $18, $20, $98, $18, $2B, $90, $0C, $2B, $80, $0C, $24, $80, $14, $26, $C0
-.byte   $02, $00, $C0, $18, $26, $00, $18, $18, $72, $18, $19, $66, $18, $1C, $60, $0C
-.byte   $1C, $72, $09, $20, $72, $02, $00, $72, $20, $20, $33, $09, $22, $39, $02, $00
-.byte   $00, $18, $22, $39, $18, $2B, $30, $18, $19, $33, $18, $1C, $30, $18, $20, $33
-.byte   $0C, $20, $39, $09, $22, $39, $02, $00, $00, $20, $22, $39, $09, $26, $39, $02
-.byte   $00, $39, $18, $26, $40, $18, $20, $98, $18, $2B, $90, $0C, $2B, $80, $0C, $24
-.byte   $80, $18, $26, $60, $18, $20, $98, $30, $2B, $80, $18, $2B, $FF, $18, $24, $FF
-.byte   $38, $26, $C0, $0C, $00, $00, $18, $20, $40, $20, $24, $48, $09, $26, $4C, $02
-.byte   $00, $00, $18, $26, $4C, $18, $18, $30, $20, $19, $33, $09, $1C, $39, $02, $00
-.byte   $00, $14, $1C, $39, $02, $00, $00, $14, $1C, $39, $02, $1C, $00, $18, $2B, $39
-.byte   $18, $26, $40, $18, $24, $48, $18, $1C, $4C, $18, $20, $40, $0C, $20, $80, $0C
-.byte   $24, $80, $14, $26, $60, $02, $00, $60, $18, $26, $3C, $18, $18, $72, $18, $19
-.byte   $66, $18, $1C, $60, $0C, $1C, $72, $09, $20, $72, $02, $00, $72, $20, $20, $33
-.byte   $09, $22, $39, $02, $00, $00, $18, $22, $39, $18, $1C, $44, $14, $15, $40, $02
-.byte   $15, $00, $14, $18, $40, $02, $18, $00, $18, $19, $40, $0C, $19, $30, $09, $1C
-.byte   $30, $02, $00, $00, $20, $1C, $30, $09, $20, $33, $02, $00, $00, $14, $20, $33
-.byte   $02, $00, $33, $18, $20, $98, $18, $2B, $90, $0C, $2B, $80, $0C, $24, $80, $18
-.byte   $26, $C0, $18, $20, $98, $18, $2B, $90, $0C, $2B, $80, $0C, $24, $80, $18, $26
-.byte   $C0, $18, $20, $98, $38, $2B, $80, $20, $2B, $FF, $33, $24, $FF, $70, $26, $C0
-.byte   $00, $24, $FF
+    .byte       NOTE_16TH_DOT, NOTE_A4, $40
+    .byte       NOTE_8TH, $24, $48
+    .byte       NOTE_9, $26, $4C
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_16TH_DOT, $26, $4C
+    .byte       NOTE_16TH_DOT, $18, $30
+    .byte       NOTE_8TH, $19, $33
+    .byte       NOTE_9, $1C, $39
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_20, $1C, $39
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_20, $1C, $39
+    .byte       NOTE_128ND, $1C, NOTE_REST
+    .byte       NOTE_16TH_DOT, $2B, $39
+    .byte       NOTE_16TH_DOT, $26, $40
+    .byte       NOTE_16TH_DOT, $24, $48
+    .byte       NOTE_16TH_DOT, $1C, $4C
+    .byte       NOTE_16TH_DOT, NOTE_A4, $40
+    .byte       NOTE_32ND_DOT, NOTE_A4, $80
+    .byte       NOTE_32ND_DOT, $24, $80
+    .byte       NOTE_16TH_DOT, $26, $60
+    .byte       NOTE_16TH_DOT, NOTE_A4, $98
+    .byte       NOTE_16TH_DOT, $2B, $90
+    .byte       NOTE_32ND_DOT, $2B, $80
+    .byte       NOTE_32ND_DOT, $24, $80
+    .byte       NOTE_16TH_DOT, $26, $C0
+    .byte       NOTE_16TH_DOT, NOTE_A4, $98
+    .byte       NOTE_16TH_DOT, $2B, $90
+    .byte       NOTE_32ND_DOT, $2B, $80
+    .byte       NOTE_32ND_DOT, $24, $80
+    .byte       NOTE_20, $26, $C0
+    .byte       NOTE_128ND, NOTE_REST, $C0
+    .byte       NOTE_16TH_DOT, $26, NOTE_REST
+    .byte       NOTE_16TH_DOT, $18, $72
+    .byte       NOTE_16TH_DOT, $19, $66
+    .byte       NOTE_16TH_DOT, $1C, $60
+    .byte       NOTE_32ND_DOT, $1C, $72
+    .byte       NOTE_9, NOTE_A4, $72
+    .byte       NOTE_128ND, NOTE_REST, $72
+    .byte       NOTE_8TH, NOTE_A4, $33
+    .byte       NOTE_9, $22, $39
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_16TH_DOT, $22, $39
+    .byte       NOTE_16TH_DOT, $2B, $30
+    .byte       NOTE_16TH_DOT, $19, $33
+    .byte       NOTE_16TH_DOT, $1C, $30
+    .byte       NOTE_16TH_DOT, NOTE_A4, $33
+    .byte       NOTE_32ND_DOT, NOTE_A4, $39
+    .byte       NOTE_9, $22, $39
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_8TH, $22, $39
+    .byte       NOTE_9, $26, $39
+    .byte       NOTE_128ND, NOTE_REST, $39
+    .byte       NOTE_16TH_DOT, $26, $40
+    .byte       NOTE_16TH_DOT, NOTE_A4, $98
+    .byte       NOTE_16TH_DOT, $2B, $90
+    .byte       NOTE_32ND_DOT, $2B, $80
+    .byte       NOTE_32ND_DOT, $24, $80
+    .byte       NOTE_16TH_DOT, $26, $60
+    .byte       NOTE_16TH_DOT, NOTE_A4, $98
+    .byte       NOTE_8TH_DOT, $2B, $80
+    .byte       NOTE_16TH_DOT, $2B, NOTE_A1
+    .byte       NOTE_16TH_DOT, $24, NOTE_A1
+    .byte       NOTE_56, $26, $C0
+    .byte       NOTE_32ND_DOT, NOTE_REST, NOTE_REST
+    .byte       NOTE_16TH_DOT, NOTE_A4, $40
+    .byte       NOTE_8TH, $24, $48
+    .byte       NOTE_9, $26, $4C
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_16TH_DOT, $26, $4C
+    .byte       NOTE_16TH_DOT, $18, $30
+    .byte       NOTE_8TH, $19, $33
+    .byte       NOTE_9, $1C, $39
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_20, $1C, $39
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_20, $1C, $39
+    .byte       NOTE_128ND, $1C, NOTE_REST
+    .byte       NOTE_16TH_DOT, $2B, $39
+    .byte       NOTE_16TH_DOT, $26, $40
+    .byte       NOTE_16TH_DOT, $24, $48
+    .byte       NOTE_16TH_DOT, $1C, $4C
+    .byte       NOTE_16TH_DOT, NOTE_A4, $40
+    .byte       NOTE_32ND_DOT, NOTE_A4, $80
+    .byte       NOTE_32ND_DOT, $24, $80
+    .byte       NOTE_16TH_DOT, $26, $60
+    .byte       NOTE_16TH_DOT, NOTE_A4, $98
+    .byte       NOTE_16TH_DOT, $2B, $90
+    .byte       NOTE_32ND_DOT, $2B, $80
+    .byte       NOTE_32ND_DOT, $24, $80
+    .byte       NOTE_16TH_DOT, $26, $C0
+    .byte       NOTE_16TH_DOT, NOTE_A4, $98
+    .byte       NOTE_16TH_DOT, $2B, $90
+    .byte       NOTE_32ND_DOT, $2B, $80
+    .byte       NOTE_32ND_DOT, $24, $80
+    .byte       NOTE_20, $26, $C0
+    .byte       NOTE_128ND, NOTE_REST, $C0
+    .byte       NOTE_16TH_DOT, $26, NOTE_REST
+    .byte       NOTE_16TH_DOT, $18, $72
+    .byte       NOTE_16TH_DOT, $19, $66
+    .byte       NOTE_16TH_DOT, $1C, $60
+    .byte       NOTE_32ND_DOT, $1C, $72
+    .byte       NOTE_9, NOTE_A4, $72
+    .byte       NOTE_128ND, NOTE_REST, $72
+    .byte       NOTE_8TH, NOTE_A4, $33
+    .byte       NOTE_9, $22, $39
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_16TH_DOT, $22, $39
+    .byte       NOTE_16TH_DOT, $2B, $30
+    .byte       NOTE_16TH_DOT, $19, $33
+    .byte       NOTE_16TH_DOT, $1C, $30
+    .byte       NOTE_16TH_DOT, NOTE_A4, $33
+    .byte       NOTE_32ND_DOT, NOTE_A4, $39
+    .byte       NOTE_9, $22, $39
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_8TH, $22, $39
+    .byte       NOTE_9, $26, $39
+    .byte       NOTE_128ND, NOTE_REST, $39
+    .byte       NOTE_16TH_DOT, $26, $40
+    .byte       NOTE_16TH_DOT, NOTE_A4, $98
+    .byte       NOTE_16TH_DOT, $2B, $90
+    .byte       NOTE_32ND_DOT, $2B, $80
+    .byte       NOTE_32ND_DOT, $24, $80
+    .byte       NOTE_16TH_DOT, $26, $60
+    .byte       NOTE_16TH_DOT, NOTE_A4, $98
+    .byte       NOTE_8TH_DOT, $2B, $80
+    .byte       NOTE_16TH_DOT, $2B, NOTE_A1
+    .byte       NOTE_16TH_DOT, $24, NOTE_A1
+    .byte       NOTE_56, $26, $C0
+    .byte       NOTE_32ND_DOT, NOTE_REST, NOTE_REST
+    .byte       NOTE_16TH_DOT, NOTE_A4, $40
+    .byte       NOTE_8TH, $24, $48
+    .byte       NOTE_9, $26, $4C
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_16TH_DOT, $26, $4C
+    .byte       NOTE_16TH_DOT, $18, $30
+    .byte       NOTE_8TH, $19, $33
+    .byte       NOTE_9, $1C, $39
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_20, $1C, $39
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_20, $1C, $39
+    .byte       NOTE_128ND, $1C, NOTE_REST
+    .byte       NOTE_16TH_DOT, $2B, $39
+    .byte       NOTE_16TH_DOT, $26, $40
+    .byte       NOTE_16TH_DOT, $24, $48
+    .byte       NOTE_16TH_DOT, $1C, $4C
+    .byte       NOTE_16TH_DOT, NOTE_A4, $40
+    .byte       NOTE_32ND_DOT, NOTE_A4, $80
+    .byte       NOTE_32ND_DOT, $24, $80
+    .byte       NOTE_20, $26, $60
+    .byte       NOTE_128ND, NOTE_REST, $60
+    .byte       NOTE_16TH_DOT, $26, $3C
+    .byte       NOTE_16TH_DOT, $18, $72
+    .byte       NOTE_16TH_DOT, $19, $66
+    .byte       NOTE_16TH_DOT, $1C, $60
+    .byte       NOTE_32ND_DOT, $1C, $72
+    .byte       NOTE_9, NOTE_A4, $72
+    .byte       NOTE_128ND, NOTE_REST, $72
+    .byte       NOTE_8TH, NOTE_A4, $33
+    .byte       NOTE_9, $22, $39
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_16TH_DOT, $22, $39
+    .byte       NOTE_16TH_DOT, $1C, $44
+    .byte       NOTE_20, $15, $40
+    .byte       NOTE_128ND, $15, NOTE_REST
+    .byte       NOTE_20, $18, $40
+    .byte       NOTE_128ND, $18, NOTE_REST
+    .byte       NOTE_16TH_DOT, $19, $40
+    .byte       NOTE_32ND_DOT, $19, $30
+    .byte       NOTE_9, $1C, $30
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_8TH, $1C, $30
+    .byte       NOTE_9, NOTE_A4, $33
+    .byte       NOTE_128ND, NOTE_REST, NOTE_REST
+    .byte       NOTE_20, NOTE_A4, $33
+    .byte       NOTE_128ND, NOTE_REST, $33
+    .byte       NOTE_16TH_DOT, NOTE_A4, $98
+    .byte       NOTE_16TH_DOT, $2B, $90
+    .byte       NOTE_32ND_DOT, $2B, $80
+    .byte       NOTE_32ND_DOT, $24, $80
+    .byte       NOTE_16TH_DOT, $26, $C0
+    .byte       NOTE_16TH_DOT, NOTE_A4, $98
+    .byte       NOTE_16TH_DOT, $2B, $90
+    .byte       NOTE_32ND_DOT, $2B, $80
+    .byte       NOTE_32ND_DOT, $24, $80
+    .byte       NOTE_16TH_DOT, $26, $C0
+    .byte       NOTE_16TH_DOT, NOTE_A4, $98
+    .byte       NOTE_56, $2B, $80
+    .byte       NOTE_8TH, $2B, NOTE_A1
+    .byte       NOTE_51, $24, NOTE_A1
+    .byte       NOTE_112, $26, $C0
+    .byte       NOTE_DONE, NOTE_A1, NOTE_A1

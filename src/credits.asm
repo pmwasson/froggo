@@ -7,24 +7,24 @@ creditsString:
     .byte       CREDIT_DIVIDE
     QuoteText   "inspiredByThe",0,0
     QuoteText   "classicFroggerGame",1,0
-    QuoteText   "andTheMoreRecent",8,0
-    QuoteText   "crossyRoad.",5,2
+    QuoteText   "andTheMoreRecent",9,0
+    QuoteText   "crossyRoad",5,2
     .byte       CREDIT_DIVIDE
     QuoteText   "musicAndSound",8,0
     QuoteText   "effectsWere",1,0
     QuoteText   "generatedUsingThe",2,0
     QuoteText   "electricDuetSong",2,0
-    QuoteText   "player,CreatedBy",0,0
-    QuoteText   "paulLutus (c) 1981.",7,1
-    QuoteText   "arachnoid.com",2,0
+    QuoteText   "player,CreatedBy",1,0
+    QuoteText   "paulLutus (c) 1981",7,1
+    QuoteText   "arachnoid.com",2,2
     .byte       CREDIT_DIVIDE
     QuoteText   "allOtherCodeWas",10,0
-    QuoteText   "writtenBy",8,0
-    QuoteText   "paulWasson.",2,1
+    QuoteText   "writtenBy",9,0
+    QuoteText   "paulWasson",2,1
     QuoteText   "lasermego.com/a2sw",3,2
     .byte       CREDIT_DIVIDE
-    QuoteText   "musicComposedBy",9,0
-    QuoteText   "benWasson.",0,2
+    QuoteText   "musicComposedBy",10,0
+    QuoteText   "benWasson",0,2
     .byte       CREDIT_DIVIDE
     QuoteText   "thanksToThePeople",0,0
     QuoteText   "behindTheFollowing",5,0

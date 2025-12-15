@@ -22,6 +22,9 @@ MAP_HEIGHT      = 24
 
 PREVIEW_WIDTH   = 8             ; 8 or 16
 PREVIEW_X       = 2+(MAP_WIDTH-PREVIEW_WIDTH)/2
+
+MAX_FILE_SLOTS  = 4
+
 ;-----------------------------------------------------------------------------
 ; Main program
 ;-----------------------------------------------------------------------------
@@ -443,6 +446,38 @@ keyPrevPCont:
     jsr         printHelp
     jmp         command_loop
 :
+    ;------------------
+    ; ^S = Save
+    ;------------------
+    cmp         #KEY_CTRL_S
+    bne         :+
+    jsr         inline_print
+    .byte       "Save slot (0-",'0'+MAX_FILE_SLOTS-1,"):",0
+    lda         #MAX_FILE_SLOTS
+    jsr         getInputNumber
+    bmi         save_exit
+    jsr         saveSheet
+save_exit:
+    jmp         command_loop
+:
+
+    ;------------------
+    ; ^L = Load
+    ;------------------
+    cmp         #KEY_CTRL_L
+    bne         :+
+    jsr         inline_print
+    .byte       "Read slot (0-",'0'+MAX_FILE_SLOTS-1,"):",0
+    lda         #MAX_FILE_SLOTS
+    jsr         getInputNumber
+    bmi         load_exit
+    jsr         loadSheet
+    ; redraw the screen
+    jmp         reset_loop
+
+load_exit:
+    jmp         command_loop
+:
 
     ;------------------
     ; Unknown
@@ -523,6 +558,10 @@ finish_move:
     jsr         COUT
     sec
     sbc         #$80 + '0'
+    sta         result
+    lda         #$8D
+    jsr         COUT            ; print return
+    lda         result
     rts
 cancel:
     jsr         inline_print
@@ -532,6 +571,7 @@ cancel:
 
 ; local variable
 max_digit:  .byte   0
+result:     .byte   0
 
 .endproc
 
@@ -1436,37 +1476,37 @@ drawLoop:
 ;
 ;-----------------------------------------------------------------------------
 .proc clearScreen
-    jsr     setColor
+    jsr         setColor
 
-    lda     #$00
-    sta     screenPtr0
-    lda     #$80
-    sta     tilePtr0
+    lda         #$00
+    sta         screenPtr0
+    lda         #$80
+    sta         tilePtr0
     clc
-    lda     #$20
-    adc     drawPage
-    sta     screenPtr1
-    sta     tilePtr1
+    lda         #$20
+    adc         drawPage
+    sta         screenPtr1
+    sta         tilePtr1
 
 loop:
-    ldy     #$77            ; preserve screen holes
+    ldy         #$77            ; preserve screen holes
 
 loopPage:
-    lda     colorOdd
-    sta     (screenPtr0),y
-    sta     (tilePtr0),y
+    lda         colorOdd
+    sta         (screenPtr0),y
+    sta         (tilePtr0),y
     dey
-    lda     colorEven
-    sta     (screenPtr0),y
-    sta     (tilePtr0),y
+    lda         colorEven
+    sta         (screenPtr0),y
+    sta         (tilePtr0),y
     dey
-    bpl     loopPage
+    bpl         loopPage
 
-    inc     tilePtr1
-    inc     screenPtr1
-    lda     screenPtr1
-    and     #$1f
-    bne     loop
+    inc         tilePtr1
+    inc         screenPtr1
+    lda         screenPtr1
+    and         #$1f
+    bne         loop
 
     rts
 
@@ -1493,6 +1533,34 @@ loopPage:
 .endproc
 
 ;-----------------------------------------------------------------------------
+; Load sheet
+;
+;   Use prodos to load tile data
+;-----------------------------------------------------------------------------
+.proc loadSheet
+
+    clc
+    adc         #'0'
+    sta         tileFileNameEnd-1
+    jmp         loadData    ; link return
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Save sheet
+;
+;   Use prodos to save tile data
+;-----------------------------------------------------------------------------
+.proc saveSheet
+
+    clc
+    adc         #'0'
+    sta         tileFileNameEnd-1
+    jmp         saveData    ; link return
+
+.endproc
+
+;-----------------------------------------------------------------------------
 ; Quit
 ;
 ;   Exit to ProDos
@@ -1502,6 +1570,136 @@ loopPage:
     jsr         MLI
     .byte       CMD_QUIT
     .word       quitParams
+
+.endproc
+
+
+;-----------------------------------------------------------------------------
+; Load Data
+;   Load data using ProDOS
+;-----------------------------------------------------------------------------
+.proc loadData
+
+    ; open file
+    jsr         MLI
+    .byte       CMD_OPEN
+    .word       open_params
+    bcc         :+
+
+    jsr         PRBYTE
+    jsr         inline_print
+    .byte       ":unable to open file",13,0
+    rts
+:
+    ;jsr        inline_print
+    ;.byte      "File open",13,0
+
+    ; set reference number
+    lda         open_params+5
+    sta         rw_params+1
+    sta         close_params+1
+
+    ; read data
+    jsr         MLI
+    .byte       CMD_READ
+    .word       rw_params
+    bcc         :+
+
+    jsr         PRBYTE
+    jsr         inline_print
+    .byte       ":unable to read data",13,0
+:
+    ;jsr        inline_print
+    ;.byte      "Data read",13,0
+
+    jsr         MLI
+    .byte       CMD_CLOSE
+    .word       close_params
+    bcc         :+
+    jsr         PRBYTE
+    jsr         inline_print
+    .byte       ":unable to close file",13,0
+:
+    jsr         inline_print
+    .byte       "Load complete",13,0
+
+    rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Save data
+;
+;   Use prodos to save data
+;-----------------------------------------------------------------------------
+.proc saveData
+
+    ; open file
+    jsr         MLI
+    .byte       CMD_OPEN
+    .word       open_params
+    bcc         open_good
+
+    jsr         PRBYTE
+    jsr         inline_print
+    .byte       ":unable to open file, creating new",13,0
+
+    ; create file
+     jsr        MLI
+    .byte       CMD_CREATE
+    .word       create_params
+    bcc         :+
+
+    jsr         PRBYTE
+    jsr         inline_print
+    .byte       ":unable to create file",13,0
+    rts         ; give up!
+:
+
+    ; open file again!
+    jsr         MLI
+    .byte       CMD_OPEN
+    .word       open_params
+    bcc         open_good
+
+    jsr         PRBYTE
+    jsr         inline_print
+    .byte       ":still unable to open file",13,0
+    rts         ; give up
+
+open_good:
+    ;jsr        inline_print
+    ;.byte  "File open",13,0
+
+    ; set reference number
+    lda         open_params+5
+    sta         rw_params+1
+    sta         close_params+1
+
+    ; write data
+    jsr         MLI
+    .byte       CMD_WRITE
+    .word       rw_params
+    bcc         :+
+    jsr         PRBYTE
+    jsr         inline_print
+    .byte       ":unable to write data",13,0
+:
+    ;jsr        inline_print
+    ;.byte      "Data written",13,0
+
+    jsr         MLI
+    .byte       CMD_CLOSE
+    .word       close_params
+    bcc         :+
+    jsr         PRBYTE
+    jsr         inline_print
+    .byte       ":unable to close file",13,0
+:
+    jsr         inline_print
+    .byte       "Save complete",13,0
+
+    rts
 
 .endproc
 
@@ -1548,6 +1746,39 @@ bufferIndex:        .byte       0
 ;-----------------------------------------------------------------------------
 ; Data
 ;-----------------------------------------------------------------------------
+
+; Prodos
+
+tileFileName:       StringLen "/FROGGO/DATA/TILE.0"
+tileFileNameEnd:
+tileSheetLength     = tileSheetEnd-tileSheet
+
+open_params:
+    .byte       $3              ; 3 parameters
+    .word       tileFileName    ; pathname*
+    .word       FILEBUFFER      ; ProDos buffer
+    .byte       $0              ; reference number
+
+create_params:
+    .byte       $7              ; 7 parameters
+    .word       tileFileName    ; pathname*
+    .byte       $C3             ; access bits (full access)
+    .byte       $6              ; file type (binary)
+    .word       $2000           ; binary file load address
+    .byte       $1              ; storage type (standard)
+    .word       $0              ; creation date
+    .word       $0              ; creation time
+
+rw_params:
+    .byte       $4
+    .byte       $0              ; reference number*
+    .word       tileSheet       ; address of data buffer*
+    .word       tileSheetLength ; number of bytes to read/write*
+    .word       $0              ; number of bytes read/written
+
+close_params:
+    .byte       $1              ; 1 parameter
+    .byte       $0              ; reference number*
 
 quitParams:
     .byte       4               ; 4 parameters
@@ -1792,5 +2023,5 @@ copyBuffer:
 .align 256
 tileSheet:
 .include        "font.asm"
-
+tileSheetEnd:
 

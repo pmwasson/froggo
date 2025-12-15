@@ -267,8 +267,8 @@ LEVEL_COLUMN_START          = $2F
 
 NUMBER_CUTSCENES            = 32
 
-MAX_LEVELS                  = 12
-INITIAL_LEVEL               = 0 ; MAX_LEVELS-1
+MAX_LEVELS                  = 13
+INITIAL_LEVEL               = 0   ; MAX_LEVELS-1
 
 ;-----------------------------------------------------------------------------
 ; Title image
@@ -810,7 +810,8 @@ LEVEL_DATA_END:
 
 .proc main
 
-    PlaySongPtr songGameStart
+    ;PlaySongPtr songGameStart
+    PlaySongPtr peasantSong
     jsr         waitForKey
 restart_loop:
     jsr         randomizeCutScenes  ; randomize cutscenes after waiting for 'random' seed
@@ -2320,8 +2321,8 @@ stringMenuKeys:     QuoteText "setKeys",        3*2,1
                     QuoteText "down  :",        3*2,1
                     QuoteText "left  :",        3*2,1
                     QuoteText "right :",        0,2
-                    QuoteText "^c  -Reset",     0,1
-                    QuoteText "esc -Cancel",    15,15
+                    QuoteText "ctl+c:reset",     0,1
+                    QuoteText "esc  :cancel",    15,15
 
 .proc showSetKeysMenu
 

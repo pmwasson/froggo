@@ -9,13 +9,17 @@ ca65 -I ..\src -t apple2 ..\src\game.asm -l game.dis  -o ..\build\game.o || exit
 cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\game.asm apple2.lib -o game.apple2 -C ..\src\start2000.cfg || exit
 
 :: Font Edit
-::ca65 -I ..\src -t apple2 ..\src\fontEdit.asm -l fontEdit.dis -o ..\build\fontEdit.o || exit
+ca65 -I ..\src -t apple2 ..\src\fontEdit.asm -l fontEdit.dis -o ..\build\fontEdit.o || exit
 cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\fontEdit.asm apple2.lib -l fontEdit.dis -o fontEdit.apple2 -C ..\src\start6000.cfg || exit
 cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\tileSet0.asm apple2.lib -o tileSet0.apple2 -C ..\src\start6000.cfg  || exit
+cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\tileSet1.asm apple2.lib -o tileSet1.apple2 -C ..\src\start6000.cfg  || exit
 
 :: Parallax
 ::ca65 -I ..\src -t apple2 ..\src\parallax.asm -l parallax.dis -o ..\build\parallax.o || exit
 cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\parallax.asm apple2.lib -l parallax.dis -o parallax.apple2 -C ..\src\start6000.cfg || exit
+
+:: Readme
+cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\readme.asm apple2.lib -o readme.apple2 -C ..\src\start2000.cfg || exit
 
 ::---------------------------------------------------------------------------
 :: Build disk
@@ -31,6 +35,7 @@ ac-windows  -as froggo.dsk froggo.system sys < game.apple2  || exit
 
 ::ac-windows -bas froggo.dsk startup < ..\src\startup.bas  || exit
 ::ac-windows -bas froggo.dsk hello < ..\src\hello.bas || exit
+ac-windows  -as froggo.dsk readme.system sys < readme.apple2  || exit
 
 :: Parallax
 ac-windows -p  froggo.dsk parallax.system sys < C:\cc65\target\apple2\util\loader.system || exit
@@ -56,6 +61,7 @@ ac-windows -p  froggo.dsk data/scene.8  bin < red-car.bin   || exit
 ac-windows -p  froggo.dsk data/scene.9  bin < turtle.bin    || exit
 
 ac-windows -as froggo.dsk data/tile.0   bin < tileSet0.apple2 || exit
+ac-windows -as froggo.dsk data/tile.1   bin < tileSet1.apple2 || exit
 
 :: Copy results out of the build directory
 copy froggo.dsk ..\disk || exit

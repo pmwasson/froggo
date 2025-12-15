@@ -47,10 +47,12 @@ python3 build:
 - [x] Add end of level messages
   - [x] Implement simple compression
   - [ ] Put string in AUX memory
-- [ ] Credits
-  - [ ] Smooth scrolling
+- [x] Credits
+  - [x] Smooth scrolling
 - [ ] Level editor?
-- [ ] Load tiles from disk so users can edit.  May want to load default with game and have a keystroke to load modified version.
+- [x] Load tiles from disk so users can edit.  May want to load default with game and have a keystroke to load modified version.
   - [ ] Put the player shapes back into the tile data?
-  - [ ] May need to extend the tile editor to handle more entries
+  - [x] May need to extend the tile editor to handle more entries
+  - [ ] Let tile editor load / save
+  - [ ] Make green screen version of tiles
 

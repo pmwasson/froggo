@@ -30,98 +30,24 @@ STATE_OFFSET_TRAINS     = 8*1
 ; Levels
 ;------------------------------------------------------------------------------
 
-; medium
-level0:         ; grass--road--grass--water--grass
-    ; columns
-    .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
-    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_D_1,COLUMN_ROAD_D_2,COLUMN_ROAD_S_0
-    .byte       COLUMN_ROAD_D_3,COLUMN_ROAD_GRASS_0,COLUMN_GRASS_3,COLUMN_GRASS_WATER_0
-    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0
-    .byte       COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0,COLUMN_GRASS_4,COLUMN_GRASS_0
-    ; dynamic speeds
-    ConvertSpeeds   $0180, $FF10, $00B0, $0150, $0040, $FF30, $0020, $0090
-    ; starting Y
-    .byte       MAP_BOTTOM-TILE_HEIGHT*2
-    ; animation (not used)
-    .byte       0,0,0
 
-; medium
-level1:         ; grass--water--grass--water--grass
-    .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2
-    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0
-    .byte       COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0,COLUMN_GRASS_3,COLUMN_GRASS_WATER_0
-    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_1
-    .byte       COLUMN_WATER_D_4,COLUMN_WATER_S_2,COLUMN_WATER_GRASS_0,COLUMN_GRASS_0
+; easy (good first level)
+level_e0:         ; grass--road--grass
+    ; columns
+    .byte       COLUMN_GRASS_1,COLUMN_GRASS_2,COLUMN_GRASS_4,COLUMN_GRASS_4
+    .byte       COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0,COLUMN_ROAD_D_6,COLUMN_ROAD_D_1
+    .byte       COLUMN_ROAD_D_2,COLUMN_ROAD_D_2,COLUMN_ROAD_D_2,COLUMN_ROAD_D_6
+    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_D_7,COLUMN_ROAD_GRASS_0,COLUMN_GRASS_4
+    .byte       COLUMN_GRASS_2,COLUMN_GRASS_1,COLUMN_GRASS_4,COLUMN_GRASS_0
     ; dynamic speeds
-    ConvertSpeeds   $0080, $FF10, $00A0, $0130, $FF50, $FF30, $0040, $FF40
+    ConvertSpeeds   $FF30, $FF80, $FF30, $FF40, $0090, $00E0, $0070, $00F0
     ; starting Y
     .byte       MAP_TOP+TILE_HEIGHT*8
     ; animation (not used)
     .byte       0,0,0
-
-; medium (actually easy, but looks hard)
-level2:         ; grass--road--grass--road--grass
-    ; columns
-    .byte       COLUMN_GRASS_5,COLUMN_GRASS_6,COLUMN_GRASS_ROAD_1,COLUMN_ROAD_D_0
-    .byte       COLUMN_ROAD_S_1,COLUMN_ROAD_D_2,COLUMN_ROAD_S_1,COLUMN_ROAD_D_0
-    .byte       COLUMN_ROAD_S_1,COLUMN_ROAD_D_0,COLUMN_ROAD_GRASS_1,COLUMN_GRASS_6
-    .byte       COLUMN_GRASS_ROAD_1,COLUMN_ROAD_D_0,COLUMN_ROAD_S_1,COLUMN_ROAD_D_2
-    .byte       COLUMN_ROAD_S_1,COLUMN_ROAD_D_3,COLUMN_ROAD_GRASS_1,COLUMN_GRASS_6
-    ; dynamic speeds
-    ConvertSpeeds   $0280, $FD40, $01C0, $FD00, $01F0, $0190, $01F0, $0000
-    ; starting Y
-    .byte       MAP_TOP+TILE_HEIGHT*8
-    ; animation (not used)
-    .byte       0,0,0
-
-; easy (maybe medium so not first in game)
-level3:         ; building
-    ; columns
-    .byte       COLUMN_HOUSE_0,COLUMN_HOUSE_0,COLUMN_HOUSE_3,COLUMN_HOUSE_1
-    .byte       COLUMN_HOUSE_2,COLUMN_HOUSE_4,COLUMN_HOUSE_D_0,COLUMN_HOUSE_4
-    .byte       COLUMN_HOUSE_4,COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0,COLUMN_HOUSE_5
-    .byte       COLUMN_HOUSE_5,COLUMN_HOUSE_D_0,COLUMN_HOUSE_5,COLUMN_HOUSE_6
-    .byte       COLUMN_HOUSE_2,COLUMN_HOUSE_3,COLUMN_HOUSE_0,COLUMN_HOUSE_0
-    ; dynamic speeds
-    ConvertSpeeds   $00C0, $0080, $FF80, $FF40, $0010, $0010, $0010, $0010
-    ; starting Y
-    .byte       MAP_TOP+TILE_HEIGHT*8
-    ; animation (not used)
-    .byte       0,0,0
-
-; hard (trucks at end)
-level4:         ; grass--road--grass--water--grass
-    ; columns
-    .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_WATER_1
-    .byte       COLUMN_WATER_D_3,COLUMN_WATER_D_2,COLUMN_WATER_S_2,COLUMN_WATER_D_1
-    .byte       COLUMN_WATER_D_0,COLUMN_WATER_GRASS_0,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
-    .byte       COLUMN_ROAD_D_5,COLUMN_ROAD_D_4,COLUMN_ROAD_D_4,COLUMN_ROAD_D_4
-    .byte       COLUMN_ROAD_GRASS_0,COLUMN_GRASS_3,COLUMN_GRASS_4,COLUMN_GRASS_0
-    ; dynamic speeds
-    ConvertSpeeds   $0060, $FF50, $00A0, $0090, $FEB0, $FF20, $FF60, $FF30
-    ; starting Y
-    .byte       MAP_BOTTOM-TILE_HEIGHT*4
-    ; animation (not used)
-    .byte       0,0,0
-
-; medium
-level5:         ; bricks--road--bricks
-    ; columns
-    .byte       COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1
-    .byte       COLUMN_BRICK_0,COLUMN_GRASS_ROAD_2,COLUMN_ROAD_D_0,COLUMN_ROAD_D_5
-    .byte       COLUMN_ROAD_D_2,COLUMN_ROAD_D_0,COLUMN_ROAD_D_5,COLUMN_ROAD_D_1
-    .byte       COLUMN_ROAD_D_5,COLUMN_ROAD_D_2,COLUMN_ROAD_GRASS_2,COLUMN_BRICK_0
-    .byte       COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0
-    ; dynamic speeds
-    ConvertSpeeds   $0060, $FF50, $00A0, $0090, $FF30, $FF20, $FF60, $00D0
-    ; starting Y
-    .byte       MAP_BOTTOM-TILE_HEIGHT*4
-    ; animation (not used)
-    .byte       0,0,0
-
 
 ; easy
-level6:         ; grass--road--grass
+level_e1:         ; grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_2,COLUMN_GRASS_4,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
     .byte       COLUMN_ROAD_D_6,COLUMN_ROAD_S_4,COLUMN_ROAD_D_1,COLUMN_ROAD_D_2
@@ -135,24 +61,8 @@ level6:         ; grass--road--grass
     ; animation (not used)
     .byte       0,0,0
 
-; medium (turtles)
-level7:         ; grass--water--grass (turtles)
-    .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2
-    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_6,COLUMN_WATER_D_2,COLUMN_WATER_S_0
-    .byte       COLUMN_WATER_D_3,COLUMN_WATER_S_2,COLUMN_WATER_S_3,COLUMN_WATER_S_3
-    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_0,COLUMN_WATER_D_5,COLUMN_WATER_S_3
-    .byte       COLUMN_WATER_D_4,COLUMN_WATER_S_2,COLUMN_WATER_GRASS_0,COLUMN_GRASS_0
-    ; dynamic speeds
-    ConvertSpeeds   $0060, $0090, $FF80, $FF40, $0060, $FF50, $0040, $FF40
-    ; starting Y
-    .byte       MAP_TOP+TILE_HEIGHT*8
-    ; even / odd column timing (turtles)
-    .byte       $21,$30
-    ; state offset ()
-    .byte       STATE_OFFSET_TURTLES
-
 ; easy (trains)
-level8:         ; grass--road--grass
+level_e2:         ; grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_1
     .byte       COLUMN_GRASS_ROAD_0,COLUMN_ROAD_D_6,COLUMN_ROAD_D_2,COLUMN_ROAD_GRASS_0
@@ -168,23 +78,98 @@ level8:         ; grass--road--grass
     ; state offset ()
     .byte       STATE_OFFSET_TRAINS
 
-; easy (good first level)
-level9:         ; grass--road--grass
+; easy (maybe medium so not first in game)
+level_e3:         ; building
     ; columns
-    .byte       COLUMN_GRASS_1,COLUMN_GRASS_2,COLUMN_GRASS_4,COLUMN_GRASS_4
-    .byte       COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0,COLUMN_ROAD_D_6,COLUMN_ROAD_D_1
-    .byte       COLUMN_ROAD_D_2,COLUMN_ROAD_D_2,COLUMN_ROAD_D_2,COLUMN_ROAD_D_6
-    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_D_7,COLUMN_ROAD_GRASS_0,COLUMN_GRASS_4
-    .byte       COLUMN_GRASS_2,COLUMN_GRASS_1,COLUMN_GRASS_4,COLUMN_GRASS_0
+    .byte       COLUMN_HOUSE_0,COLUMN_HOUSE_0,COLUMN_HOUSE_3,COLUMN_HOUSE_1
+    .byte       COLUMN_HOUSE_2,COLUMN_HOUSE_4,COLUMN_HOUSE_D_0,COLUMN_HOUSE_4
+    .byte       COLUMN_HOUSE_4,COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0,COLUMN_HOUSE_5
+    .byte       COLUMN_HOUSE_5,COLUMN_HOUSE_D_0,COLUMN_HOUSE_5,COLUMN_HOUSE_6
+    .byte       COLUMN_HOUSE_2,COLUMN_HOUSE_3,COLUMN_HOUSE_0,COLUMN_HOUSE_0
     ; dynamic speeds
-    ConvertSpeeds   $FF30, $FF80, $FF30, $FF40, $0090, $00E0, $0070, $0120
+    ConvertSpeeds   $00C0, $0080, $FF80, $FF40, $0010, $0010, $0010, $0010
     ; starting Y
     .byte       MAP_TOP+TILE_HEIGHT*8
     ; animation (not used)
     .byte       0,0,0
 
+; medium (actually easy, but looks hard)
+level_m0:         ; grass--road--grass--road--grass
+    ; columns
+    .byte       COLUMN_GRASS_5,COLUMN_GRASS_6,COLUMN_GRASS_ROAD_1,COLUMN_ROAD_D_0
+    .byte       COLUMN_ROAD_S_1,COLUMN_ROAD_D_2,COLUMN_ROAD_S_1,COLUMN_ROAD_D_0
+    .byte       COLUMN_ROAD_S_1,COLUMN_ROAD_D_0,COLUMN_ROAD_GRASS_1,COLUMN_GRASS_6
+    .byte       COLUMN_GRASS_ROAD_1,COLUMN_ROAD_D_0,COLUMN_ROAD_S_1,COLUMN_ROAD_D_2
+    .byte       COLUMN_ROAD_S_1,COLUMN_ROAD_D_3,COLUMN_ROAD_GRASS_1,COLUMN_GRASS_6
+    ; dynamic speeds
+    ConvertSpeeds   $0280, $FD40, $01C0, $FD00, $01F0, $0190, $01F0, $0000
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*8
+    ; animation (not used)
+    .byte       0,0,0
+
+; medium
+level_m1:         ; grass--road--grass--water--grass
+    ; columns
+    .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
+    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_D_1,COLUMN_ROAD_D_2,COLUMN_ROAD_S_0
+    .byte       COLUMN_ROAD_D_3,COLUMN_ROAD_GRASS_0,COLUMN_GRASS_3,COLUMN_GRASS_WATER_0
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0
+    .byte       COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0,COLUMN_GRASS_4,COLUMN_GRASS_0
+    ; dynamic speeds
+    ConvertSpeeds   $0180, $FF10, $00B0, $0150, $0040, $FF30, $0020, $0090
+    ; starting Y
+    .byte       MAP_BOTTOM-TILE_HEIGHT*2
+    ; animation (not used)
+    .byte       0,0,0
+
+; medium
+level_m2:         ; grass--water--grass--water--grass
+    .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_0
+    .byte       COLUMN_WATER_D_3,COLUMN_WATER_GRASS_0,COLUMN_GRASS_3,COLUMN_GRASS_WATER_0
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_D_2,COLUMN_WATER_S_1
+    .byte       COLUMN_WATER_D_4,COLUMN_WATER_S_2,COLUMN_WATER_GRASS_0,COLUMN_GRASS_0
+    ; dynamic speeds
+    ConvertSpeeds   $0080, $FF10, $00A0, $0130, $FF50, $FF30, $0040, $FF40
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*8
+    ; animation (not used)
+    .byte       0,0,0
+
+; medium
+level_m3:         ; bricks--road--bricks
+    ; columns
+    .byte       COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1
+    .byte       COLUMN_BRICK_0,COLUMN_GRASS_ROAD_2,COLUMN_ROAD_D_0,COLUMN_ROAD_D_5
+    .byte       COLUMN_ROAD_D_2,COLUMN_ROAD_D_0,COLUMN_ROAD_D_5,COLUMN_ROAD_D_1
+    .byte       COLUMN_ROAD_D_5,COLUMN_ROAD_D_2,COLUMN_ROAD_GRASS_2,COLUMN_BRICK_0
+    .byte       COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0
+    ; dynamic speeds
+    ConvertSpeeds   $0060, $FF50, $00A0, $0090, $FF30, $FF20, $FF60, $00D0
+    ; starting Y
+    .byte       MAP_BOTTOM-TILE_HEIGHT*4
+    ; animation (not used)
+    .byte       0,0,0
+
+; medium (turtles)
+level_m4:         ; grass--water--grass (turtles)
+    .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_6,COLUMN_WATER_D_2,COLUMN_WATER_S_0
+    .byte       COLUMN_WATER_D_3,COLUMN_WATER_S_2,COLUMN_WATER_S_3,COLUMN_WATER_S_3
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_0,COLUMN_WATER_D_5,COLUMN_WATER_S_3
+    .byte       COLUMN_WATER_D_4,COLUMN_WATER_S_2,COLUMN_WATER_GRASS_0,COLUMN_GRASS_0
+    ; dynamic speeds
+    ConvertSpeeds   $0060, $0090, $FF80, $FF40, $0060, $FF50, $0040, $FF40
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*8
+    ; even / odd column timing (turtles)
+    .byte       $21,$30
+    ; state offset ()
+    .byte       STATE_OFFSET_TURTLES
+
 ; medium (run upstream)
-level10:        ; building
+level_m5:        ; building
     ; columns
     .byte       COLUMN_HOUSE_0,COLUMN_HOUSE_3,COLUMN_HOUSE_1,COLUMN_HOUSE_4
     .byte       COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0,COLUMN_HOUSE_5,COLUMN_HOUSE_D_0
@@ -198,8 +183,40 @@ level10:        ; building
     ; animation (not used)
     .byte       0,0,0
 
+; medium (maybe hard?)
+level_m6:         ; grass--road--grass
+    ; columns
+    .byte       COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
+    .byte       COLUMN_ROAD_D_3,COLUMN_ROAD_D_4,COLUMN_ROAD_S_3,COLUMN_TRAIN_D_0
+    .byte       COLUMN_TRAIN_D_0,COLUMN_ROAD_S_3,COLUMN_ROAD_D_3,COLUMN_ROAD_D_2
+    .byte       COLUMN_ROAD_S_3,COLUMN_TRAIN_D_0,COLUMN_TRAIN_D_0,COLUMN_ROAD_GRASS_0
+    .byte       COLUMN_GRASS_4,COLUMN_GRASS_1,COLUMN_GRASS_4,COLUMN_GRASS_1
+    ; dynamic speeds
+    ConvertSpeeds   $00C0, $FEB0, $0500, $0500, $00A0, $0100, $0500, $0500
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*8
+    ; animation
+    .byte       $1F,$3F
+    ; state offset ()
+    .byte       STATE_OFFSET_TRAINS
+
+; hard (trucks at end)
+level_h0:         ; grass--road--grass--water--grass
+    ; columns
+    .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_WATER_1
+    .byte       COLUMN_WATER_D_3,COLUMN_WATER_D_2,COLUMN_WATER_S_2,COLUMN_WATER_D_1
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_GRASS_0,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
+    .byte       COLUMN_ROAD_D_5,COLUMN_ROAD_D_4,COLUMN_ROAD_D_4,COLUMN_ROAD_D_4
+    .byte       COLUMN_ROAD_GRASS_0,COLUMN_GRASS_3,COLUMN_GRASS_4,COLUMN_GRASS_0
+    ; dynamic speeds
+    ConvertSpeeds   $0060, $FF50, $00A0, $0090, $FEB0, $FF20, $FF60, $FF30
+    ; starting Y
+    .byte       MAP_BOTTOM-TILE_HEIGHT*4
+    ; animation (not used)
+    .byte       0,0,0
+
 ; hard (turtles)
-level11:        ; grass--water--grass (turtles)
+level_h1:        ; grass--water--grass (turtles)
     .byte       COLUMN_GRASS_0,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
     .byte       COLUMN_WATER_D_5,COLUMN_WATER_GRASS_0,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
     .byte       COLUMN_WATER_D_5,COLUMN_WATER_GRASS_0,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
