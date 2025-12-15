@@ -809,10 +809,16 @@ LEVEL_DATA_END:
 ;-----------------------------------------------------------------------------
 
 .proc main
+    ; display screen (again) incase jump here from monitor
+    sta         MIXCLR
+    sta         LOWSCR
+    sta         HIRES
+    sta         TXTCLR
 
     ;PlaySongPtr songGameStart
     PlaySongPtr peasantSong
     jsr         waitForKey
+
 restart_loop:
     jsr         randomizeCutScenes  ; randomize cutscenes after waiting for 'random' seed
     jsr         initGameState
@@ -2221,12 +2227,12 @@ stringQuit:     QuoteText "",           1*2,1
 ; |            | 8
 ; \--------v---/ 9
 
-stringLoadTiles:    QuoteText "loadTiles:", 1*2,2
-                    QuoteText "gameWill",   1*2,1
-                    QuoteText "restart",    1*2,1
-                    QuoteText "afterLoad",  1*2,1
-                    QuoteText "continue?",  1*2,2
-                    QuoteText "yOrN:",      15,15
+stringLoadTiles:    QuoteText "loadTiles:", 0,1
+                    QuoteText "gameWill",   0,1
+                    QuoteText "reset!",     1*2,2
+                    QuoteText "0:color",    1*2,1
+                    QuoteText "1:mono",     1*2,1
+                    QuoteText ">",          15,15
 
 .proc showLoadTiles
 
@@ -2236,9 +2242,9 @@ stringLoadTiles:    QuoteText "loadTiles:", 1*2,2
     ; display menu
     bit         HISCR
 
-    lda         #MAP_LEFT+10*TILE_WIDTH
+    lda         #MAP_LEFT+4*TILE_WIDTH
     sta         tileX
-    lda         #MAP_TOP+8
+    lda         #MAP_TOP+7
     sta         tileY
     lda         #TILE_BLANK
     jsr         waitForInput
@@ -2246,10 +2252,19 @@ stringLoadTiles:    QuoteText "loadTiles:", 1*2,2
     ; restore display
     bit         LOWSCR
 
-    cmp         #KEY_Y
-    beq         :+
-    rts
+    cmp         #KEY_0
+    bne         :+
+    jmp         doLoad
 :
+    cmp         #KEY_1
+    bne         :+
+    jmp         doLoad
+:
+    rts
+
+doLoad:
+    and         #$3f            ; only numbers
+    sta         tileFileNameEnd-1
     ldx         #FILE_TILE
     jsr         loadData
     lda         fileError
@@ -3272,7 +3287,8 @@ dynamicTileIndex:   .byte       $0
 
     jsr         TEXT
     jsr         inline_print
-    StringCR    "CTRL-Y TO EXIT"
+    StringCont  "6000G TO RESTART FROGGO"
+    StringCR    "CTRL-Y TO EXIT TO PRODOS"
 
     ; Set ctrl-y vector
     lda         #$4c        ; JMP
@@ -3449,6 +3465,7 @@ FILE_TILE           = 0*8
 FILE_SCENE          = 1*8
 
 tileFileName:       StringLen "/FROGGO/DATA/TILE.0"
+tileFileNameEnd:
 sceneFileName:      StringLen "/FROGGO/DATA/SCENE.0"
 sceneFileNameEnd:
 

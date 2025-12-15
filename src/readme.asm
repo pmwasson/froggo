@@ -29,6 +29,15 @@
     .byte       "| -parallax : a scrolling demo        |",13
     .byte       "| -fedit    : a font/tile editor      |",13
     .byte       "|                                     |",13
+    .byte       "| FROGGO controls:                    |",13
+    .byte       "|  AZ <- -> : Movement                |",13
+    .byte       "|  TAB      : Pause                   |",13
+    .byte       "|  ESC      : Quit                    |",13
+    .byte       "|  CTRL-C   : Remap movement keys     |",13
+    .byte       "|  CTRL-L   : Load tilemap            |",13
+    .byte       "|  ?        : Display credits         |",13
+    .byte       "|  *        : B reak into monitor      |",13
+    .byte       "|                                     |",13
     .byte       "| Enjoy!                              |",13
     .byte       "|             - Paul Wasson, 12/2025  |",13
     .byte       "|_____________________________________|",0
