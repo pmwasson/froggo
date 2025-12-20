@@ -267,8 +267,8 @@ LEVEL_COLUMN_START          = $2F
 
 NUMBER_CUTSCENES            = 32
 
-MAX_LEVELS                  = 13
-INITIAL_LEVEL               = 0   ; MAX_LEVELS-1
+MAX_LEVELS                  = (level_end-level_start)/32
+INITIAL_LEVEL               = 9   ; MAX_LEVELS-1
 
 ;-----------------------------------------------------------------------------
 ; Title image
@@ -815,8 +815,8 @@ LEVEL_DATA_END:
     sta         HIRES
     sta         TXTCLR
 
-    ;PlaySongPtr songGameStart
-    PlaySongPtr peasantSong
+    PlaySongPtr songGameStart
+    ;PlaySongPtr peasantSong
     jsr         waitForKey
 
 restart_loop:
@@ -896,7 +896,7 @@ switchTo1:
     cmp         #KEY_CTRL_L
     bne         :+
     jsr         showLoadTiles
-    bne         redraw_loop
+    bne         reset_loop
     jmp         restart_loop
 :
     cmp         #KEY_ESC
@@ -2336,8 +2336,8 @@ stringMenuKeys:     QuoteText "setKeys",        3*2,1
                     QuoteText "down  :",        3*2,1
                     QuoteText "left  :",        3*2,1
                     QuoteText "right :",        0,2
-                    QuoteText "ctl+c:reset",     0,1
-                    QuoteText "esc  :cancel",    15,15
+                    QuoteText "ctrl+c:reset",   0,1
+                    QuoteText "esc:cancel",     15,15
 
 .proc showSetKeysMenu
 
@@ -3287,8 +3287,8 @@ dynamicTileIndex:   .byte       $0
 
     jsr         TEXT
     jsr         inline_print
-    StringCont  "6000G TO RESTART FROGGO"
-    StringCR    "CTRL-Y TO EXIT TO PRODOS"
+    StringCont  "*6000G   TO RESTART FROGGO"
+    StringCR    "*CTRL-Y  TO EXIT TO PRODOS"
 
     ; Set ctrl-y vector
     lda         #$4c        ; JMP
@@ -3401,31 +3401,6 @@ printPath:
 
 
 .proc fullPageScroll2to1
-;   >$2000, >$2400, >$2800, >$2C00, >$3000, >$3400, >$3800, >$3C00  ; *
-;   >$2080, >$2480, >$2880, >$2C80, >$3080, >$3480, >$3880, >$3C80  ; *
-;   >$2100, >$2500, >$2900, >$2D00, >$3100, >$3500, >$3900, >$3D00
-;   >$2180, >$2580, >$2980, >$2D80, >$3180, >$3580, >$3980, >$3D80
-;   >$2200, >$2600, >$2A00, >$2E00, >$3200, >$3600, >$3A00, >$3E00
-;   >$2280, >$2680, >$2A80, >$2E80, >$3280, >$3680, >$3A80, >$3E80
-;   >$2300, >$2700, >$2B00, >$2F00, >$3300, >$3700, >$3B00, >$3F00
-;   >$2380, >$2780, >$2B80, >$2F80, >$3380, >$3780, >$3B80, >$3F80
-;   >$2028, >$2428, >$2828, >$2C28, >$3028, >$3428, >$3828, >$3C28  ; *
-;   >$20A8, >$24A8, >$28A8, >$2CA8, >$30A8, >$34A8, >$38A8, >$3CA8  ; *
-;   >$2128, >$2528, >$2928, >$2D28, >$3128, >$3528, >$3928, >$3D28
-;   >$21A8, >$25A8, >$29A8, >$2DA8, >$31A8, >$35A8, >$39A8, >$3DA8
-;   >$2228, >$2628, >$2A28, >$2E28, >$3228, >$3628, >$3A28, >$3E28
-;   >$22A8, >$26A8, >$2AA8, >$2EA8, >$32A8, >$36A8, >$3AA8, >$3EA8
-;   >$2328, >$2728, >$2B28, >$2F28, >$3328, >$3728, >$3B28, >$3F28
-;   >$23A8, >$27A8, >$2BA8, >$2FA8, >$33A8, >$37A8, >$3BA8, >$3FA8
-;   >$2050, >$2450, >$2850, >$2C50, >$3050, >$3450, >$3850, >$3C50  ; *
-;   >$20D0, >$24D0, >$28D0, >$2CD0, >$30D0, >$34D0, >$38D0, >$3CD0  ; *
-;   >$2150, >$2550, >$2950, >$2D50, >$3150, >$3550, >$3950, >$3D50
-;   >$21D0, >$25D0, >$29D0, >$2DD0, >$31D0, >$35D0, >$39D0, >$3DD0
-;   >$2250, >$2650, >$2A50, >$2E50, >$3250, >$3650, >$3A50, >$3E50
-;   >$22D0, >$26D0, >$2AD0, >$2ED0, >$32D0, >$36D0, >$3AD0, >$3ED0
-;   >$2350, >$2750, >$2B50, >$2F50, >$3350, >$3750, >$3B50, >$3F50
-;   >$23D0, >$27D0, >$2BD0, >$2FD0, >$33D0, >$37D0, >$3BD0, >$3FD0
-
 
     lda         $4400,x
     sta         $2000,x
@@ -3443,6 +3418,31 @@ printPath:
     sta         $3800,x
     lda         $4080,x
     sta         $3C00,x
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Sound test -- remove from final game
+;-----------------------------------------------------------------------------
+.proc soundTest
+.align 256
+loop:
+    PlaySongPtr     testSong
+    jsr         waitForKey
+    cmp         #KEY_ESC
+    bne         loop
+
+    rts
+
+.align 32
+testSong:
+    .byte   NOTE_16TH,  NOTE_C2,    NOTE_C4
+    .byte   NOTE_16TH,  NOTE_D2,    NOTE_D4
+    .byte   NOTE_16TH,  NOTE_E2,    NOTE_E4
+    .byte   NOTE_16TH,  NOTE_C2,    NOTE_C4
+    .byte   NOTE_16TH,  NOTE_D2,    NOTE_D4
+    .byte   NOTE_16TH,  NOTE_E2,    NOTE_E4
+    .byte   NOTE_DONE,  NOTE_REST,  NOTE_REST
 
 
 .endproc
@@ -3871,7 +3871,6 @@ pauseImage:
 .incbin         "..\build\qrcode_hgr.bin"
 
 auxImagesEnd:
-
 
 
 

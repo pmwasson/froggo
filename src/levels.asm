@@ -30,9 +30,24 @@ STATE_OFFSET_TRAINS     = 8*1
 ; Levels
 ;------------------------------------------------------------------------------
 
+level_start:
+; easy
+level_e0:         ; grass--road--grass--water--grass
+    ; columns
+    .byte       COLUMN_GRASS_2,COLUMN_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_ROAD_0
+    .byte       COLUMN_ROAD_D_7,COLUMN_ROAD_D_1,COLUMN_ROAD_S_2,COLUMN_ROAD_D_2
+    .byte       COLUMN_ROAD_D_6,COLUMN_ROAD_GRASS_0,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_S_2,COLUMN_WATER_D_2
+    .byte       COLUMN_WATER_D_3,COLUMN_WATER_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_2
+    ; dynamic speeds
+    ConvertSpeeds   $00B0, $FF40, $0070, $FF60, $0080, $FF90, $0070, $FF90
+    ; starting Y
+    .byte       MAP_BOTTOM-TILE_HEIGHT*3
+    ; animation (not used)
+    .byte       0,0,0
 
-; easy (good first level)
-level_e0:         ; grass--road--grass
+; easy
+level_e1:         ; grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_1,COLUMN_GRASS_2,COLUMN_GRASS_4,COLUMN_GRASS_4
     .byte       COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0,COLUMN_ROAD_D_6,COLUMN_ROAD_D_1
@@ -47,7 +62,7 @@ level_e0:         ; grass--road--grass
     .byte       0,0,0
 
 ; easy
-level_e1:         ; grass--road--grass
+level_e3:         ; grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_2,COLUMN_GRASS_4,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
     .byte       COLUMN_ROAD_D_6,COLUMN_ROAD_S_4,COLUMN_ROAD_D_1,COLUMN_ROAD_D_2
@@ -62,7 +77,7 @@ level_e1:         ; grass--road--grass
     .byte       0,0,0
 
 ; easy (trains)
-level_e2:         ; grass--road--grass
+level_e4:         ; grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_1
     .byte       COLUMN_GRASS_ROAD_0,COLUMN_ROAD_D_6,COLUMN_ROAD_D_2,COLUMN_ROAD_GRASS_0
@@ -79,7 +94,7 @@ level_e2:         ; grass--road--grass
     .byte       STATE_OFFSET_TRAINS
 
 ; easy (maybe medium so not first in game)
-level_e3:         ; building
+level_e5:         ; building
     ; columns
     .byte       COLUMN_HOUSE_0,COLUMN_HOUSE_0,COLUMN_HOUSE_3,COLUMN_HOUSE_1
     .byte       COLUMN_HOUSE_2,COLUMN_HOUSE_4,COLUMN_HOUSE_D_0,COLUMN_HOUSE_4
@@ -152,9 +167,24 @@ level_m3:         ; bricks--road--bricks
     ; animation (not used)
     .byte       0,0,0
 
+; medium (tree maze)
+level_m4:         ; grass--water--grass--water--grass--water--grass
+    ; columns
+    .byte       COLUMN_GRASS_3,COLUMN_GRASS_7,COLUMN_GRASS_7,COLUMN_GRASS_WATER_2
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_0,COLUMN_WATER_GRASS_2,COLUMN_GRASS_8
+    .byte       COLUMN_GRASS_WATER_2,COLUMN_WATER_D_0,COLUMN_WATER_D_0,COLUMN_WATER_GRASS_2
+    .byte       COLUMN_GRASS_7,COLUMN_GRASS_WATER_2,COLUMN_WATER_D_0,COLUMN_WATER_D_0
+    .byte       COLUMN_WATER_GRASS_2,COLUMN_GRASS_8,COLUMN_GRASS_8,COLUMN_GRASS_3
+    ; dynamic speeds
+    ConvertSpeeds   $00A0, $FF50, $0070, $FF60, $0080, $FF90, $0070, $FF90
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*3
+    ; animation (not used)
+    .byte       0,0,0
+
 ; medium (turtles)
-level_m4:         ; grass--water--grass (turtles)
-    .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_2
+level_m5:         ; grass--water--grass (turtles)
+    .byte       COLUMN_GRASS_4,COLUMN_GRASS_4,COLUMN_GRASS_WATER_3,COLUMN_WATER_S_2
     .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_6,COLUMN_WATER_D_2,COLUMN_WATER_S_0
     .byte       COLUMN_WATER_D_3,COLUMN_WATER_S_2,COLUMN_WATER_S_3,COLUMN_WATER_S_3
     .byte       COLUMN_WATER_D_0,COLUMN_WATER_D_0,COLUMN_WATER_D_5,COLUMN_WATER_S_3
@@ -169,7 +199,7 @@ level_m4:         ; grass--water--grass (turtles)
     .byte       STATE_OFFSET_TURTLES
 
 ; medium (run upstream)
-level_m5:        ; building
+level_m6:        ; building
     ; columns
     .byte       COLUMN_HOUSE_0,COLUMN_HOUSE_3,COLUMN_HOUSE_1,COLUMN_HOUSE_4
     .byte       COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0,COLUMN_HOUSE_5,COLUMN_HOUSE_D_0
@@ -184,7 +214,7 @@ level_m5:        ; building
     .byte       0,0,0
 
 ; medium (maybe hard?)
-level_m6:         ; grass--road--grass
+level_m7:         ; grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
     .byte       COLUMN_ROAD_D_3,COLUMN_ROAD_D_4,COLUMN_ROAD_S_3,COLUMN_TRAIN_D_0
@@ -217,7 +247,7 @@ level_h0:         ; grass--road--grass--water--grass
 
 ; hard (turtles)
 level_h1:        ; grass--water--grass (turtles)
-    .byte       COLUMN_GRASS_0,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
+    .byte       COLUMN_GRASS_0,COLUMN_GRASS_4,COLUMN_GRASS_WATER_2,COLUMN_WATER_D_5
     .byte       COLUMN_WATER_D_5,COLUMN_WATER_GRASS_0,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
     .byte       COLUMN_WATER_D_5,COLUMN_WATER_GRASS_0,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
     .byte       COLUMN_WATER_D_5,COLUMN_WATER_GRASS_0,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
@@ -231,6 +261,8 @@ level_h1:        ; grass--water--grass (turtles)
     ; state offset ()
     .byte       STATE_OFFSET_TURTLES
 
+level_end:
+
 ; Column Indexes:
 ;------------------------------------------------------------------------------
 COLUMN_GRASS_0              = (levelColumnDataG0  - levelColumnData)/16
@@ -240,6 +272,8 @@ COLUMN_GRASS_3              = (levelColumnDataG3  - levelColumnData)/16
 COLUMN_GRASS_4              = (levelColumnDataG4  - levelColumnData)/16
 COLUMN_GRASS_5              = (levelColumnDataG5  - levelColumnData)/16
 COLUMN_GRASS_6              = (levelColumnDataG6  - levelColumnData)/16
+COLUMN_GRASS_7              = (levelColumnDataG7  - levelColumnData)/16
+COLUMN_GRASS_8              = (levelColumnDataG8  - levelColumnData)/16
 COLUMN_GRASS_ROAD_0         = (levelColumnDataGR0 - levelColumnData)/16
 COLUMN_GRASS_ROAD_1         = (levelColumnDataGR1 - levelColumnData)/16
 COLUMN_GRASS_ROAD_2         = (levelColumnDataGR2 - levelColumnData)/16
@@ -248,7 +282,11 @@ COLUMN_ROAD_GRASS_1         = (levelColumnDataRG1 - levelColumnData)/16
 COLUMN_ROAD_GRASS_2         = (levelColumnDataRG2 - levelColumnData)/16
 COLUMN_GRASS_WATER_0        = (levelColumnDataGW0 - levelColumnData)/16
 COLUMN_GRASS_WATER_1        = (levelColumnDataGW1 - levelColumnData)/16
+COLUMN_GRASS_WATER_2        = (levelColumnDataGW2 - levelColumnData)/16
+COLUMN_GRASS_WATER_3        = (levelColumnDataGW3 - levelColumnData)/16
 COLUMN_WATER_GRASS_0        = (levelColumnDataWG0 - levelColumnData)/16
+COLUMN_WATER_GRASS_1        = (levelColumnDataWG1 - levelColumnData)/16
+COLUMN_WATER_GRASS_2        = (levelColumnDataWG2 - levelColumnData)/16
 COLUMN_ROAD_S_0             = (levelColumnDataRS0 - levelColumnData)/16
 COLUMN_ROAD_S_1             = (levelColumnDataRS1 - levelColumnData)/16
 COLUMN_ROAD_S_2             = (levelColumnDataRS2 - levelColumnData)/16
@@ -299,6 +337,8 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_STATIC                              ; grass - 3 trees near top
     .byte       COLUMN_TYPE_STATIC                              ; grass - crosswalk in middle
     .byte       COLUMN_TYPE_STATIC                              ; grass - sidewalk in middle
+    .byte       COLUMN_TYPE_STATIC                              ; grass - trees with openning in top
+    .byte       COLUMN_TYPE_STATIC                              ; grass - trees with openning in bottom
 
 ; grass2road
     .byte       COLUMN_TYPE_STATIC                              ; 1 bush near bottom
@@ -313,9 +353,13 @@ levelColumnInfo:
 ; grass2water
     .byte       COLUMN_TYPE_STATIC                              ; several bushes
     .byte       COLUMN_TYPE_STATIC                              ; all clear
+    .byte       COLUMN_TYPE_STATIC                              ; small openning top/bottom
+    .byte       COLUMN_TYPE_STATIC                              ; openning in middle
 
 ; water2grass
     .byte       COLUMN_TYPE_STATIC                              ; 2 trees on top
+    .byte       COLUMN_TYPE_STATIC                              ; clear
+    .byte       COLUMN_TYPE_STATIC                              ; small openning top/bottom
 
 ; road (static)
     .byte       COLUMN_TYPE_STATIC                              ; road - cones
@@ -393,6 +437,12 @@ levelColumnDataG5:
 levelColumnDataG6:
     .byte   TILE_GRASS,TILE_FLOWER,TILE_GRASS,TILE_GRASS,TILE_GRASS_S,TILE_ROAD,TILE_ROAD,TILE_ROAD
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_GRASS_N,TILE_GRASS,TILE_GRASS,TILE_GRASS,TILE_GRASS
+levelColumnDataG7:
+    .byte   TILE_TREE_A,TILE_TREE_B,TILE_GRASS,TILE_GRASS,TILE_TREE_A,TILE_TREE_MID,TILE_TREE_MID,TILE_TREE_B
+    .byte   TILE_TREE_A,TILE_TREE_MID,TILE_TREE_MID,TILE_TREE_B,TILE_TREE_A,TILE_TREE_MID,TILE_TREE_MID,TILE_TREE_B
+levelColumnDataG8:
+    .byte   TILE_TREE_A,TILE_TREE_MID,TILE_TREE_MID,TILE_TREE_B,TILE_TREE_A,TILE_TREE_MID,TILE_TREE_MID,TILE_TREE_B
+    .byte   TILE_TREE_A,TILE_TREE_MID,TILE_TREE_MID,TILE_TREE_B,TILE_GRASS,TILE_GRASS,TILE_TREE_A,TILE_TREE_B
 
 ; grass2road
 levelColumnDataGR0:
@@ -425,10 +475,26 @@ levelColumnDataGW1:
     .byte   TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER
     .byte   TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER
 
+levelColumnDataGW2:
+    .byte   TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER
+    .byte   TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER
+
+levelColumnDataGW3:
+    .byte   TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_GRASS_WATER,TILE_GRASS_WATER
+    .byte   TILE_GRASS_WATER,TILE_GRASS_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER,TILE_BUSH_WATER
+
 ; water2grass
 levelColumnDataWG0:
     .byte   TILE_TREE_A,TILE_TREE_MID,TILE_TREE_B,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS
     .byte   TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS
+
+levelColumnDataWG1:
+    .byte   TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS
+    .byte   TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_WATER_GRASS
+
+levelColumnDataWG2:
+    .byte   TILE_TREE_A,TILE_TREE_B,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_TREE_A,TILE_TREE_MID,TILE_TREE_MID,TILE_TREE_MID
+    .byte   TILE_TREE_MID,TILE_TREE_MID,TILE_TREE_MID,TILE_TREE_B,TILE_WATER_GRASS,TILE_WATER_GRASS,TILE_TREE_A,TILE_TREE_B
 
 ; road (static)
 levelColumnDataRS0:

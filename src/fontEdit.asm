@@ -1684,9 +1684,10 @@ open_good:
     jsr         PRBYTE
     jsr         inline_print
     .byte       ":unable to write data",13,0
+    rts
 :
-    ;jsr        inline_print
-    ;.byte      "Data written",13,0
+    jsr        inline_print
+    .byte      "Data written",13,0
 
     jsr         MLI
     .byte       CMD_CLOSE
