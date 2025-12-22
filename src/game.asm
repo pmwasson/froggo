@@ -134,7 +134,6 @@ MAP_INDEX_BOTTOM            = 40
 QUOTE_X                     = MAP_LEFT+TILE_WIDTH
 QUOTE_Y                     = MAP_TOP+TILE_HEIGHT
 
-
 STATE_IDLE                  = 0
 STATE_START_UP              = 1
 STATE_MOVE_UP               = 2
@@ -268,7 +267,7 @@ LEVEL_COLUMN_START          = $2F
 NUMBER_CUTSCENES            = 32
 
 MAX_LEVELS                  = (level_end-level_start)/32
-INITIAL_LEVEL               = 9   ; MAX_LEVELS-1
+INITIAL_LEVEL               = 0
 
 ;-----------------------------------------------------------------------------
 ; Title image

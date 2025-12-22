@@ -61,6 +61,20 @@ level_e1:         ; grass--road--grass
     ; animation (not used)
     .byte       0,0,0
 
+level_e2:         ; grass--road--grass--water--grass
+    ; columns
+    .byte       COLUMN_GRASS_1,COLUMN_GRASS_2,COLUMN_GRASS_WATER_1,COLUMN_WATER_D_0
+    .byte       COLUMN_WATER_D_0,COLUMN_WATER_S_2,COLUMN_WATER_D_1,COLUMN_WATER_D_2
+    .byte       COLUMN_WATER_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_2,COLUMN_GRASS_1
+    .byte       COLUMN_GRASS_ROAD_0,COLUMN_ROAD_D_8,COLUMN_ROAD_D_0,COLUMN_ROAD_S_2
+    .byte       COLUMN_ROAD_D_2,COLUMN_ROAD_D_6,COLUMN_ROAD_GRASS_0,COLUMN_GRASS_0
+    ; dynamic speeds
+    ConvertSpeeds   $00B0, $FF40, $0070, $FF60, $0080, $FF90, $0070, $FF90
+    ; starting Y
+    .byte       MAP_BOTTOM-TILE_HEIGHT*3
+    ; animation (not used)
+    .byte       0,0,0
+
 ; easy
 level_e3:         ; grass--road--grass
     ; columns
@@ -300,6 +314,7 @@ COLUMN_ROAD_D_4             = (levelColumnDataRD4 - levelColumnData)/16
 COLUMN_ROAD_D_5             = (levelColumnDataRD5 - levelColumnData)/16
 COLUMN_ROAD_D_6             = (levelColumnDataRD6 - levelColumnData)/16
 COLUMN_ROAD_D_7             = (levelColumnDataRD7 - levelColumnData)/16
+COLUMN_ROAD_D_8             = (levelColumnDataRD8 - levelColumnData)/16
 COLUMN_TRAIN_D_0            = (levelColumnDataTD0 - levelColumnData)/16
 COLUMN_WATER_S_0            = (levelColumnDataWS0 - levelColumnData)/16
 COLUMN_WATER_S_1            = (levelColumnDataWS1 - levelColumnData)/16
@@ -377,6 +392,7 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_DYNAMIC                             ; 1 truck (down)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 1 small car (red)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 1 small car (purple)
+    .byte       COLUMN_TYPE_DYNAMIC                             ; 4 medium cars
 
 ; train (dynamic)
     .byte       COLUMN_TYPE_DYNAMIC                             ; train cars
@@ -540,6 +556,9 @@ levelColumnDataRD6:
 levelColumnDataRD7:
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_CAR1_PURPLE
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+levelColumnDataRD8:
+    .byte   TILE_ROAD,TILE_ROAD,TILE_CAR2_A,TILE_CAR2_B,TILE_ROAD,TILE_ROAD,TILE_CAR2_A,TILE_CAR2_B
+    .byte   TILE_ROAD,TILE_CAR2_A,TILE_CAR2_B,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
 
 ; train (dynamic)
 levelColumnDataTD0:
