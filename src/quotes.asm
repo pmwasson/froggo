@@ -24,6 +24,9 @@ stringQuoteR5:      QuoteText "",2*2,2
 stringQuoteR6:      QuoteText "",2*1,2
                     QuoteText "lookBeforeYou",2*7,1
                     QuoteText "leap!",15,15
+stringQuoteR7:      QuoteText "",2*4,2
+                    QuoteText "frog-like",2*4,1
+                    QuoteText "reflexes!",15,15
 stringQuoteL0:      QuoteText "",2*1,2
                     QuoteText "amILivingInA",2*3,1
                     QuoteText "simulation?",15,15
@@ -44,5 +47,8 @@ stringQuoteL5:      QuoteText "",2*5,1
                     QuoteText "knownHer!",15,15
 stringQuoteL6:      QuoteText "",2*2,2
                     QuoteText "iDon'tTrust",2*2,1
-                    QuoteText "thatTurtle.",15,15
+                    QuoteText "thatTurtle",15,15
+stringQuoteL7:      QuoteText "",2*2,2
+                    QuoteText "whereAreThese",1*2,1
+                    QuoteText "logsComingFrom?",15,15
 

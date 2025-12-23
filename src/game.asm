@@ -791,13 +791,12 @@ menuImageBottom:
 .align 256
 LEVEL_DATA_END:
 
-
 ;-----------------------------------------------------------------------------
 ; Data to be used or copied to aux memory (will get overwritten)
 ;-----------------------------------------------------------------------------
 
 ; pretend there is more data to keep the linker happy
-.res            $A00
+.res            $900
 
 ;=============================================================================
 .align $100
@@ -3804,16 +3803,16 @@ CUT_SCENE_QUOTE_RIGHT = 1
 CUT_SCENE_QUOTE_LEFT = 2
 
 cutSceneList:
-    .byte           CUT_SCENE_IMAGE,0,"0",0
-    .byte           CUT_SCENE_IMAGE,0,"1",0
-    .byte           CUT_SCENE_IMAGE,0,"2",0
-    .byte           CUT_SCENE_IMAGE,0,"3",0
-    .byte           CUT_SCENE_IMAGE,0,"4",0
-    .byte           CUT_SCENE_IMAGE,0,"5",0
-    .byte           CUT_SCENE_IMAGE,0,"6",0
-    .byte           CUT_SCENE_IMAGE,0,"7",0
-    .byte           CUT_SCENE_IMAGE,0,"8",0
-    .byte           CUT_SCENE_IMAGE,0,"9",0
+    .byte           CUT_SCENE_IMAGE,0,"0",0                 ; log
+    .byte           CUT_SCENE_IMAGE,0,"1",0                 ; cup
+    .byte           CUT_SCENE_IMAGE,0,"2",0                 ; selfie
+    .byte           CUT_SCENE_IMAGE,0,"3",0                 ; karate
+    .byte           CUT_SCENE_IMAGE,0,"4",0                 ; cape
+    .byte           CUT_SCENE_IMAGE,0,"5",0                 ; thumb
+    .byte           CUT_SCENE_IMAGE,0,"6",0                 ; astro
+    .byte           CUT_SCENE_IMAGE,0,"7",0                 ; scared
+    .byte           CUT_SCENE_IMAGE,0,"8",0                 ; red-car
+    .byte           CUT_SCENE_IMAGE,0,"9",0                 ; turtle
     .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR0
     .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR1
     .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR2
@@ -3821,6 +3820,7 @@ cutSceneList:
     .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR4
     .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR5
     .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR6
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR7
     .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL0
     .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL1
     .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL2
@@ -3828,11 +3828,10 @@ cutSceneList:
     .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL4
     .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL5
     .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL6
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL7
     ; repeat until a power of 2
     .byte           CUT_SCENE_IMAGE,0,"2",0
     .byte           CUT_SCENE_IMAGE,0,"3",0
-    .byte           CUT_SCENE_IMAGE,0,"4",0
-    .byte           CUT_SCENE_IMAGE,0,"5",0
     .byte           CUT_SCENE_IMAGE,0,"6",0
     .byte           CUT_SCENE_IMAGE,0,"7",0
     .byte           CUT_SCENE_IMAGE,0,"8",0
