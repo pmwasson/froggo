@@ -244,6 +244,21 @@ level_m7:         ; grass--road--grass
     ; state offset ()
     .byte       STATE_OFFSET_TRAINS
 
+; ???
+level_m8:         ; building
+    ; columns
+    .byte       COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1
+    .byte       COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0
+    .byte       COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0
+    .byte       COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0,COLUMN_BRICK_1,COLUMN_BRICK_0
+    .byte       COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0
+    ; dynamic speeds
+    ConvertSpeeds   $FF60, $FF10, $FF30, $FF40, $FF20, $FF30, $FF40, $FF50
+    ; starting Y
+    .byte       MAP_BOTTOM-TILE_HEIGHT*3
+    ; animation (not used)
+    .byte       0,0,0
+
 ; hard (trucks at end)
 level_h0:         ; grass--road--grass--water--grass
     ; columns

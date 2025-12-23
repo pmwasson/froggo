@@ -2052,8 +2052,8 @@ LEVEL_Y = 1*TILE_HEIGHT
     tax
     lda         digitTile,x
     jsr         drawTile
-    lda         #LEVEL_X+TILE_WIDTH
-    sta         tileX
+    inc         tileX
+    inc         tileX
     lda         displayLevel
     and         #$f
     tax
