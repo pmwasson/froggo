@@ -135,6 +135,8 @@ NOTE_51             = 56        ; $33 - not standard
 NOTE_20             = 20        ; $14 - not standard
 NOTE_9              = 9         ; $09 - not standard
 
+SONG_UNINTERRUPTIBLE = $4E
+SONG_INTERRUPTIBLE   = $2C
 
 .align 256
 
@@ -158,9 +160,10 @@ INST_CMP        =   $C9
 ENTRY_SIZE      =   3
 CHANGE_VOICE    =   1
 
-                ; Strobe keyboard to cancel any late keystroke
-                STA     KBDSTRB
-
+                ;-- modified preamble ---
+                STA     KBDSTRB         ; Strobe keyboard to cancel any late keystroke
+                STA     INTERRUPT       ; BIT=2C interruptable, LSR=4E uninterruptable
+                ;-- end of preamble -----
 
                 LDA     #$01            ; 2 *!*
                 STA     ZP_09           ; 3
@@ -225,7 +228,7 @@ BRANCH_65:      CMP     #$00            ; 2
                 BPL     BRANCH_6F       ; 4 *!*
 BRANCH_6C:      BIT     SPEAKER         ; 4
 BRANCH_6F:      STA     ZP_4E           ; 3
-                BIT     KBD             ; 4
+INTERRUPT:      BIT     KBD             ; 4
                 BMI     BRANCH_36       ; 4 *!*
                 DEY                     ; 2
                 BNE     BRANCH_7B       ; 4 *!*

@@ -62,7 +62,19 @@
     sta     songPtr
     lda     #>song
     sta     songPtr+1
+    lda     #SONG_UNINTERRUPTIBLE
     jsr     electricDuetPlayer
+    sta     KBDSTRB                 ; kill any keystroke
+.endmacro
+
+.macro PlaySongPtrInterrupt song
+    lda     #<song
+    sta     songPtr
+    lda     #>song
+    sta     songPtr+1
+    lda     #SONG_INTERRUPTIBLE
+    jsr     electricDuetPlayer
+    sta     KBDSTRB                 ; kill any keystroke
 .endmacro
 
 ;-----------------------------------------------------------------------------
@@ -816,9 +828,7 @@ LEVEL_DATA_END:
     sta         HIRES
     sta         TXTCLR
 
-    PlaySongPtr peasantSong
-;    jsr         waitForKey
-    sta         KBDSTRB
+    PlaySongPtrInterrupt peasantSong
 
     jsr         initDisplay
     lda         #STATE_GAME_OVER
@@ -2409,6 +2419,7 @@ loop:
     sta         tileY
     lda         #TILE_BLANK
     jsr         waitForInput
+    sta         SPEAKER
     cmp         #KEY_UP
     beq         menuUp
     cmp         #KEY_LEFT
