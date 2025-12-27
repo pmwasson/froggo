@@ -27,19 +27,6 @@
     jsr         drawString
 .endmacro
 
-.macro  DrawStringBoth stringX, stringY, string
-    DrawStringCord stringX, stringY, string
-    lda         drawPage
-    eor         #$20
-    sta         drawPage
-    lda         #stringX
-    sta         tileX
-    jsr         drawString
-    lda         drawPage
-    eor         #$20
-    sta         drawPage
-.endmacro
-
 .macro  DrawImageParam imgX, imgY, imgWidth, imgHeight, imgPtr, aux
     lda     #imgX
     sta     imageX
@@ -60,6 +47,15 @@
 .endif
 .endmacro
 
+.macro SetStringTop entry
+    lda     #<entry
+    jsr     setTextTop
+.endmacro
+
+.macro SetStringBottom entry
+    lda     #<entry
+    jsr     setTextBottom
+.endmacro
 
 .macro PlaySongPtr song
     lda     #<song
@@ -133,6 +129,9 @@ MAP_INDEX_BOTTOM            = 40
 
 QUOTE_X                     = MAP_LEFT+TILE_WIDTH
 QUOTE_Y                     = MAP_TOP+TILE_HEIGHT
+
+MODE_CASUAL                 = 0
+MODE_CHALLENGE              = 1
 
 STATE_IDLE                  = 0
 STATE_START_UP              = 1
@@ -268,6 +267,9 @@ NUMBER_CUTSCENES            = 32
 
 MAX_LEVELS                  = (level_end-level_start)/32
 INITIAL_LEVEL               = 0
+
+TEXT_MASK                   = %00111110     ; mask bit 0 so called twice (upper bits for min time)
+TEXT_TRIGGER                = $20           ; not 0 since 0 is for animate
 
 ;-----------------------------------------------------------------------------
 ; Title image
@@ -813,19 +815,33 @@ LEVEL_DATA_END:
     sta         HIRES
     sta         TXTCLR
 
-    PlaySongPtr songGameStart
-    ;PlaySongPtr peasantSong
-    jsr         waitForKey
+    PlaySongPtr peasantSong
+;    jsr         waitForKey
+    sta         KBDSTRB
+
+    jsr         initDisplay
+    lda         #STATE_GAME_OVER
+    sta         playerState
+    jsr         drawMenu
 
 restart_loop:
     jsr         randomizeCutScenes  ; randomize cutscenes after waiting for 'random' seed
     jsr         initGameState
+    jsr         loadLevel
+    jsr         initLevelState
+    jsr         drawScreen
+    sta         HISCR
+    PlaySongPtr songGameStart
+    sta         LOWSCR
+    jmp         game_loop
 
 reset_loop:
     jsr         loadLevel
     jsr         initLevelState
 
 redraw_loop:
+    lda         #2
+    sta         updateText
     jsr         drawScreen
 
 game_loop:
@@ -836,6 +852,7 @@ game_loop:
     inc         time+1
 :
 
+    jsr         drawText
     jsr         animateColumns
     jsr         drawRoad
     jsr         updatePlayer
@@ -873,35 +890,17 @@ switchTo1:
 :
     bit         KBDSTRB
 
-    cmp         #KEY_TAB
-    bne         :+
-    jsr         showPause
-    jmp         redraw_loop
-:
-
-    cmp         #KEY_QUESTION
-    bne         :+
-    jsr         showCredits
-    jmp         redraw_loop
-:
-
-    cmp         #KEY_CTRL_C
-    bne         :+
-    jsr         showSetKeysMenu
-    jmp         redraw_loop
-:
-
-    cmp         #KEY_CTRL_L
-    bne         :+
-    jsr         showLoadTiles
-    bne         reset_loop
-    jmp         restart_loop
-:
     cmp         #KEY_ESC
     bne         :+
-    jsr         showQuit
-    bne         redraw_loop
-    jmp         quit
+    bit         HISCR
+    jsr         drawMenu
+    bit         LOWSCR
+    lda         playerState
+    cmp         #STATE_GAME_OVER
+    beq         menuNewGame
+    jmp         redraw_loop
+menuNewGame:
+    jmp         restart_loop
 :
     cmp         #KEY_ASTERISK
     bne         :+
@@ -917,9 +916,7 @@ switchTo1:
     ldx         playerState
     cpx         #STATE_GAME_OVER
     bne         :+
-    jsr         initGameState
-    PlaySongPtr songGameStart
-    jmp         reset_loop  ; restart game
+    jmp         restart_loop
 :
     ; only process movement keypress if player is idle
     cpx         #STATE_IDLE
@@ -928,7 +925,6 @@ switchTo1:
 :
 
     cmp         inputUp
-
     bne         :+
     jmp         goUp
 :
@@ -1472,13 +1468,12 @@ replaceTileTable:
     stx         count+1
     cmp         #STATE_DEAD
     bne         :+
-    DrawStringBoth  0, 22, stringGameOver
+    SetStringBottom     displayGameOver0
     PlaySongPtr songOuch
     rts
 :
     cmp         #STATE_GAME_OVER
     bne         :+
-    DrawStringBoth  0, 22, stringPressKey
     PlaySongPtr songDead
     rts
 :
@@ -2019,7 +2014,13 @@ stringBlank:        TileText "                    "
 stringThought:      QuoteText " o",1,0
                     TileText "&"
 ; stringArrow:        TileText ">"
+stringMainMenu:     TileText "_       MENU       _"
+stringMenuFooter:   TileText "_USE:^ ; RETURN ESC_"
 stringFroggo:       TileText "_ @    FROGGO    @ _"
+stringHelp0:        TileText "_   TAB TO PAUSE   _"
+stringHelp1:        TileText "_   ESC TO QUIT    _"
+stringHelp2:        TileText "_ CTRL-C CONTROLS  _"
+stringHelp3:        TileText "_  CTRL-L DISPLAY  _"
 stringGameOver:     TileText "_ @  GAME  OVER  @ _"
 stringPressKey:     TileText "_   PRESS ANY KEY  _"
 stringLevelComplete:TileText "_  LEVEL COMPLETE! _"
@@ -2028,20 +2029,104 @@ stringLevelComplete:TileText "_  LEVEL COMPLETE! _"
 LEVEL_X = 12*TILE_WIDTH
 LEVEL_Y = 1*TILE_HEIGHT
 
-.proc drawText
+;---------------------
+; Draw boxes for text
+;---------------------
+.proc drawTextBox
     DrawStringCord  0, 0,  stringBoxTop
-    DrawStringCord  0, 1,  stringLevel
+    DrawStringCord  0, 1,  stringBoxBlank
     DrawStringCord  0, 2,  stringBoxBottom
-;    DrawStringCord  38,3,  stringArrow
-;    DrawStringCord  38,20, stringArrow
+    DrawStringCord  0, 3,  stringBlank
+
+    DrawStringCord  0, 20, stringBlank
     DrawStringCord  0, 21, stringBoxTop
-    DrawStringCord  0, 22, stringFroggo
+    DrawStringCord  0, 22, stringBoxBlank
     DrawStringCord  0, 23, stringBoxBottom
 
+    rts
+.endproc
+
+;---------------------
+; Text state machine
+;---------------------
+.proc drawText
+    lda         updateText
+    bne         doUpdate
+    lda         time
+    and         #TEXT_MASK      ; trigger twice: page 1 & page 2
+    cmp         #TEXT_TRIGGER
+    beq         checkTop
+    rts
+
+doUpdate:
+    dec         updateText
+
+checkTop:
+    dec         textTopCount
+    beq         doTop
+    lda         textTopCount
+    cmp         #1
+    beq         doTop
+
+checkBottom:
+    dec         textBottomCount
+    beq         doBottom
+    lda         textBottomCount
+    cmp         #1
+    beq         doBottom
+    rts
+
+doTop:
+    ldx         textTopPtr
+    lda         displayEntries,x
+    sta         stringPtr0
+    lda         displayEntries+1,x
+    sta         stringPtr1
+    lda         #1
+    sta         tileY
+    jsr         draw
+    lda         textTopCount
+    bne         checkBottom
+
+    ; go to next entry
+    ldx         textTopPtr
+    lda         displayEntries+2,x
+    sta         textTopCount
+    lda         displayEntries+3,x
+    sta         textTopPtr
+    jmp         checkBottom
+
+doBottom:
+    ldx         textBottomPtr
+    lda         displayEntries,x
+    sta         stringPtr0
+    lda         displayEntries+1,x
+    sta         stringPtr1
+    lda         #22
+    sta         tileY
+    jsr         draw
+    lda         textBottomCount
+    bne         done
+
+    ; go to next entry
+    ldx         textBottomPtr
+    lda         displayEntries+2,x
+    sta         textBottomCount
+    lda         displayEntries+3,x
+    sta         textBottomPtr
+done:
+    rts
+
+draw:
+    lda         #0
+    sta         tileX
+    jsr         drawString
+    lda         stringPtr0
+    cmp         #<stringLevel
+    bne         doneDraw
     lda         #LEVEL_X
     sta         tileX
-    lda         #LEVEL_Y
-    sta         tileY
+    ; add level #
     lda         displayLevel
     lsr
     lsr
@@ -2058,12 +2143,77 @@ LEVEL_Y = 1*TILE_HEIGHT
     tax
     lda         digitTile,x
     jsr         drawTile
-
+doneDraw:
     rts
 
 digitTile:      .byte   $10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+
 .endproc
 
+;---------------------
+; Set top string(s)
+;---------------------
+.proc setTextTop
+    sta         textTopPtr
+    lda         #2
+    sta         textTopCount
+    sta         updateText
+    rts
+.endproc
+
+;---------------------
+; Set bottom string(s)
+;---------------------
+.proc setTextBottom
+    sta         textBottomPtr
+    lda         #2
+    sta         textBottomCount
+    sta         updateText
+    rts
+.endproc
+
+
+.align  256
+displayEntries:
+
+displayLevel0:
+    .word       stringLevel
+    .byte       10,<displayLevel1
+displayLevel1:
+    .word       stringFroggo
+    .byte       2,<displayLevel0
+
+displayFroggo0:
+    .word       stringFroggo
+    .byte       24,<displayFroggo1
+displayFroggo1:
+    .word       stringHelp0
+    .byte       2,<displayFroggo2
+displayFroggo2:
+    .word       stringFroggo
+    .byte       24,<displayFroggo3
+displayFroggo3:
+    .word       stringHelp1
+    .byte       2,<displayFroggo4
+displayFroggo4:
+    .word       stringFroggo
+    .byte       24,<displayFroggo5
+displayFroggo5:
+    .word       stringHelp2
+    .byte       2,<displayFroggo6
+displayFroggo6:
+    .word       stringFroggo
+    .byte       24,<displayFroggo7
+displayFroggo7:
+    .word       stringHelp3
+    .byte       2,<displayFroggo0
+
+displayGameOver0:
+    .word       stringGameOver
+    .byte       6,<displayGameOver1
+displayGameOver1:
+    .word       stringPressKey
+    .byte       2,<displayGameOver0
 
 ;-----------------------------------------------------------------------------
 ; Draw Cut Scene - image or quote (right/left styles)
@@ -2136,16 +2286,166 @@ doLeft:
 
 ;-----------------------------------------------------------------------------
 ; Draw Menu
-;
-;   Pass in menu type
 ;-----------------------------------------------------------------------------
-menuBoxTop:     TileText "#============\"
-menuBoxSides:   TileText "_            _"
-menuBoxBottom:  TileText "[============]"
+menuBoxTop:         TileText "#============\"
+menuBoxSides:       TileText "_            _"
+menuBoxBottom:      TileText "[============]"
+
+menuItemResume:     QuoteText "resume",      15,15
+menuItems:          QuoteText "newGame",     0,1
+                    QuoteText "setKeys",     0,1
+                    QuoteText "setScreen",   0,1
+                    QuoteText "info",        0,1
+                    QuoteText "credits",     0,1
+                    QuoteText "quit",        15,15
 
 .proc drawMenu
+    jsr         drawTextBox
+    jsr         drawMenuBox
+    DrawStringCord  6, MAP_TOP+2,  menuItems
+    DrawStringCord  0, 1,  stringMainMenu
+    DrawStringCord  0, 22, stringMenuFooter
 
+    lda         #MAP_TOP+7
+    sta         menuBottom
+
+    ; Only allow resume if game started
+    lda         playerState
+    cmp         #STATE_GAME_OVER
+    beq         :+
     DrawStringCord  0, 1,  stringPause
+    DrawStringCord  6, MAP_TOP+1,  menuItemResume
+    lda         #MAP_TOP+1
+    jmp         continue
+
+:
+    lda         #MAP_TOP+2
+
+continue:
+    sta         menuTop
+    sta         menuCursor
+
+    lda         #1*2
+    sta         tileX
+
+loop:
+    jsr         menuInput
+    cmp         #MAP_TOP+1      ; resume
+    bne         menu2
+    rts
+
+menu2:
+    cmp         #MAP_TOP+2      ; new game
+    bne         menu3
+    jsr         showNewGame
+    beq         :+
+    lda         #STATE_GAME_OVER
+    sta         playerState
+    rts
+:
+    jmp         drawMenu
+
+menu3:
+    cmp         #MAP_TOP+3      ; set keys
+    bne         menu4
+    DrawStringCord  0, 22, stringFroggo
+    jsr         showSetKeysMenu
+    jmp         drawMenu
+menu4:
+    cmp         #MAP_TOP+4      ; set screen
+    bne         menu5
+    DrawStringCord  0, 22, stringFroggo
+    jsr         showLoadTiles
+    bne         :+
+    lda         #STATE_GAME_OVER
+    sta         playerState
+:
+    jmp         drawMenu
+menu5:
+    cmp         #MAP_TOP+5      ; info
+    bne         menu6
+    DrawStringCord  0, 22, stringFroggo
+    jsr         showPause
+    jmp         drawMenu
+menu6:
+    cmp         #MAP_TOP+6      ; credits
+    bne         menu7
+    jsr         playCredits
+    jmp         drawMenu
+menu7:
+    cmp         #MAP_TOP+7      ; quit
+    bne         menu8
+doQuit:
+    DrawStringCord  0, 22, stringFroggo
+    jsr         showQuit
+    bne         :+
+    jmp         quit
+:
+    jmp         drawMenu
+menu8:
+    lda         playerState
+    cmp         #STATE_GAME_OVER
+    beq         doQuit
+    rts
+
+.endproc
+
+.proc menuInput
+
+loop:
+    lda         menuCursor
+    sta         tileY
+    lda         #TILE_BLANK
+    jsr         waitForInput
+    cmp         #KEY_UP
+    beq         menuUp
+    cmp         #KEY_LEFT
+    beq         menuUp
+    cmp         #KEY_DOWN
+    beq         menuDown
+    cmp         #KEY_RIGHT
+    beq         menuDown
+    cmp         #KEY_RETURN
+    beq         menuAccept
+    cmp         #KEY_SPACE
+    beq         menuAccept
+    cmp         #KEY_ESC
+    bne         loop
+    lda         #0
+    rts
+
+menuAccept:
+    lda         menuCursor
+    rts
+
+menuUp:
+    lda         menuCursor
+    cmp         menuTop
+    beq         :+
+    dec         menuCursor
+    jmp         loop
+:
+    lda         menuBottom
+    sta         menuCursor
+    jmp         loop
+
+menuDown:
+    lda         menuCursor
+    cmp         menuBottom
+    beq         :+
+    inc         menuCursor
+    jmp         loop
+:
+    lda         menuTop
+    sta         menuCursor
+    jmp         loop
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Draw Menu Box
+;-----------------------------------------------------------------------------
+.proc drawMenuBox
 
     DrawImageParam  MAP_RIGHT-12,MAP_TOP*8,12,(MAP_BOTTOM-MAP_TOP)*8,MENU_IMAGE_RIGHT,aux
     DrawImageParam  MAP_LEFT,(MAP_BOTTOM*8)-48,MAP_RIGHT-12,48,MENU_IMAGE_BOTTOM,aux
@@ -2166,20 +2466,52 @@ menuBoxBottom:  TileText "[============]"
 
 
 ;-----------------------------------------------------------------------------
-; Show Quit
+; Show New Game
 ;-----------------------------------------------------------------------------
 
-; 01234567890123
-; /------------\ 0
-; |            | 1
-; | QUIT  GAME | 2
-; |            | 3
-; |  ARE YOU   | 4
-; |   SURE?    | 5
-; |            | 6
-; |   Y/N:     | 7
-; |            | 8
-; \--------v---/ 9
+stringNewGame:  QuoteText "newGame:",   4,2
+                QuoteText "casual",     4,1
+                QuoteText "challenge",  15,15
+
+.proc showNewGame
+
+    jsr         drawMenuBox
+    DrawStringCord  2, MAP_TOP+2,  stringNewGame
+
+
+    lda         #2
+    sta         tileX
+
+    lda         #MAP_TOP+4
+    sta         menuTop
+    sta         menuCursor
+    lda         #MAP_TOP+5
+    sta         menuBottom
+
+    jsr         menuInput
+    cmp         #MAP_TOP+4
+    bne         :+
+    lda         #MODE_CASUAL
+    sta         gameMode
+    lda         #1
+    rts
+:
+    cmp         #MAP_TOP+5
+    bne         :+
+    lda         #MODE_CHALLENGE
+    sta         gameMode
+    lda         #1
+    rts
+:
+    lda         #0
+    rts
+
+.endproc
+
+
+;-----------------------------------------------------------------------------
+; Show Quit
+;-----------------------------------------------------------------------------
 
 stringQuit:     QuoteText "",           1*2,1
                 QuoteText "quit Game",  3*2,2
@@ -2189,11 +2521,11 @@ stringQuit:     QuoteText "",           1*2,1
 
 .proc showQuit
 
-    jsr         drawMenu
+    jsr         drawMenuBox
     DrawStringCord  2, MAP_TOP+1,  stringQuit
 
     ; display menu
-    bit         HISCR
+;    bit         HISCR
 
     lda         #MAP_LEFT+10*TILE_WIDTH
     sta         tileX
@@ -2203,7 +2535,7 @@ stringQuit:     QuoteText "",           1*2,1
     jsr         waitForInput
 
     ; restore display
-    bit         LOWSCR
+;    bit         LOWSCR
 
     cmp         #KEY_Y
     rts
@@ -2225,20 +2557,21 @@ stringQuit:     QuoteText "",           1*2,1
 ; |            | 8
 ; \--------v---/ 9
 
-stringLoadTiles:    QuoteText "loadTiles:", 0,1
+stringLoadTiles:    QuoteText "setScreen:", 0,1
                     QuoteText "gameWill",   0,1
                     QuoteText "reset!",     1*2,2
                     QuoteText "0:color",    1*2,1
                     QuoteText "1:mono",     1*2,1
-                    QuoteText ">",          15,15
+                    QuoteText ">",          0,1
+                    QuoteText "esc:cancel",15,15
 
 .proc showLoadTiles
 
-    jsr         drawMenu
+    jsr         drawMenuBox
     DrawStringCord  2, MAP_TOP+1,  stringLoadTiles
 
     ; display menu
-    bit         HISCR
+;    bit         HISCR
 
     lda         #MAP_LEFT+4*TILE_WIDTH
     sta         tileX
@@ -2248,7 +2581,7 @@ stringLoadTiles:    QuoteText "loadTiles:", 0,1
     jsr         waitForInput
 
     ; restore display
-    bit         LOWSCR
+;    bit         LOWSCR
 
     cmp         #KEY_0
     bne         :+
@@ -2279,11 +2612,11 @@ doLoad:
 
 .proc showPause
 
-    jsr         drawMenu
+    jsr         drawMenuBox
     DrawImageParam  MAP_LEFT+TILE_WIDTH,(MAP_TOP+1)*8,18,64,PAUSE_IMAGE,aux
 
     ; display menu
-    bit         HISCR
+;    bit         HISCR
 
     lda         #MAP_LEFT+12*TILE_WIDTH
     sta         tileX
@@ -2293,7 +2626,7 @@ doLoad:
     jsr         waitForInput
 
     ; restore display
-    bit         LOWSCR
+;    bit         LOWSCR
     rts
 
 .endproc
@@ -2303,15 +2636,15 @@ doLoad:
 ;-----------------------------------------------------------------------------
 
 
-.proc showCredits
-
-    jsr         playCredits
-
-    ; restore display
-    bit         LOWSCR
-    rts
-
-.endproc
+;.proc showCredits
+;
+;    jsr         playCredits
+;
+;    ; restore display
+;    bit         LOWSCR
+;    rts
+;
+;.endproc
 
 ;-----------------------------------------------------------------------------
 ; Show Set Keys Menu
@@ -2339,7 +2672,7 @@ stringMenuKeys:     QuoteText "setKeys",        3*2,1
 
 .proc showSetKeysMenu
 
-    jsr         drawMenu
+    jsr         drawMenuBox
 
     DrawStringCord  2, MAP_TOP+1,  stringMenuKeys
 
@@ -2364,7 +2697,7 @@ reset:
     jsr         drawKey
 
     ; display menu
-    bit         HISCR
+;    bit         HISCR
 
     ; get input for up
     lda         #MAP_TOP+2
@@ -2423,7 +2756,7 @@ finsh:
 
 cancel:
     ; restore display
-    bit         LOWSCR
+;    bit         LOWSCR
     rts
 
 getNewKey:
@@ -2495,14 +2828,23 @@ blinkLoop:
 
 wait:
     ldy         #0
-    ldx         #0
+preloop:
+    ldx         #$40
 loop:
     lda         KBD
     bmi         done
+
+    inc         seed
+    bne         :+
+    inc         seed+1
+    bne         :+
+    inc         seed        ; can't be zero
+:
+
     dex
     bne         loop
     dey
-    bne         loop
+    bne         preloop
 done:
     rts
 
@@ -2899,7 +3241,6 @@ drawLoop:
     sta         sceneFileNameEnd-1
     jsr         loadCutScene
 
-
     lda         #1
     sta         displayLevel
     lda         #INITIAL_LEVEL
@@ -2981,24 +3322,31 @@ drawLoop:
 .proc drawScreen
     jsr         initDisplay
 
+    ; set initial text strings
+    SetStringTop        displayLevel0
+    SetStringBottom     displayFroggo0
+
     ; display map on both pages
     lda         #$20
     sta         drawPage
     jsr         drawMap
-    jsr         drawText
+    jsr         drawTextBox
     jsr         drawRoad
+    jsr         drawText
 
     sta         HISCR       ; show high while drawing low
     lda         #$00
     sta         drawPage
     jsr         drawMap
-    jsr         drawText
+    jsr         drawTextBox
     jsr         drawRoad
+    jsr         drawText
 
     ; start with showing page1 and drawing on page2
     sta         LOWSCR
     lda         #$20
     sta         drawPage
+
 
     rts
 
@@ -3511,13 +3859,14 @@ quit_params:
 ;-----------------------------------------------------------------------------
 ; Globals
 ;-----------------------------------------------------------------------------
+gameMode:           .word       0           ; 0 = casual
 time:               .word       0           ; Global time
 count:              .word       0           ; Player state counter
 playerX:            .byte       0
 playerY:            .byte       0
 playerTileY:        .byte       0
 playerStartingTileY:.byte       0
-playerState:        .byte       STATE_IDLE
+playerState:        .byte       STATE_GAME_OVER
 activeColumns:      .byte       0
 initialOffset:      .byte       0
 displayLevel:       .byte       0
@@ -3529,6 +3878,15 @@ columnTriggerOdd:   .byte       0
 columnStateEven:    .byte       0
 columnStateOdd:     .byte       0
 columnStateOffset:  .byte       0
+textTopCount:       .byte       0
+textTopPtr:         .byte       0
+textBottomCount:    .byte       0
+textBottomPtr:      .byte       0
+updateText:         .byte       0
+menuTop:            .byte       0
+menuBottom:         .byte       0
+menuCursor:         .byte       0
+doPlaySong:         .byte       0
 
 ; settings
 inputUp:            .byte       KEY_A

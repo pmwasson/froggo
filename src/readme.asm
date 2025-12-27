@@ -31,12 +31,13 @@
     .byte       "|                                     |",13
     .byte       "| FROGGO controls:                    |",13
     .byte       "|  AZ <- -> : Movement                |",13
-    .byte       "|  TAB      : Pause                   |",13
-    .byte       "|  ESC      : Quit                    |",13
-    .byte       "|  CTRL-C   : Remap movement keys     |",13
-    .byte       "|  CTRL-L   : Load tilemap            |",13
-    .byte       "|  ?        : Display credits         |",13
-    .byte       "|  *        : B reak into monitor      |",13
+    .byte       "|  ESC      : Menu                    |",13
+    .byte       "|  *        : Break into monitor      |",13
+    .byte       "|                                     |",13
+    .byte       "| Game modes:                         |",13
+    .byte       "|  Challenge - how far can you get?   |",13
+    .byte       "|  Casual    - retry levels as many   |",13
+    .byte       "|              times as you want!     |",13
     .byte       "|                                     |",13
     .byte       "| Enjoy!                              |",13
     .byte       "|             - Paul Wasson, 12/2025  |",13
