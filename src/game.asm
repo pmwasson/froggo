@@ -142,7 +142,8 @@ STATE_START_RIGHT           = 5
 STATE_MOVE_RIGHT            = 6
 STATE_START_LEFT            = 7
 STATE_MOVE_LEFT             = 8
-STATE_GAME_OVER             = $80
+STATE_LEVEL_RESTART         = $80
+STATE_GAME_OVER             = $90
 STATE_DEAD                  = $FF
 
 PLAYER_INIT_X               = MAP_LEFT+TILE_WIDTH
@@ -918,6 +919,12 @@ menuNewGame:
     bne         :+
     jmp         restart_loop
 :
+    ldx         playerState
+    cpx         #STATE_LEVEL_RESTART
+    bne         :+
+    jmp         reset_loop
+:
+
     ; only process movement keypress if player is idle
     cpx         #STATE_IDLE
     beq         :+
@@ -1468,7 +1475,14 @@ replaceTileTable:
     stx         count+1
     cmp         #STATE_DEAD
     bne         :+
+    lda         gameMode
+    cmp         #MODE_CASUAL
+    beq         doCasual
     SetStringBottom     displayGameOver0
+    PlaySongPtr songOuch
+    rts
+doCasual:
+    SetStringBottom     displayLevelRestart0
     PlaySongPtr songOuch
     rts
 :
@@ -1477,6 +1491,9 @@ replaceTileTable:
     PlaySongPtr songDead
     rts
 :
+    cmp         #STATE_LEVEL_RESTART
+    bne         :+
+    PlaySongPtr songDead
     rts
 .endproc
 
@@ -1538,6 +1555,10 @@ replaceTileTable:
     bne         :+
     rts
 :
+    cmp         #STATE_LEVEL_RESTART
+    bne         :+
+    rts
+:
     cmp         #STATE_DEAD
     bne         :+
     lda         #PLAYER_OFFSET_DEAD
@@ -1545,7 +1566,13 @@ replaceTileTable:
     lda         count
     cmp         #DEAD_DELAY
     bne         doneDead
+    lda         gameMode
+    cmp         #MODE_CASUAL
+    beq         doCasual
     lda         #STATE_GAME_OVER
+    jmp         updateState
+doCasual:
+    lda         #STATE_LEVEL_RESTART
     jmp         updateState
 doneDead:
     rts
@@ -2013,18 +2040,14 @@ stringBoxQuote:     TileText "[=========*========]"
 stringBlank:        TileText "                    "
 stringThought:      QuoteText " o",1,0
                     TileText "&"
-; stringArrow:        TileText ">"
 stringMainMenu:     TileText "_       MENU       _"
 stringMenuFooter:   TileText "_USE:^ ; RETURN ESC_"
 stringFroggo:       TileText "_ @    FROGGO    @ _"
-stringHelp0:        TileText "_   TAB TO PAUSE   _"
-stringHelp1:        TileText "_   ESC TO QUIT    _"
-stringHelp2:        TileText "_ CTRL-C CONTROLS  _"
-stringHelp3:        TileText "_  CTRL-L DISPLAY  _"
+stringHelp0:        TileText "_   ESC FOR MENU   _"
 stringGameOver:     TileText "_ @  GAME  OVER  @ _"
-stringPressKey:     TileText "_   PRESS ANY KEY  _"
+stringLevelRestart: TileText "_ TRY LEVEL AGAIN  _"
+stringPressKey:     TileText "_  PRESS ANY KEY   _"
 stringLevelComplete:TileText "_  LEVEL COMPLETE! _"
-;stringHint:         TileText "_MOVE KEYS: A,Z,<,>_"
 
 LEVEL_X = 12*TILE_WIDTH
 LEVEL_Y = 1*TILE_HEIGHT
@@ -2188,24 +2211,6 @@ displayFroggo0:
     .byte       24,<displayFroggo1
 displayFroggo1:
     .word       stringHelp0
-    .byte       2,<displayFroggo2
-displayFroggo2:
-    .word       stringFroggo
-    .byte       24,<displayFroggo3
-displayFroggo3:
-    .word       stringHelp1
-    .byte       2,<displayFroggo4
-displayFroggo4:
-    .word       stringFroggo
-    .byte       24,<displayFroggo5
-displayFroggo5:
-    .word       stringHelp2
-    .byte       2,<displayFroggo6
-displayFroggo6:
-    .word       stringFroggo
-    .byte       24,<displayFroggo7
-displayFroggo7:
-    .word       stringHelp3
     .byte       2,<displayFroggo0
 
 displayGameOver0:
@@ -2214,6 +2219,13 @@ displayGameOver0:
 displayGameOver1:
     .word       stringPressKey
     .byte       2,<displayGameOver0
+
+displayLevelRestart0:
+    .word       stringLevelRestart
+    .byte       6,<displayLevelRestart1
+displayLevelRestart1:
+    .word       stringPressKey
+    .byte       2,<displayLevelRestart0
 
 ;-----------------------------------------------------------------------------
 ; Draw Cut Scene - image or quote (right/left styles)
@@ -2355,7 +2367,7 @@ menu4:
     cmp         #MAP_TOP+4      ; set screen
     bne         menu5
     DrawStringCord  0, 22, stringFroggo
-    jsr         showLoadTiles
+    jsr         showSetScreen
     bne         :+
     lda         #STATE_GAME_OVER
     sta         playerState
@@ -2464,7 +2476,6 @@ menuDown:
     rts
 .endproc
 
-
 ;-----------------------------------------------------------------------------
 ; Show New Game
 ;-----------------------------------------------------------------------------
@@ -2520,81 +2531,60 @@ stringQuit:     QuoteText "",           1*2,1
                 QuoteText "yOrN:",      15,15
 
 .proc showQuit
-
     jsr         drawMenuBox
     DrawStringCord  2, MAP_TOP+1,  stringQuit
 
-    ; display menu
-;    bit         HISCR
-
-    lda         #MAP_LEFT+10*TILE_WIDTH
+    lda         #MAP_LEFT+11*TILE_WIDTH
     sta         tileX
     lda         #MAP_TOP+7
     sta         tileY
     lda         #TILE_BLANK
     jsr         waitForInput
-
-    ; restore display
-;    bit         LOWSCR
 
     cmp         #KEY_Y
     rts
 .endproc
 
 ;-----------------------------------------------------------------------------
-; Show Load Tiles
+; Show Set Screen
 ;-----------------------------------------------------------------------------
 
-; 01234567890123
-; /------------\ 0
-; |            | 1
-; |LOAD TILES: | 2
-; | GAME WILL  | 3
-; | RESTART    | 4
-; | AFTER LOAD | 5
-; | CONTINUE?  | 6
-; | Y/N:       | 7
-; |            | 8
-; \--------v---/ 9
-
-stringLoadTiles:    QuoteText "setScreen:", 0,1
+stringSetScreen:    QuoteText "setScreen:", 0,1
                     QuoteText "gameWill",   0,1
-                    QuoteText "reset!",     1*2,2
-                    QuoteText "0:color",    1*2,1
-                    QuoteText "1:mono",     1*2,1
-                    QuoteText ">",          0,1
-                    QuoteText "esc:cancel",15,15
+                    QuoteText "reset!",     2*2,2
+                    QuoteText "color",      2*2,1
+                    QuoteText "mono",       0,2
+                    QuoteText "esc:cancel", 15,15
 
-.proc showLoadTiles
+.proc showSetScreen
 
     jsr         drawMenuBox
-    DrawStringCord  2, MAP_TOP+1,  stringLoadTiles
+    DrawStringCord  2, MAP_TOP+1,  stringSetScreen
 
-    ; display menu
-;    bit         HISCR
-
-    lda         #MAP_LEFT+4*TILE_WIDTH
+    lda         #2
     sta         tileX
-    lda         #MAP_TOP+7
-    sta         tileY
-    lda         #TILE_BLANK
-    jsr         waitForInput
 
-    ; restore display
-;    bit         LOWSCR
+    lda         #MAP_TOP+5
+    sta         menuTop
+    sta         menuCursor
+    lda         #MAP_TOP+6
+    sta         menuBottom
 
-    cmp         #KEY_0
+    jsr         menuInput
+    cmp         #MAP_TOP+5
     bne         :+
+    lda         #'0'
     jmp         doLoad
 :
-    cmp         #KEY_1
+    cmp         #MAP_TOP+6
     bne         :+
+    lda         #'1'
     jmp         doLoad
 :
+    lda         #0
     rts
 
 doLoad:
-    and         #$3f            ; only numbers
     sta         tileFileNameEnd-1
     ldx         #FILE_TILE
     jsr         loadData
@@ -2608,43 +2598,20 @@ doLoad:
 ;-----------------------------------------------------------------------------
 ; Show Pause
 ;-----------------------------------------------------------------------------
-
-
 .proc showPause
 
     jsr         drawMenuBox
-    DrawImageParam  MAP_LEFT+TILE_WIDTH,(MAP_TOP+1)*8,18,64,PAUSE_IMAGE,aux
+    DrawImageParam  MAP_LEFT+TILE_WIDTH*4,(MAP_TOP+1)*8,18,64,PAUSE_IMAGE,aux
 
-    ; display menu
-;    bit         HISCR
-
-    lda         #MAP_LEFT+12*TILE_WIDTH
+    lda         #MAP_LEFT+1*TILE_WIDTH
     sta         tileX
     lda         #MAP_TOP+8
     sta         tileY
     lda         #TILE_BLANK
     jsr         waitForInput
-
-    ; restore display
-;    bit         LOWSCR
     rts
 
 .endproc
-
-;-----------------------------------------------------------------------------
-; Show Credits
-;-----------------------------------------------------------------------------
-
-
-;.proc showCredits
-;
-;    jsr         playCredits
-;
-;    ; restore display
-;    bit         LOWSCR
-;    rts
-;
-;.endproc
 
 ;-----------------------------------------------------------------------------
 ; Show Set Keys Menu
