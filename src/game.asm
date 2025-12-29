@@ -932,6 +932,7 @@ menuNewGame:
     ldx         playerState
     cpx         #STATE_LEVEL_RESTART
     bne         :+
+    PlaySongPtr songRestart
     jmp         reset_loop
 :
 
@@ -3892,9 +3893,14 @@ songGameStart:
     .byte   NOTE_DONE,  NOTE_REST,  NOTE_REST
 
 songLevelComplete:
-    .byte   NOTE_16TH,  NOTE_C2,    NOTE_C3
-    .byte   NOTE_16TH,  NOTE_C3,    NOTE_C4
-    .byte   NOTE_16TH,  NOTE_C4,    NOTE_C5
+    .byte   NOTE_16TH,  NOTE_C2,    NOTE_REST
+    .byte   NOTE_16TH,  NOTE_C3,    NOTE_A2
+    .byte   NOTE_16TH,  NOTE_C4,    NOTE_A3
+    .byte   NOTE_DONE,  NOTE_REST,  NOTE_REST
+
+songRestart:
+    .byte   NOTE_16TH,  NOTE_C3,    NOTE_A2
+    .byte   NOTE_16TH,  NOTE_E3,    NOTE_C2
     .byte   NOTE_DONE,  NOTE_REST,  NOTE_REST
 
 songDead:
