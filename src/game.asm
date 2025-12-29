@@ -223,10 +223,19 @@ TILE_SINGLE_LINE            = $5D
 TILE_ROAD_BUSH              = $73       ; right of road
 TILE_CARPET_LEFT            = $5E
 TILE_CARPET                 = $5F
-TILE_BRICK                  = $64
 TILE_COIN                   = $70
-TILE_CONVEYOR               = $71
-TILE_FLOWER                 = $72
+TILE_CONVEYOR               = $64
+TILE_FLOWER                 = $6C
+
+TILE_BRICK_NW               = $68
+TILE_BRICK_N                = $69
+TILE_BRICK_NE               = $6A
+TILE_BRICK_W                = $70
+TILE_BRICK                  = $71
+TILE_BRICK_E                = $72
+TILE_BRICK_SW               = $78
+TILE_BRICK_S                = $79
+TILE_BRICK_SE               = $7A
 
 TILE_BUFFER0                = $80
 TILE_BUFFER1                = $81
@@ -3961,29 +3970,29 @@ tileTypeTable:
     .byte       TILE_TYPE_DEATH_AA          ;61     - Train A
     .byte       TILE_TYPE_DEATH_AA          ;62     - Train B
     .byte       TILE_TYPE_DEATH_AA          ;63     - Train C
-    .byte       TILE_TYPE_BLOCKED           ;64     - Brick
-    .byte       TILE_TYPE_FREE              ;65     - Unused
-    .byte       TILE_TYPE_FREE              ;66     - Unused
-    .byte       TILE_TYPE_FREE              ;67     - Unused
-    .byte       TILE_TYPE_FREE              ;68     - Unused
-    .byte       TILE_TYPE_FREE              ;69     - Unused
-    .byte       TILE_TYPE_FREE              ;6A     - Unused
-    .byte       TILE_TYPE_FREE              ;6B     - Unused
-    .byte       TILE_TYPE_FREE              ;6C     - Unused
-    .byte       TILE_TYPE_FREE              ;6D     - Unused
-    .byte       TILE_TYPE_FREE              ;6E     - Unused
-    .byte       TILE_TYPE_FREE              ;6F     - Unused
-    .byte       TILE_TYPE_FREE              ;70     - Coin
-    .byte       TILE_TYPE_MOVEMENT          ;71     - Conveyor
-    .byte       TILE_TYPE_FREE              ;72     - Flower
+    .byte       TILE_TYPE_MOVEMENT          ;64     - Conveyor
+    .byte       TILE_TYPE_FREE              ;65     - grass - nw
+    .byte       TILE_TYPE_FREE              ;66     - grass - n
+    .byte       TILE_TYPE_FREE              ;67     - grass - ne
+    .byte       TILE_TYPE_BLOCKED           ;68     - brick/road NW
+    .byte       TILE_TYPE_BLOCKED           ;69     - brick/road N
+    .byte       TILE_TYPE_BLOCKED           ;6A     - brick/road NE
+    .byte       TILE_TYPE_FREE              ;6B     - Coin
+    .byte       TILE_TYPE_FREE              ;6C     - Flower
+    .byte       TILE_TYPE_FREE              ;6D     - grass - sw
+    .byte       TILE_TYPE_FREE              ;6E     - grass - s
+    .byte       TILE_TYPE_FREE              ;6F     - grass - se
+    .byte       TILE_TYPE_BLOCKED           ;70     - brick/road W
+    .byte       TILE_TYPE_BLOCKED           ;71     - brick
+    .byte       TILE_TYPE_BLOCKED           ;72     - brick/road E
     .byte       TILE_TYPE_BLOCKED           ;73     - Bush
     .byte       TILE_TYPE_MOVEMENT_AA       ;74     - Turtle
     .byte       TILE_TYPE_MOVEMENT_AA       ;75     - Turtle (sinking)
     .byte       TILE_TYPE_DEATH_AA          ;76     - Turtle (sunk)
-    .byte       TILE_TYPE_ANIMATE_A         ;60     - Train Tracks (warning)
-    .byte       TILE_TYPE_FREE              ;78     - Unused
-    .byte       TILE_TYPE_FREE              ;79     - Unused
-    .byte       TILE_TYPE_FREE              ;7A     - Unused
+    .byte       TILE_TYPE_ANIMATE_A         ;77     - Train Tracks (warning)
+    .byte       TILE_TYPE_BLOCKED           ;78     - brick/road SW
+    .byte       TILE_TYPE_BLOCKED           ;79     - brick/road S
+    .byte       TILE_TYPE_BLOCKED           ;7A     - brick/road SE
     .byte       TILE_TYPE_FREE              ;7B     - Unused
     .byte       TILE_TYPE_MOVEMENT_AB       ;7C     - Turtle
     .byte       TILE_TYPE_MOVEMENT_AB       ;7D     - Turtle (sinking)
