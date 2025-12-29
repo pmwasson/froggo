@@ -2043,6 +2043,9 @@ index:          .byte   0
 ;-----------------------------------------------------------------------------
 stringBoxTop:       TileText "#==================\"
 stringLevel:        TileText "_    LEVEL:        _"
+stringMode:         TileText "_  MODE:           _"
+stringChallenge:    TileText "CHALLENGE"
+stringCasual:       TileText "CASUAL"
 stringPause:        TileText "_   GAME  PAUSED   _"
 stringBoxBlank:     TileText "_                  _"
 stringBoxBottom:    TileText "[==================]"
@@ -2060,7 +2063,7 @@ stringPressKey:     TileText "_  PRESS ANY KEY   _"
 stringLevelComplete:TileText "_  LEVEL COMPLETE! _"
 
 LEVEL_X = 12*TILE_WIDTH
-LEVEL_Y = 1*TILE_HEIGHT
+MODE_X = 9*TILE_WIDTH
 
 ;---------------------
 ; Draw boxes for text
@@ -2156,7 +2159,7 @@ draw:
     jsr         drawString
     lda         stringPtr0
     cmp         #<stringLevel
-    bne         doneDraw
+    bne         :+
     lda         #LEVEL_X
     sta         tileX
     ; add level #
@@ -2176,7 +2179,28 @@ draw:
     tax
     lda         digitTile,x
     jsr         drawTile
-doneDraw:
+    rts
+:
+    cmp         #<stringMode
+    bne         :+
+    lda         #MODE_X
+    sta         tileX
+    lda         gameMode
+    cmp         #MODE_CHALLENGE
+    beq         challenge
+    lda         #<stringCasual
+    sta         stringPtr0
+    lda         #>stringCasual
+    sta         stringPtr1
+    jsr         drawString
+    rts
+challenge:
+    lda         #<stringChallenge
+    sta         stringPtr0
+    lda         #>stringChallenge
+    sta         stringPtr1
+    jsr         drawString
+:
     rts
 
 digitTile:      .byte   $10,$11,$12,$13,$14,$15,$16,$17,$18,$19
@@ -2214,6 +2238,12 @@ displayLevel0:
     .byte       10,<displayLevel1
 displayLevel1:
     .word       stringFroggo
+    .byte       2,<displayLevel2
+displayLevel2:
+    .word       stringLevel
+    .byte       10,<displayLevel3
+displayLevel3:
+    .word       stringMode
     .byte       2,<displayLevel0
 
 displayFroggo0:
@@ -2962,7 +2992,6 @@ lastRow:        .byte   0
 
 .endproc
 
-
 ; This code in a copy of above with "ora" -> "and".
 ; Any changes should be reflected above and then re-copied and substituted.
 
@@ -3010,8 +3039,6 @@ lastRow:        .byte   0
     rts
 
 .endproc
-
-
 
 ;-----------------------------------------------------------------------------
 ; drawImage
@@ -3723,55 +3750,6 @@ printPath:
 
 .endproc
 
-
-.proc fullPageScroll2to1
-
-    lda         $4400,x
-    sta         $2000,x
-    lda         $4800,x
-    sta         $2400,x
-    lda         $4C00,x
-    sta         $2800,x
-    lda         $5000,x
-    sta         $2C00,x
-    lda         $5400,x
-    sta         $3000,x
-    lda         $5800,x
-    sta         $3400,x
-    lda         $5C00,x
-    sta         $3800,x
-    lda         $4080,x
-    sta         $3C00,x
-
-.endproc
-
-;-----------------------------------------------------------------------------
-; Sound test -- remove from final game
-;-----------------------------------------------------------------------------
-.proc soundTest
-.align 256
-loop:
-    PlaySongPtr     testSong
-    jsr         waitForKey
-    cmp         #KEY_ESC
-    bne         loop
-
-    rts
-
-.align 32
-testSong:
-    .byte   NOTE_16TH,  NOTE_C2,    NOTE_C4
-    .byte   NOTE_16TH,  NOTE_D2,    NOTE_D4
-    .byte   NOTE_16TH,  NOTE_E2,    NOTE_E4
-    .byte   NOTE_16TH,  NOTE_C2,    NOTE_C4
-    .byte   NOTE_16TH,  NOTE_D2,    NOTE_D4
-    .byte   NOTE_16TH,  NOTE_E2,    NOTE_E4
-    .byte   NOTE_DONE,  NOTE_REST,  NOTE_REST
-
-
-.endproc
-
-
 ;-----------------------------------------------------------------------------
 ; Utilities
 ;-----------------------------------------------------------------------------
@@ -3794,7 +3772,7 @@ sceneFileName:      StringLen "/FROGGO/DATA/SCENE.0"
 sceneFileNameEnd:
 
 fileParameters:
-    .word       tileFileName,   tileSheet,  16*128,     0
+    .word       tileFileName,   tileSheet,  16*160,     0
     .word       sceneFileName,  cutScene,   40*128,     0
 
 fileError:      .byte   0

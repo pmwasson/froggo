@@ -41,6 +41,7 @@
     .byte       "|                                     |",13
     .byte       "| Enjoy!                              |",13
     .byte       "|             - Paul Wasson, 12/2025  |",13
+    .byte       "|               lasermego.com/a2sw    |",13
     .byte       "|_____________________________________|",0
 wait:
     lda         KBD

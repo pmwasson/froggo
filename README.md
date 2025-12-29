@@ -27,13 +27,13 @@ python3 build:
 - [x] Added turtles
 - [ ] Redo music (get help from Ben)
 - [ ] Add level timer
-- [ ] Different level types
+- [x] Different level types
   - [x] Turtles
   - [x] Trains - very fast, go from emptry to full
   - [ ] Snakes - time limit by slowly filling column
   - [ ] Crosswalk - stop time briefly so must hurry across road
   - [ ] Buttons - simple puzzle solving - enable bridges or remove barriers (crosswalk may be a subset)
-- [ ] More levels
+- [x] More levels
   - [x] 5 levels
   - [ ] 25 levels
   - [ ] 50 levels

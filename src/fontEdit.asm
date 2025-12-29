@@ -399,13 +399,17 @@ keyPrevPCont:
     cmp         #KEY_ESC
     bne         :+
     jsr         inline_print
-    .byte       "Quit",13,0
+    .byte       "Quit. Are you sure? [Y] ",0
+    jsr         getInputConfirm
+    beq         doQuit
+    jmp         command_loop
+doQuit:
     bit         TXTSET
     jmp         quit
 :
 
     ;------------------
-    ; \ = Monitor
+    ; * = Monitor
     ;------------------
     cmp         #$80 | '*'
     bne         :+
@@ -529,6 +533,8 @@ finish_move:
     StringCont  "  Ctrl+V:     Paste"
     StringCont  "  Ctrl+F:     Fill with current color"
     StringCont  "  Ctrl+X:     Invert colors"
+    StringCont  "  Ctrl+L:     load tiles from disk"
+    StringCont  "  Ctrl+S:     save tiles to disk"
     StringCont  "  !:          Dump tile"
     StringCont  "  @:          Dump all tiles"
     StringCont  "              (Capture with printer)"
@@ -573,6 +579,24 @@ cancel:
 max_digit:  .byte   0
 result:     .byte   0
 
+.endproc
+
+;-----------------------------------------------------------------------------
+; getInputConfirm
+;-----------------------------------------------------------------------------
+.proc getInputConfirm
+    jsr         getInput
+    cmp         #KEY_Y
+    bne         cancel
+    jsr         inline_print
+    .byte       "Yes",13,0
+    lda         #0
+    rts
+cancel:
+    jsr         inline_print
+    .byte       "Cancel",13,0
+    lda         #$ff
+    rts
 .endproc
 
 ;-----------------------------------------------------------------------------
