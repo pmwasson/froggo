@@ -305,7 +305,7 @@ level_m8:         ; grass--road--grass--water--grass
     .byte       0,0,0
 
 ; medium (maybe hard?)
-level_m9:         ; grass--road--grass
+level_m9:         ; grass--road--train-road-train-grass
     ; columns
     .byte       COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_2,COLUMN_GRASS_ROAD_0
     .byte       COLUMN_ROAD_D_3,COLUMN_ROAD_D_4,COLUMN_ROAD_S_3,COLUMN_TRAIN_D_0
@@ -322,7 +322,7 @@ level_m9:         ; grass--road--grass
     .byte       STATE_OFFSET_TRAINS
 
 ; medium
-level_m10:         ; building
+level_m10:         ; crosswalk + conveyor belts
     ; columns
     .byte       COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_BRICK_0,COLUMN_BRICK_1
     .byte       COLUMN_BRICK_0,COLUMN_BRICK_1,COLUMN_HOUSE_D_0,COLUMN_HOUSE_D_0
@@ -336,38 +336,8 @@ level_m10:         ; building
     ; animation (not used)
     .byte       0,0,0
 
-; hard (sync cars, maybe medium)
-level_h0:         ; grass--road--grass--road--grass
-    ; columns
-    .byte       COLUMN_BRICK_2,COLUMN_BRICK_3,COLUMN_BRICK_2,COLUMN_BRICK_3
-    .byte       COLUMN_BRICK_4,COLUMN_ROAD_D_6,COLUMN_ROAD_D_6,COLUMN_ROAD_D_7
-    .byte       COLUMN_BRICK_5,COLUMN_BRICK_3,COLUMN_BRICK_4,COLUMN_ROAD_D_6
-    .byte       COLUMN_ROAD_D_7,COLUMN_ROAD_D_6,COLUMN_ROAD_D_7,COLUMN_BRICK_5
-    .byte       COLUMN_BRICK_3,COLUMN_BRICK_2,COLUMN_BRICK_3,COLUMN_BRICK_2
-    ; dynamic speeds
-    ConvertSpeeds   $0180, $01D0, $FE40, $FE10, $0190, $0140, $0190, $0000
-    ; starting Y
-    .byte       MAP_TOP+TILE_HEIGHT*8
-    ; animation (not used)
-    .byte       0,0,0
-
-; hard
-level_h1:         ; road + conveyer belts
-    ; columns
-    .byte       COLUMN_BRICK_6,COLUMN_BRICK_7,COLUMN_BRICK_7,COLUMN_BRICK_8
-    .byte       COLUMN_HOUSE_D_0,COLUMN_ROAD_D_9,COLUMN_ROAD_D_9,COLUMN_HOUSE_D_0
-    .byte       COLUMN_BRICK_6,COLUMN_BRICK_7,COLUMN_BRICK_7,COLUMN_BRICK_8
-    .byte       COLUMN_HOUSE_D_0,COLUMN_ROAD_D_9,COLUMN_ROAD_D_9,COLUMN_HOUSE_D_0
-    .byte       COLUMN_BRICK_6,COLUMN_BRICK_7,COLUMN_BRICK_7,COLUMN_BRICK_8
-    ; dynamic speeds
-    ConvertSpeeds   $0080, $01D0, $FE40, $FF60, $00C0, $0140, $FEC0, $FF00
-    ; starting Y
-    .byte       MAP_TOP+TILE_HEIGHT*3
-    ; animation (not used)
-    .byte       0,0,0
-
 ; hard (trains)
-level_h2:         ; grass--road--grass
+level_h0:         ; grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_3,COLUMN_GRASS_2,COLUMN_GRASS_1,COLUMN_GRASS_1
     .byte       COLUMN_GRASS_1,COLUMN_GRASS_ROAD_0,COLUMN_TRAIN_D_0,COLUMN_TRAIN_D_0
@@ -383,8 +353,23 @@ level_h2:         ; grass--road--grass
     ; state offset ()
     .byte       STATE_OFFSET_TRAINS
 
+; hard (sync cars, maybe medium)
+level_h1:         ; brick--road--brick--road--brick
+    ; columns
+    .byte       COLUMN_BRICK_2,COLUMN_BRICK_3,COLUMN_BRICK_2,COLUMN_BRICK_3
+    .byte       COLUMN_BRICK_4,COLUMN_ROAD_D_6,COLUMN_ROAD_D_6,COLUMN_ROAD_D_7
+    .byte       COLUMN_BRICK_5,COLUMN_BRICK_3,COLUMN_BRICK_4,COLUMN_ROAD_D_6
+    .byte       COLUMN_ROAD_D_7,COLUMN_ROAD_D_6,COLUMN_ROAD_D_7,COLUMN_BRICK_5
+    .byte       COLUMN_BRICK_3,COLUMN_BRICK_2,COLUMN_BRICK_3,COLUMN_BRICK_2
+    ; dynamic speeds
+    ConvertSpeeds   $0180, $01D0, $FE40, $FE10, $0190, $0140, $0190, $0000
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*8
+    ; animation (not used)
+    .byte       0,0,0
+
 ; hard (trucks at end)
-level_h3:         ; grass--road--grass--water--grass
+level_h2:         ; grass--road--grass--water--grass
     ; columns
     .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_WATER_1
     .byte       COLUMN_WATER_D_3,COLUMN_WATER_D_2,COLUMN_WATER_S_2,COLUMN_WATER_D_1
@@ -395,6 +380,21 @@ level_h3:         ; grass--road--grass--water--grass
     ConvertSpeeds   $0060, $FF50, $00A0, $0090, $FEB0, $FF20, $FF60, $FF30
     ; starting Y
     .byte       MAP_BOTTOM-TILE_HEIGHT*4
+    ; animation (not used)
+    .byte       0,0,0
+
+; hard
+level_h3:         ; road + conveyor belts
+    ; columns
+    .byte       COLUMN_BRICK_6,COLUMN_BRICK_7,COLUMN_BRICK_7,COLUMN_BRICK_8
+    .byte       COLUMN_HOUSE_D_0,COLUMN_ROAD_D_9,COLUMN_ROAD_D_9,COLUMN_HOUSE_D_0
+    .byte       COLUMN_BRICK_6,COLUMN_BRICK_7,COLUMN_BRICK_7,COLUMN_BRICK_8
+    .byte       COLUMN_HOUSE_D_0,COLUMN_ROAD_D_9,COLUMN_ROAD_D_9,COLUMN_HOUSE_D_0
+    .byte       COLUMN_BRICK_6,COLUMN_BRICK_7,COLUMN_BRICK_7,COLUMN_BRICK_8
+    ; dynamic speeds
+    ConvertSpeeds   $0080, $01D0, $FE40, $FF60, $00C0, $0140, $FEC0, $FF00
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*3
     ; animation (not used)
     .byte       0,0,0
 
