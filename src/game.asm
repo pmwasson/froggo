@@ -3161,12 +3161,51 @@ yLoop:
     ldy         #0
     sty         index
 xLoop:
+    ; read pair of bytes
     lda         (tilePtr0),y
+    sta         left
+    iny
+    lda         (tilePtr0),y
+    sta         right
+    lsr                         ; shift by 1 right
+    and         #$3f            ; 6 bits
     tax
-    lda         reverseBytes,x
+    lda         reversePixels,x
+    sta         flipRight
+    lda         left
+    and         #$3f            ; 6 bits
+    tax
+    lda         reversePixels,x
+    asl                         ; shift result by 1 left
+    sta         flipLeft
+    lda         right
+    and         #$01
+    ora         flipLeft
+    sta         flipLeft        ; restore bit 0
+    lda         left
+    and         #$80
+    ora         flipLeft
+    sta         flipLeft        ; restore bit 7
+
+    lda         left
+    and         #$40
+    ora         flipRight
+    sta         flipRight       ; restore bit 6
+    lda         right
+    and         #$80
+    ora         flipRight
+    sta         flipRight       ; restore bit 7
+
+    lda         flipLeft
     ldy         reverseIndex
     sta         (screenPtr0),y
+    lda         flipRight
+    dey
+    sta         (screenPtr0),y
+
     inc         index
+    inc         index
+    dec         reverseIndex
     dec         reverseIndex
     ldy         index
     cpy         imageWidth
@@ -3183,13 +3222,31 @@ xLoop:
     inc         row
     lda         row
     cmp         lastRow
-    bne         yLoop
+    beq         :+
+    jmp         yLoop
+:
     rts
 
 row:            .byte   0
 lastRow:        .byte   0
 index:          .byte   0
 reverseIndex:   .byte   0
+left:           .byte   0
+right:          .byte   0
+flipLeft:       .byte   0
+flipRight:      .byte   0
+
+; convert pixel-order: abcdef00 -> efcdab00
+; in normal bit-order: 00fedcba -> 00badcfe
+reversePixels:
+    .byte       $00,$10,$20,$30,$04,$14,$24,$34
+    .byte       $08,$18,$28,$38,$0C,$1C,$2C,$3C
+    .byte       $01,$11,$21,$31,$05,$15,$25,$35
+    .byte       $09,$19,$29,$39,$0D,$1D,$2D,$3D
+    .byte       $02,$12,$22,$32,$06,$16,$26,$36
+    .byte       $0A,$1A,$2A,$3A,$0E,$1E,$2E,$3E
+    .byte       $03,$13,$23,$33,$07,$17,$27,$37
+    .byte       $0B,$1B,$2B,$3B,$0F,$1F,$2F,$3F
 
 .endproc
 
@@ -4106,7 +4163,7 @@ tileTypeTable:
     .byte       TILE_TYPE_BUFFER5           ;95     - Active column + Animate
     .byte       TILE_TYPE_BUFFER6           ;96     - Active column + Animate
     .byte       TILE_TYPE_BUFFER7           ;97     - Active column + Animate
-    .byte       TILE_TYPE_FREE              ;98     - Unused
+    .byte       TILE_TYPE_DEATH             ;98     - Robot
     .byte       TILE_TYPE_FREE              ;99     - Unused
     .byte       TILE_TYPE_BLOCKED           ;9A     - Stairs
     .byte       TILE_TYPE_BLOCKED           ;9B     - Stairs
@@ -4198,44 +4255,6 @@ linePage:
 
 .align 256
 
-reverseBytes:
-; lookup to flip screen bytes, reverses lower 7-bits but preserves upper bit
-    .byte       $00,$40,$20,$60,$10,$50,$30,$70
-    .byte       $08,$48,$28,$68,$18,$58,$38,$78
-    .byte       $04,$44,$24,$64,$14,$54,$34,$74
-    .byte       $0C,$4C,$2C,$6C,$1C,$5C,$3C,$7C
-    .byte       $02,$42,$22,$62,$12,$52,$32,$72
-    .byte       $0A,$4A,$2A,$6A,$1A,$5A,$3A,$7A
-    .byte       $06,$46,$26,$66,$16,$56,$36,$76
-    .byte       $0E,$4E,$2E,$6E,$1E,$5E,$3E,$7E
-    .byte       $01,$41,$21,$61,$11,$51,$31,$71
-    .byte       $09,$49,$29,$69,$19,$59,$39,$79
-    .byte       $05,$45,$25,$65,$15,$55,$35,$75
-    .byte       $0D,$4D,$2D,$6D,$1D,$5D,$3D,$7D
-    .byte       $03,$43,$23,$63,$13,$53,$33,$73
-    .byte       $0B,$4B,$2B,$6B,$1B,$5B,$3B,$7B
-    .byte       $07,$47,$27,$67,$17,$57,$37,$77
-    .byte       $0F,$4F,$2F,$6F,$1F,$5F,$3F,$7F
-
-    .byte       $80,$C0,$A0,$E0,$90,$D0,$B0,$F0
-    .byte       $88,$C8,$A8,$E8,$98,$D8,$B8,$F8
-    .byte       $84,$C4,$A4,$E4,$94,$D4,$B4,$F4
-    .byte       $8C,$CC,$AC,$EC,$9C,$DC,$BC,$FC
-    .byte       $82,$C2,$A2,$E2,$92,$D2,$B2,$F2
-    .byte       $8A,$CA,$AA,$EA,$9A,$DA,$BA,$FA
-    .byte       $86,$C6,$A6,$E6,$96,$D6,$B6,$F6
-    .byte       $8E,$CE,$AE,$EE,$9E,$DE,$BE,$FE
-    .byte       $81,$C1,$A1,$E1,$91,$D1,$B1,$F1
-    .byte       $89,$C9,$A9,$E9,$99,$D9,$B9,$F9
-    .byte       $85,$C5,$A5,$E5,$95,$D5,$B5,$F5
-    .byte       $8D,$CD,$AD,$ED,$9D,$DD,$BD,$FD
-    .byte       $83,$C3,$A3,$E3,$93,$D3,$B3,$F3
-    .byte       $8B,$CB,$AB,$EB,$9B,$DB,$BB,$FB
-    .byte       $87,$C7,$A7,$E7,$97,$D7,$B7,$F7
-    .byte       $8F,$CF,$AF,$EF,$9F,$DF,$BF,$FF
-
-.align 256
-
 fullLinePage:
     .byte       >$2000, >$2400, >$2800, >$2C00, >$3000, >$3400, >$3800, >$3C00
     .byte       >$2080, >$2480, >$2880, >$2C80, >$3080, >$3480, >$3880, >$3C80
@@ -4268,73 +4287,39 @@ CUT_SCENE_QUOTE_RIGHT   = 2
 CUT_SCENE_QUOTE_LEFT    = 3
 
 cutSceneList:
+    .byte           CUT_SCENE_IMAGE,0,"0",0                 ; log
+    .byte           CUT_SCENE_IMAGE,0,"1",0                 ; cup
+    .byte           CUT_SCENE_IMAGE,0,"2",0                 ; selfie
+    .byte           CUT_SCENE_IMAGE,0,"3",0                 ; karate
+    .byte           CUT_SCENE_IMAGE,0,"4",0                 ; cape
+    .byte           CUT_SCENE_IMAGE,0,"5",0                 ; thumb
+    .byte           CUT_SCENE_IMAGE,0,"6",0                 ; astro
+    .byte           CUT_SCENE_IMAGE,0,"7",0                 ; scared
+    .byte           CUT_SCENE_IMAGE,0,"8",0                 ; red-car
+    .byte           CUT_SCENE_IMAGE,0,"9",0                 ; turtle
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR0
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR1
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR2
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR3
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR4
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR5
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR6
+    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR7
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL0
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL1
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL2
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL3
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL4
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL5
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL6
+    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL7
+    ; repeat until a power of 2 (use reverse so not the same)
+    .byte           CUT_SCENE_IMAGE_REVERSE,0,"2",0
+    .byte           CUT_SCENE_IMAGE_REVERSE,0,"4",0
+    .byte           CUT_SCENE_IMAGE_REVERSE,0,"6",0
+    .byte           CUT_SCENE_IMAGE_REVERSE,0,"7",0
+    .byte           CUT_SCENE_IMAGE_REVERSE,0,"8",0
     .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
-
-
-;    .byte           CUT_SCENE_IMAGE,0,"0",0                 ; log
-;    .byte           CUT_SCENE_IMAGE,0,"1",0                 ; cup
-;    .byte           CUT_SCENE_IMAGE,0,"2",0                 ; selfie
-;    .byte           CUT_SCENE_IMAGE,0,"3",0                 ; karate
-;    .byte           CUT_SCENE_IMAGE,0,"4",0                 ; cape
-;    .byte           CUT_SCENE_IMAGE,0,"5",0                 ; thumb
-;    .byte           CUT_SCENE_IMAGE,0,"6",0                 ; astro
-;    .byte           CUT_SCENE_IMAGE,0,"7",0                 ; scared
-;    .byte           CUT_SCENE_IMAGE,0,"8",0                 ; red-car
-;    .byte           CUT_SCENE_IMAGE,0,"9",0                 ; turtle
-;    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR0
-;    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR1
-;    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR2
-;    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR3
-;    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR4
-;    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR5
-;    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR6
-;    .word           CUT_SCENE_QUOTE_RIGHT,stringQuoteR7
-;    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL0
-;    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL1
-;    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL2
-;    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL3
-;    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL4
-;    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL5
-;    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL6
-;    .word           CUT_SCENE_QUOTE_LEFT,stringQuoteL7
-;    ; repeat until a power of 2
-;    .byte           CUT_SCENE_IMAGE_REVERSE,0,"2",0
-;    .byte           CUT_SCENE_IMAGE_REVERSE,0,"3",0
-;    .byte           CUT_SCENE_IMAGE_REVERSE,0,"6",0
-;    .byte           CUT_SCENE_IMAGE_REVERSE,0,"7",0
-;    .byte           CUT_SCENE_IMAGE_REVERSE,0,"8",0
-;    .byte           CUT_SCENE_IMAGE_REVERSE,0,"9",0
 
 ;-----------------------------------------------------------------------------
 ; Assets

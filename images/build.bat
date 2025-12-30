@@ -30,4 +30,4 @@ python3 parallax.py parallax.png > ..\build\parallaxData.asm || exit
 
 :: python3 qrConvert.py qr_code_a2sw.png 31 31 qrcode_2x.png || exit
 
-python3 reverse.py
+:: python3 reverse.py
