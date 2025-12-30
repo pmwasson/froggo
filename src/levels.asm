@@ -31,6 +31,7 @@ STATE_OFFSET_TRAINS     = 8*1
 ;------------------------------------------------------------------------------
 
 level_start:
+
 ; easy
 level_e0:         ; grass--road--grass--water--grass
     ; columns
@@ -292,12 +293,12 @@ level_m7:        ; building
 level_m8:         ; grass--road--grass--water--grass
     ; columns
     .byte       COLUMN_GRASS_2,COLUMN_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_ROAD_0
-    .byte       COLUMN_ROAD_D_2,COLUMN_ROAD_D_1,COLUMN_ROAD_S_2,COLUMN_ROAD_D_3
-    .byte       COLUMN_ROAD_D_4,COLUMN_ROAD_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_7
-    .byte       COLUMN_GRASS_WATER_2,COLUMN_WATER_D_4,COLUMN_WATER_D_4,COLUMN_WATER_D_4
-    .byte       COLUMN_WATER_D_4,COLUMN_WATER_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_2
+    .byte       COLUMN_ROAD_D_2,COLUMN_ROAD_D_1,COLUMN_ROAD_D_3,COLUMN_ROAD_D_4
+    .byte       COLUMN_ROAD_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_7
+    .byte       COLUMN_GRASS_WATER_2,COLUMN_WATER_D_4,COLUMN_WATER_D_7,COLUMN_WATER_D_4
+    .byte       COLUMN_WATER_D_7,COLUMN_WATER_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_2
     ; dynamic speeds
-    ConvertSpeeds   $00B0, $FF40, $0070, $FF60, $FFB0, $0060, $FFA0, $0070
+    ConvertSpeeds   $00B0, $FF40, $0070, $FF60, $FF70, $00A0, $FF10, $0090
     ; starting Y
     .byte       MAP_BOTTOM-TILE_HEIGHT*3
     ; animation (not used)
@@ -350,8 +351,23 @@ level_h0:         ; grass--road--grass--road--grass
     ; animation (not used)
     .byte       0,0,0
 
+; hard
+level_h1:         ; road + conveyer belts
+    ; columns
+    .byte       COLUMN_BRICK_6,COLUMN_BRICK_7,COLUMN_BRICK_7,COLUMN_BRICK_8
+    .byte       COLUMN_HOUSE_D_0,COLUMN_ROAD_D_9,COLUMN_ROAD_D_9,COLUMN_HOUSE_D_0
+    .byte       COLUMN_BRICK_6,COLUMN_BRICK_7,COLUMN_BRICK_7,COLUMN_BRICK_8
+    .byte       COLUMN_HOUSE_D_0,COLUMN_ROAD_D_9,COLUMN_ROAD_D_9,COLUMN_HOUSE_D_0
+    .byte       COLUMN_BRICK_6,COLUMN_BRICK_7,COLUMN_BRICK_7,COLUMN_BRICK_8
+    ; dynamic speeds
+    ConvertSpeeds   $0080, $01D0, $FE40, $FF60, $00C0, $0140, $FEC0, $FF00
+    ; starting Y
+    .byte       MAP_TOP+TILE_HEIGHT*3
+    ; animation (not used)
+    .byte       0,0,0
+
 ; hard (trains)
-level_h1:         ; grass--road--grass
+level_h2:         ; grass--road--grass
     ; columns
     .byte       COLUMN_GRASS_3,COLUMN_GRASS_2,COLUMN_GRASS_1,COLUMN_GRASS_1
     .byte       COLUMN_GRASS_1,COLUMN_GRASS_ROAD_0,COLUMN_TRAIN_D_0,COLUMN_TRAIN_D_0
@@ -368,7 +384,7 @@ level_h1:         ; grass--road--grass
     .byte       STATE_OFFSET_TRAINS
 
 ; hard (trucks at end)
-level_h2:         ; grass--road--grass--water--grass
+level_h3:         ; grass--road--grass--water--grass
     ; columns
     .byte       COLUMN_GRASS_0,COLUMN_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_WATER_1
     .byte       COLUMN_WATER_D_3,COLUMN_WATER_D_2,COLUMN_WATER_S_2,COLUMN_WATER_D_1
@@ -383,7 +399,7 @@ level_h2:         ; grass--road--grass--water--grass
     .byte       0,0,0
 
 ; hard (turtles)
-level_h3:        ; grass--water--grass (turtles)
+level_h4:        ; grass--water--grass (turtles)
     .byte       COLUMN_GRASS_0,COLUMN_GRASS_4,COLUMN_GRASS_WATER_2,COLUMN_WATER_D_5
     .byte       COLUMN_WATER_D_5,COLUMN_WATER_GRASS_0,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
     .byte       COLUMN_WATER_D_5,COLUMN_WATER_GRASS_0,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_5
@@ -398,75 +414,101 @@ level_h3:        ; grass--water--grass (turtles)
     ; state offset ()
     .byte       STATE_OFFSET_TURTLES
 
+; hard (rockets)
+level_h5:
+    ; columns
+    .byte       COLUMN_ROCKET_0,COLUMN_ROCKET_1,COLUMN_ROCKET_1,COLUMN_ROCKET_1
+    .byte       COLUMN_ROCKET_D_0,COLUMN_ROCKET_1,COLUMN_ROCKET_D_0,COLUMN_ROCKET_1
+    .byte       COLUMN_ROCKET_D_0,COLUMN_ROCKET_1,COLUMN_ROCKET_D_0,COLUMN_ROCKET_1
+    .byte       COLUMN_ROCKET_D_0,COLUMN_ROCKET_1,COLUMN_ROCKET_1,COLUMN_ROCKET_D_1
+    .byte       COLUMN_ROCKET_D_2,COLUMN_ROCKET_D_1,COLUMN_ROCKET_1,COLUMN_ROCKET_2
+    ; dynamic speeds
+    ConvertSpeeds   $02E0, $0300, $0320, $0340, $0360, $0270, $0270, $0270
+    ; starting Y
+    .byte       MAP_BOTTOM-TILE_HEIGHT*4
+    ; animation (not used)
+    .byte       0,0,0
+
 level_end:
 
 ; Column Indexes:
 ;------------------------------------------------------------------------------
-COLUMN_GRASS_0              = (levelColumnDataG0  - levelColumnData)/16
-COLUMN_GRASS_1              = (levelColumnDataG1  - levelColumnData)/16
-COLUMN_GRASS_2              = (levelColumnDataG2  - levelColumnData)/16
-COLUMN_GRASS_3              = (levelColumnDataG3  - levelColumnData)/16
-COLUMN_GRASS_4              = (levelColumnDataG4  - levelColumnData)/16
-COLUMN_GRASS_5              = (levelColumnDataG5  - levelColumnData)/16
-COLUMN_GRASS_6              = (levelColumnDataG6  - levelColumnData)/16
-COLUMN_GRASS_7              = (levelColumnDataG7  - levelColumnData)/16
-COLUMN_GRASS_8              = (levelColumnDataG8  - levelColumnData)/16
-COLUMN_GRASS_ROAD_0         = (levelColumnDataGR0 - levelColumnData)/16
-COLUMN_GRASS_ROAD_1         = (levelColumnDataGR1 - levelColumnData)/16
-COLUMN_GRASS_ROAD_2         = (levelColumnDataGR2 - levelColumnData)/16
-COLUMN_GRASS_ROAD_3         = (levelColumnDataGR3 - levelColumnData)/16
-COLUMN_ROAD_GRASS_0         = (levelColumnDataRG0 - levelColumnData)/16
-COLUMN_ROAD_GRASS_1         = (levelColumnDataRG1 - levelColumnData)/16
-COLUMN_ROAD_GRASS_2         = (levelColumnDataRG2 - levelColumnData)/16
-COLUMN_ROAD_GRASS_3         = (levelColumnDataRG3 - levelColumnData)/16
-COLUMN_GRASS_WATER_0        = (levelColumnDataGW0 - levelColumnData)/16
-COLUMN_GRASS_WATER_1        = (levelColumnDataGW1 - levelColumnData)/16
-COLUMN_GRASS_WATER_2        = (levelColumnDataGW2 - levelColumnData)/16
-COLUMN_GRASS_WATER_3        = (levelColumnDataGW3 - levelColumnData)/16
-COLUMN_WATER_GRASS_0        = (levelColumnDataWG0 - levelColumnData)/16
-COLUMN_WATER_GRASS_1        = (levelColumnDataWG1 - levelColumnData)/16
-COLUMN_WATER_GRASS_2        = (levelColumnDataWG2 - levelColumnData)/16
-COLUMN_ROAD_S_0             = (levelColumnDataRS0 - levelColumnData)/16
-COLUMN_ROAD_S_1             = (levelColumnDataRS1 - levelColumnData)/16
-COLUMN_ROAD_S_2             = (levelColumnDataRS2 - levelColumnData)/16
-COLUMN_ROAD_S_3             = (levelColumnDataRS3 - levelColumnData)/16
-COLUMN_ROAD_S_4             = (levelColumnDataRS4 - levelColumnData)/16
-COLUMN_ROAD_D_0             = (levelColumnDataRD0 - levelColumnData)/16
-COLUMN_ROAD_D_1             = (levelColumnDataRD1 - levelColumnData)/16
-COLUMN_ROAD_D_2             = (levelColumnDataRD2 - levelColumnData)/16
-COLUMN_ROAD_D_3             = (levelColumnDataRD3 - levelColumnData)/16
-COLUMN_ROAD_D_4             = (levelColumnDataRD4 - levelColumnData)/16
-COLUMN_ROAD_D_5             = (levelColumnDataRD5 - levelColumnData)/16
-COLUMN_ROAD_D_6             = (levelColumnDataRD6 - levelColumnData)/16
-COLUMN_ROAD_D_7             = (levelColumnDataRD7 - levelColumnData)/16
-COLUMN_ROAD_D_8             = (levelColumnDataRD8 - levelColumnData)/16
-COLUMN_TRAIN_D_0            = (levelColumnDataTD0 - levelColumnData)/16
-COLUMN_WATER_S_0            = (levelColumnDataWS0 - levelColumnData)/16
-COLUMN_WATER_S_1            = (levelColumnDataWS1 - levelColumnData)/16
-COLUMN_WATER_S_2            = (levelColumnDataWS2 - levelColumnData)/16
-COLUMN_WATER_S_3            = (levelColumnDataWS3 - levelColumnData)/16
-COLUMN_WATER_D_0            = (levelColumnDataWD0 - levelColumnData)/16
-COLUMN_WATER_D_1            = (levelColumnDataWD1 - levelColumnData)/16
-COLUMN_WATER_D_2            = (levelColumnDataWD2 - levelColumnData)/16
-COLUMN_WATER_D_3            = (levelColumnDataWD3 - levelColumnData)/16
-COLUMN_WATER_D_4            = (levelColumnDataWD4 - levelColumnData)/16
-COLUMN_WATER_D_5            = (levelColumnDataWD5 - levelColumnData)/16
-COLUMN_WATER_D_6            = (levelColumnDataWD6 - levelColumnData)/16
-COLUMN_HOUSE_0              = (levelColumnDataH0  - levelColumnData)/16
-COLUMN_HOUSE_1              = (levelColumnDataH1  - levelColumnData)/16
-COLUMN_HOUSE_2              = (levelColumnDataH2  - levelColumnData)/16
-COLUMN_HOUSE_3              = (levelColumnDataH3  - levelColumnData)/16
-COLUMN_HOUSE_4              = (levelColumnDataH4  - levelColumnData)/16
-COLUMN_HOUSE_5              = (levelColumnDataH5  - levelColumnData)/16
-COLUMN_HOUSE_6              = (levelColumnDataH6  - levelColumnData)/16
-COLUMN_HOUSE_7              = (levelColumnDataH7  - levelColumnData)/16
-COLUMN_HOUSE_D_0            = (levelColumnDataHD0 - levelColumnData)/16
-COLUMN_BRICK_0              = (levelColumnDataB0  - levelColumnData)/16
-COLUMN_BRICK_1              = (levelColumnDataB1  - levelColumnData)/16
-COLUMN_BRICK_2              = (levelColumnDataB2  - levelColumnData)/16
-COLUMN_BRICK_3              = (levelColumnDataB3  - levelColumnData)/16
-COLUMN_BRICK_4              = (levelColumnDataB4  - levelColumnData)/16
-COLUMN_BRICK_5              = (levelColumnDataB5  - levelColumnData)/16
+COLUMN_GRASS_0              = (levelColumnDataG0   - levelColumnData)/16
+COLUMN_GRASS_1              = (levelColumnDataG1   - levelColumnData)/16
+COLUMN_GRASS_2              = (levelColumnDataG2   - levelColumnData)/16
+COLUMN_GRASS_3              = (levelColumnDataG3   - levelColumnData)/16
+COLUMN_GRASS_4              = (levelColumnDataG4   - levelColumnData)/16
+COLUMN_GRASS_5              = (levelColumnDataG5   - levelColumnData)/16
+COLUMN_GRASS_6              = (levelColumnDataG6   - levelColumnData)/16
+COLUMN_GRASS_7              = (levelColumnDataG7   - levelColumnData)/16
+COLUMN_GRASS_8              = (levelColumnDataG8   - levelColumnData)/16
+COLUMN_GRASS_ROAD_0         = (levelColumnDataGR0  - levelColumnData)/16
+COLUMN_GRASS_ROAD_1         = (levelColumnDataGR1  - levelColumnData)/16
+COLUMN_GRASS_ROAD_2         = (levelColumnDataGR2  - levelColumnData)/16
+COLUMN_GRASS_ROAD_3         = (levelColumnDataGR3  - levelColumnData)/16
+COLUMN_ROAD_GRASS_0         = (levelColumnDataRG0  - levelColumnData)/16
+COLUMN_ROAD_GRASS_1         = (levelColumnDataRG1  - levelColumnData)/16
+COLUMN_ROAD_GRASS_2         = (levelColumnDataRG2  - levelColumnData)/16
+COLUMN_ROAD_GRASS_3         = (levelColumnDataRG3  - levelColumnData)/16
+COLUMN_GRASS_WATER_0        = (levelColumnDataGW0  - levelColumnData)/16
+COLUMN_GRASS_WATER_1        = (levelColumnDataGW1  - levelColumnData)/16
+COLUMN_GRASS_WATER_2        = (levelColumnDataGW2  - levelColumnData)/16
+COLUMN_GRASS_WATER_3        = (levelColumnDataGW3  - levelColumnData)/16
+COLUMN_WATER_GRASS_0        = (levelColumnDataWG0  - levelColumnData)/16
+COLUMN_WATER_GRASS_1        = (levelColumnDataWG1  - levelColumnData)/16
+COLUMN_WATER_GRASS_2        = (levelColumnDataWG2  - levelColumnData)/16
+COLUMN_ROAD_S_0             = (levelColumnDataRS0  - levelColumnData)/16
+COLUMN_ROAD_S_1             = (levelColumnDataRS1  - levelColumnData)/16
+COLUMN_ROAD_S_2             = (levelColumnDataRS2  - levelColumnData)/16
+COLUMN_ROAD_S_3             = (levelColumnDataRS3  - levelColumnData)/16
+COLUMN_ROAD_S_4             = (levelColumnDataRS4  - levelColumnData)/16
+COLUMN_ROAD_D_0             = (levelColumnDataRD0  - levelColumnData)/16
+COLUMN_ROAD_D_1             = (levelColumnDataRD1  - levelColumnData)/16
+COLUMN_ROAD_D_2             = (levelColumnDataRD2  - levelColumnData)/16
+COLUMN_ROAD_D_3             = (levelColumnDataRD3  - levelColumnData)/16
+COLUMN_ROAD_D_4             = (levelColumnDataRD4  - levelColumnData)/16
+COLUMN_ROAD_D_5             = (levelColumnDataRD5  - levelColumnData)/16
+COLUMN_ROAD_D_6             = (levelColumnDataRD6  - levelColumnData)/16
+COLUMN_ROAD_D_7             = (levelColumnDataRD7  - levelColumnData)/16
+COLUMN_ROAD_D_8             = (levelColumnDataRD8  - levelColumnData)/16
+COLUMN_ROAD_D_9             = (levelColumnDataRD9  - levelColumnData)/16
+COLUMN_TRAIN_D_0            = (levelColumnDataTD0  - levelColumnData)/16
+COLUMN_WATER_S_0            = (levelColumnDataWS0  - levelColumnData)/16
+COLUMN_WATER_S_1            = (levelColumnDataWS1  - levelColumnData)/16
+COLUMN_WATER_S_2            = (levelColumnDataWS2  - levelColumnData)/16
+COLUMN_WATER_S_3            = (levelColumnDataWS3  - levelColumnData)/16
+COLUMN_WATER_D_0            = (levelColumnDataWD0  - levelColumnData)/16
+COLUMN_WATER_D_1            = (levelColumnDataWD1  - levelColumnData)/16
+COLUMN_WATER_D_2            = (levelColumnDataWD2  - levelColumnData)/16
+COLUMN_WATER_D_3            = (levelColumnDataWD3  - levelColumnData)/16
+COLUMN_WATER_D_4            = (levelColumnDataWD4  - levelColumnData)/16
+COLUMN_WATER_D_5            = (levelColumnDataWD5  - levelColumnData)/16
+COLUMN_WATER_D_6            = (levelColumnDataWD6  - levelColumnData)/16
+COLUMN_WATER_D_7            = (levelColumnDataWD7  - levelColumnData)/16
+COLUMN_HOUSE_0              = (levelColumnDataH0   - levelColumnData)/16
+COLUMN_HOUSE_1              = (levelColumnDataH1   - levelColumnData)/16
+COLUMN_HOUSE_2              = (levelColumnDataH2   - levelColumnData)/16
+COLUMN_HOUSE_3              = (levelColumnDataH3   - levelColumnData)/16
+COLUMN_HOUSE_4              = (levelColumnDataH4   - levelColumnData)/16
+COLUMN_HOUSE_5              = (levelColumnDataH5   - levelColumnData)/16
+COLUMN_HOUSE_6              = (levelColumnDataH6   - levelColumnData)/16
+COLUMN_HOUSE_7              = (levelColumnDataH7   - levelColumnData)/16
+COLUMN_HOUSE_D_0            = (levelColumnDataHD0  - levelColumnData)/16
+COLUMN_BRICK_0              = (levelColumnDataB0   - levelColumnData)/16
+COLUMN_BRICK_1              = (levelColumnDataB1   - levelColumnData)/16
+COLUMN_BRICK_2              = (levelColumnDataB2   - levelColumnData)/16
+COLUMN_BRICK_3              = (levelColumnDataB3   - levelColumnData)/16
+COLUMN_BRICK_4              = (levelColumnDataB4   - levelColumnData)/16
+COLUMN_BRICK_5              = (levelColumnDataB5   - levelColumnData)/16
+COLUMN_BRICK_6              = (levelColumnDataB6   - levelColumnData)/16
+COLUMN_BRICK_7              = (levelColumnDataB7   - levelColumnData)/16
+COLUMN_BRICK_8              = (levelColumnDataB8   - levelColumnData)/16
+COLUMN_ROCKET_0             = (levelColumnRocket0  - levelColumnData)/16
+COLUMN_ROCKET_1             = (levelColumnRocket1  - levelColumnData)/16
+COLUMN_ROCKET_2             = (levelColumnRocket2  - levelColumnData)/16
+COLUMN_ROCKET_D_0           = (levelColumnRocketD0 - levelColumnData)/16
+COLUMN_ROCKET_D_1           = (levelColumnRocketD1 - levelColumnData)/16
+COLUMN_ROCKET_D_2           = (levelColumnRocketD2 - levelColumnData)/16
 
 COLUMN_TYPE_STATIC          = $00
 COLUMN_TYPE_TURTLES         = $10
@@ -524,6 +566,7 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_DYNAMIC                             ; 1 small car (red)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 1 small car (purple)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 4 medium cars
+    .byte       COLUMN_TYPE_DYNAMIC                             ; 1 robot
 
 ; train (dynamic)
     .byte       COLUMN_TYPE_DYNAMIC                             ; train cars
@@ -539,9 +582,10 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_DYNAMIC                             ; 1 medium log (11 water)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 2 logs (7 water)
     .byte       COLUMN_TYPE_DYNAMIC                             ; 3 small log (8 water)
-    .byte       COLUMN_TYPE_DYNAMIC                             ; 1 medium log
+    .byte       COLUMN_TYPE_DYNAMIC                             ; 1 big log
     .byte       COLUMN_TYPE_DYNAMIC+COLUMN_TYPE_TURTLES         ; 3 turtles
     .byte       COLUMN_TYPE_DYNAMIC+COLUMN_TYPE_TURTLES         ; turtles / logs
+    .byte       COLUMN_TYPE_DYNAMIC                             ; 1 medium log
 
 ; house
     .byte       COLUMN_TYPE_STATIC                              ; entry
@@ -563,6 +607,17 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_STATIC                              ; brick / crosswalk middle (blank)
     .byte       COLUMN_TYPE_STATIC                              ; brick-east / crosswalk middle (crosswalk)
     .byte       COLUMN_TYPE_STATIC                              ; brick-west / crosswalk middle (blank)
+    .byte       COLUMN_TYPE_STATIC                              ; brick-west passage top
+    .byte       COLUMN_TYPE_STATIC                              ; brick passage top
+    .byte       COLUMN_TYPE_STATIC                              ; brick-east passage top
+
+; Rocket
+    .byte       COLUMN_TYPE_STATIC                              ; Rocket - west
+    .byte       COLUMN_TYPE_STATIC                              ; Rocket - mid
+    .byte       COLUMN_TYPE_STATIC                              ; Rocket - east
+    .byte       COLUMN_TYPE_DYNAMIC                             ; Small Rocket (dynamic)
+    .byte       COLUMN_TYPE_DYNAMIC                             ; Medium Rocket (dynamic)
+    .byte       COLUMN_TYPE_DYNAMIC                             ; Big Rocket (dynamic)
 
 .align 256
 levelColumnData:
@@ -701,6 +756,9 @@ levelColumnDataRD7:
 levelColumnDataRD8:
     .byte   TILE_ROAD,TILE_ROAD,TILE_CAR2_A,TILE_CAR2_B,TILE_ROAD,TILE_ROAD,TILE_CAR2_A,TILE_CAR2_B
     .byte   TILE_ROAD,TILE_CAR2_A,TILE_CAR2_B,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+levelColumnDataRD9:
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+    .byte   TILE_ROBOT,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
 
 ; train (dynamic)
 levelColumnDataTD0:
@@ -746,6 +804,9 @@ levelColumnDataWD5:
 levelColumnDataWD6:
     .byte   TILE_TURTLE_A,TILE_TURTLE_B,TILE_WATER,TILE_WATER,TILE_LOG_A,TILE_LOG_C,TILE_WATER,TILE_WATER
     .byte   TILE_TURTLE_A,TILE_TURTLE_B,TILE_WATER,TILE_WATER,TILE_LOG_A,TILE_LOG_C,TILE_WATER,TILE_WATER
+levelColumnDataWD7:
+    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
+    .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
 
 ; house
 levelColumnDataH0:
@@ -802,3 +863,42 @@ levelColumnDataB4:
 levelColumnDataB5:
     .byte   TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_SW,TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK
     .byte   TILE_CROSSWALK,TILE_CROSSWALK,TILE_CROSSWALK,TILE_BRICK_NW,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W
+
+levelColumnDataB6:
+    .byte   TILE_BRICK_NW,TILE_BRICK_W,TILE_BRICK_SW,TILE_ROAD,TILE_ROAD,TILE_BRICK_NW,TILE_BRICK_W,TILE_BRICK_W
+    .byte   TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_SW
+
+levelColumnDataB7:
+    .byte   TILE_BRICK_N,TILE_BRICK,TILE_BRICK_S,TILE_ROAD,TILE_ROAD,TILE_BRICK_N,TILE_BRICK,TILE_BRICK
+    .byte   TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK_S
+
+levelColumnDataB8:
+    .byte   TILE_BRICK_NE,TILE_BRICK_E,TILE_BRICK_SE,TILE_ROAD,TILE_ROAD,TILE_BRICK_NE,TILE_BRICK_E,TILE_BRICK_E
+    .byte   TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_SE
+
+; Rocket
+
+levelColumnRocket0:
+    .byte   TILE_BRICK_NW,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W
+    .byte   TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_SW,TILE_ROAD,TILE_BRICK_NW,TILE_BRICK_W,TILE_BRICK_SW
+
+levelColumnRocket1:
+    .byte   TILE_BRICK_N,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK
+    .byte   TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK_S,TILE_ROAD,TILE_BRICK_N,TILE_BRICK,TILE_BRICK_S
+
+levelColumnRocket2:
+    .byte   TILE_BRICK_NE,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E
+    .byte   TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_SE,TILE_ROAD,TILE_BRICK_NE,TILE_BRICK_E,TILE_BRICK_SE
+
+levelColumnRocketD0:
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROCKET_A,TILE_ROCKET_B,TILE_ROCKET_B,TILE_ROCKET_C,TILE_ROCKET_D,TILE_ROAD
+
+levelColumnRocketD1:
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+    .byte   TILE_ROAD,TILE_ROCKET_A,TILE_ROCKET_B,TILE_ROCKET_B,TILE_ROCKET_B,TILE_ROCKET_C,TILE_ROCKET_D,TILE_ROAD
+
+levelColumnRocketD2:
+    .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
+    .byte   TILE_ROCKET_A,TILE_ROCKET_B,TILE_ROCKET_B,TILE_ROCKET_B,TILE_ROCKET_B,TILE_ROCKET_C,TILE_ROCKET_D,TILE_ROAD
+

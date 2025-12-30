@@ -237,6 +237,14 @@ TILE_BRICK_SW               = $78
 TILE_BRICK_S                = $79
 TILE_BRICK_SE               = $7A
 
+TILE_ROBOT                  = $98
+TILE_STAIRS_A               = $9A
+TILE_STAIRS_B               = $9B
+TILE_ROCKET_A               = $9C
+TILE_ROCKET_B               = $9D
+TILE_ROCKET_C               = $9E
+TILE_ROCKET_D               = $9F
+
 TILE_BUFFER0                = $80
 TILE_BUFFER1                = $81
 TILE_BUFFER2                = $82
@@ -820,7 +828,7 @@ LEVEL_DATA_END:
 ;-----------------------------------------------------------------------------
 
 ; pretend there is more data to keep the linker happy
-.res            $900
+.res            $700
 
 ;=============================================================================
 .align $100
@@ -4014,6 +4022,14 @@ tileTypeTable:
     .byte       TILE_TYPE_BUFFER5           ;95     - Active column + Animate
     .byte       TILE_TYPE_BUFFER6           ;96     - Active column + Animate
     .byte       TILE_TYPE_BUFFER7           ;97     - Active column + Animate
+    .byte       TILE_TYPE_FREE              ;98     - Unused
+    .byte       TILE_TYPE_FREE              ;99     - Unused
+    .byte       TILE_TYPE_BLOCKED           ;9A     - Stairs
+    .byte       TILE_TYPE_BLOCKED           ;9B     - Stairs
+    .byte       TILE_TYPE_DEATH             ;9C     - Rocket A
+    .byte       TILE_TYPE_DEATH             ;9D     - Rocket B
+    .byte       TILE_TYPE_DEATH             ;9E     - Rocket C
+    .byte       TILE_TYPE_DEATH             ;9F     - Rocket (flames)
 
 
 ; pack lookup tables on page (192 + 24 + 24 = 240)
