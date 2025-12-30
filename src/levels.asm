@@ -31,7 +31,6 @@ STATE_OFFSET_TRAINS     = 8*1
 ;------------------------------------------------------------------------------
 
 level_start:
-
 ; easy
 level_e0:         ; grass--road--grass--water--grass
     ; columns
@@ -124,8 +123,23 @@ level_e5:         ; grass--road--grass
     ; state offset ()
     .byte       STATE_OFFSET_TRAINS
 
+; easy (ish)
+level_e6:         ; grass--road--grass--water--grass
+    ; columns
+    .byte       COLUMN_GRASS_2,COLUMN_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_ROAD_0
+    .byte       COLUMN_ROAD_D_0,COLUMN_ROAD_D_0,COLUMN_ROAD_D_5,COLUMN_ROAD_D_2
+    .byte       COLUMN_ROAD_GRASS_0,COLUMN_GRASS_4,COLUMN_GRASS_WATER_0,COLUMN_WATER_D_3
+    .byte       COLUMN_WATER_D_1,COLUMN_WATER_D_1,COLUMN_WATER_D_4,COLUMN_WATER_S_1
+    .byte       COLUMN_WATER_GRASS_1,COLUMN_GRASS_3,COLUMN_GRASS_3,COLUMN_GRASS_2
+    ; dynamic speeds
+    ConvertSpeeds   $00C0, $FF40, $FF10, $FF60, $0080, $FF90, $0080, $FFA0
+    ; starting Y
+    .byte       MAP_BOTTOM-TILE_HEIGHT*3
+    ; animation (not used)
+    .byte       0,0,0
+
 ; easy (maybe medium so not first in game)
-level_e6:         ; building
+level_e7:         ; building
     ; columns
     .byte       COLUMN_HOUSE_0,COLUMN_HOUSE_0,COLUMN_HOUSE_3,COLUMN_HOUSE_1
     .byte       COLUMN_HOUSE_2,COLUMN_HOUSE_4,COLUMN_HOUSE_D_0,COLUMN_HOUSE_4
@@ -140,7 +154,7 @@ level_e6:         ; building
     .byte       0,0,0
 
 ; easy
-level_e7:         ; grass--water--grass
+level_e8:         ; grass--water--grass
     ; columns
     .byte       COLUMN_GRASS_2,COLUMN_GRASS_3,COLUMN_GRASS_WATER_0,COLUMN_WATER_S_3
     .byte       COLUMN_WATER_S_1,COLUMN_WATER_D_0,COLUMN_WATER_D_1,COLUMN_WATER_S_2
@@ -723,7 +737,7 @@ levelColumnDataWD3:
     .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_LOG_A,TILE_LOG_C,TILE_WATER,TILE_WATER
     .byte   TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
 levelColumnDataWD4:
-    .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_LOG_A,TILE_LOG_B,TILE_LOG_C,TILE_WATER
+    .byte   TILE_LOG_A,TILE_LOG_C,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
     .byte   TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER,TILE_WATER
 levelColumnDataWD5:
     .byte   TILE_TURTLE_A,TILE_TURTLE_B,TILE_WATER,TILE_TURTLE_A

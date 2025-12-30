@@ -926,6 +926,7 @@ menuNewGame:
     bne         :+
     jmp         monitor
 :
+    ; FIXME - remove from release
     cmp         #KEY_RETURN
     bne         :+
     jsr         finishLevel
@@ -967,12 +968,12 @@ menuNewGame:
     bne         :+
     jmp         goLeft
 :
-    cmp         #KEY_X
-    bne         :+
-    lda         #STATE_DEAD
-    jsr         updateState
-    jmp         game_loop
-:
+;    cmp         #KEY_X
+;    bne         :+
+;    lda         #STATE_DEAD
+;    jsr         updateState
+;    jmp         game_loop
+;:
     jmp         game_loop
 
 goRight:
@@ -1652,15 +1653,6 @@ doneDead:
 
     lda         playerOffset
     clc
-    adc         #4
-    lsr
-    lsr
-    lsr         ; divide by 8
-    and         #$f
-    sta         tileMiddle
-
-    lda         playerOffset
-    clc
     adc         #5
     and         #$7f
     lsr
@@ -1671,12 +1663,20 @@ doneDead:
 
     ; check for movement first
     lda         columnBase
-    ora         tileMiddle
+    ora         tileTop
+    tax
+    lda         tileDynamicType,x
+    and         #TILE_TYPE_MOVEMENT
+    bne         doMovement
+
+    lda         columnBase
+    ora         tileBottom
     tax
     lda         tileDynamicType,x
     and         #TILE_TYPE_MOVEMENT
     beq         :+
 
+doMovement:
     lda         initialOffset
     sec
     sbc         currentOffset
@@ -1880,7 +1880,6 @@ currentTileType:    .byte   0
 columnBase:         .byte   0
 playerOffset:       .byte   0
 tileTop:            .byte   0
-tileMiddle:         .byte   0
 tileBottom:         .byte   0
 currentOffset:      .byte   0
 .endproc
@@ -3996,7 +3995,7 @@ tileTypeTable:
     .byte       TILE_TYPE_FREE              ;7B     - Unused
     .byte       TILE_TYPE_MOVEMENT_AB       ;7C     - Turtle
     .byte       TILE_TYPE_MOVEMENT_AB       ;7D     - Turtle (sinking)
-    .byte       TILE_TYPE_DEATH_AB          ;76     - Turtle (sunk)
+    .byte       TILE_TYPE_DEATH_AB          ;7E     - Turtle (sunk)
     .byte       TILE_TYPE_FREE              ;7F     - Unused
     .byte       TILE_TYPE_BUFFER0           ;80     - Active column
     .byte       TILE_TYPE_BUFFER1           ;81     - Active column
