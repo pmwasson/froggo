@@ -45,6 +45,11 @@ MAX_FILE_SLOTS  = 4
     sta         currentColor
 
     jsr         inline_print
+    StringCR    "Read slot 0"
+    lda         #0
+    jsr         loadSheet
+
+    jsr         inline_print
     StringCR    "Font Editor (? for help)"
 
 reset_loop:
@@ -535,6 +540,7 @@ finish_move:
     StringCont  "  Ctrl+X:     Invert colors"
     StringCont  "  Ctrl+L:     load tiles from disk"
     StringCont  "  Ctrl+S:     save tiles to disk"
+    StringCont  "    for load/save: slot 0=color,1=mono"
     StringCont  "  !:          Dump tile"
     StringCont  "  @:          Dump all tiles"
     StringCont  "              (Capture with printer)"
@@ -1776,7 +1782,7 @@ bufferIndex:        .byte       0
 
 tileFileName:       StringLen "/FROGGO/DATA/TILE.0"
 tileFileNameEnd:
-tileSheetLength     = tileSheetEnd-tileSheet
+tileSheetLength     = TILE_COUNT * 16
 
 open_params:
     .byte       $3              ; 3 parameters
@@ -2047,6 +2053,5 @@ copyBuffer:
 ;-----------------------------------------------------------------------------
 .align 256
 tileSheet:
-.include        "font.asm"
-tileSheetEnd:
+
 

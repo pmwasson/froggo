@@ -32,7 +32,6 @@
     .byte       "| FROGGO controls:                    |",13
     .byte       "|  AZ <- -> : Movement                |",13
     .byte       "|  ESC      : Menu                    |",13
-    .byte       "|  *        : Break into monitor      |",13
     .byte       "|                                     |",13
     .byte       "| Game modes:                         |",13
     .byte       "|  Challenge - how far can you get?   |",13
@@ -40,8 +39,8 @@
     .byte       "|              times as you want!     |",13
     .byte       "|                                     |",13
     .byte       "| Enjoy!                              |",13
-    .byte       "|             - Paul Wasson, 12/2025  |",13
-    .byte       "|               lasermego.com/a2sw    |",13
+    .byte       "|            - Paul Wasson, Jan 2026  |",13
+    .byte       "|              lasermego.com/a2sw     |",13
     .byte       "|_____________________________________|",0
 wait:
     lda         KBD

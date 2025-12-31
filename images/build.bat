@@ -15,7 +15,6 @@ python3 imageConvert2.py karate-crop.png           ..\build\karate.png       140
 python3 imageConvert2.py thumb-crop.png            ..\build\thumb.png        140 128 0 0 0 || exit
 python3 imageConvert2.py cape-crop.png             ..\build\cape.png         140 128 0 0 0 || exit
 python3 imageConvert2.py selfie-crop.png           ..\build\selfie.png       140 128 0 0 0 || exit
-python3 imageConvert2.py gamer-crop.png            ..\build\gamer.png        140 128 0 0 0 || exit
 python3 imageConvert2.py cup2.png                  ..\build\cup.png          140 128 0 0 0 || exit
 python3 imageConvert2.py loggo-crop2.png           ..\build\log.png          140 128 0 0 0 || exit
 
@@ -25,9 +24,3 @@ python3 imageConvert2.py qrcode_63x64.png          ..\build\qrcode_hgr.png   63 
 
 python3 parallax.py parallax.png > ..\build\parallaxData.asm || exit
 
-:: python3 imageConvert2.py computer-crop.png         ..\build\computer.png     140 128 0 0 0 || exit
-:: python3 imageConvert2.py car-crop3.png             ..\build\car.png          140 128 0 0 0 || exit
-
-:: python3 qrConvert.py qr_code_a2sw.png 31 31 qrcode_2x.png || exit
-
-:: python3 reverse.py

@@ -168,13 +168,14 @@
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00   ;95 -
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00   ;96 -
 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00   ;97 -
+
 .byte $8C,$98,$FC,$9F,$CC,$99,$C0,$81,$C0,$81,$CC,$99,$FC,$9F,$8C,$98 	;98 - Robot
-.byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00   ;99 -
-.byte $80,$80,$80,$F8,$80,$F8,$C0,$FF,$C0,$FF,$FC,$FF,$FC,$FF,$FF,$FF   ;9A - stairs
-.byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF   ;9B - white-block
-.byte $C0,$81,$C0,$81,$F0,$87,$F0,$87,$F0,$87,$F0,$87,$DC,$9A,$DC,$9A   ;9C - Rocket A
-.byte $FC,$9F,$FC,$9F,$DC,$9A,$DC,$9A,$FC,$9F,$FC,$9F,$DC,$9A,$DC,$9A   ;9D - Rocket B
-.byte $FC,$9F,$FC,$9F,$BF,$FE,$8F,$F8,$8F,$F8,$8F,$F8,$83,$E0,$83,$E0   ;9E - Rocket C
-.byte $88,$91,$88,$91,$A0,$84,$A0,$90,$88,$84,$A0,$80,$80,$84,$A0,$80   ;9F - Rocket Flame
+.byte $80,$80,$80,$F8,$80,$F8,$C0,$FF,$C0,$FF,$FC,$FF,$FC,$FF,$FF,$FF   ;99 - stairs
+.byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF   ;9A - white-block
+.byte $C0,$81,$C0,$81,$F0,$87,$F0,$87,$F0,$87,$F0,$87,$DC,$9A,$DC,$9A   ;9B - Rocket A
+.byte $FC,$9F,$FC,$9F,$DC,$9A,$DC,$9A,$FC,$9F,$FC,$9F,$DC,$9A,$DC,$9A   ;9C - Rocket B
+.byte $FC,$9F,$FC,$9F,$BF,$FE,$8F,$F8,$8F,$F8,$8F,$F8,$83,$E0,$83,$E0   ;9D - Rocket C
+.byte $88,$91,$88,$91,$A0,$84,$A0,$90,$88,$84,$A0,$80,$80,$84,$A0,$80   ;9E - Rocket flame
+.byte $8C,$98,$83,$E0,$83,$E0,$83,$E0,$83,$E0,$83,$E0,$83,$E0,$8C,$98   ;9F - Rocket cabin
 
 

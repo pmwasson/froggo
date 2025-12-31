@@ -254,12 +254,13 @@ TILE_BRICK_S                = $79
 TILE_BRICK_SE               = $7A
 
 TILE_ROBOT                  = $98
-TILE_STAIRS_A               = $9A
-TILE_STAIRS_B               = $9B
-TILE_ROCKET_A               = $9C
-TILE_ROCKET_B               = $9D
-TILE_ROCKET_C               = $9E
-TILE_ROCKET_D               = $9F
+TILE_STAIRS_A               = $99
+TILE_STAIRS_B               = $9A
+TILE_ROCKET_A               = $9B
+TILE_ROCKET_B               = $9C
+TILE_ROCKET_C               = $9D
+TILE_ROCKET_FLAME           = $9E
+TILE_ROCKET_CABIN           = $9F
 
 TILE_BUFFER0                = $80
 TILE_BUFFER1                = $81
@@ -313,6 +314,11 @@ NUMBER_CUTSCENES            = 32
 
 MAX_LEVELS                  = (level_end-level_start)/32
 INITIAL_LEVEL               = 0
+FINAL_LEVEL                 = MAX_LEVELS-1
+BONUS_LEVEL                 = FINAL_LEVEL-1
+FINAL_X                     = MAP_RIGHT - 4*TILE_WIDTH
+FINAL_Q_X                   = MAP_LEFT + 11*TILE_WIDTH
+FINAL_Q_Y                   = MAP_TOP  + 4*TILE_HEIGHT
 
 TEXT_MASK                   = %00111110     ; mask bit 0 so called twice (upper bits for min time)
 TEXT_TRIGGER                = $20           ; not 0 since 0 is for animate
@@ -861,7 +867,9 @@ LEVEL_DATA_END:
     sta         HIRES
     sta         TXTCLR
 
-    PlaySongPtrInterrupt peasantSong
+    ;PlaySongPtrInterrupt peasantSong
+    PlaySongPtrInterrupt songTitle
+skipSong:
 
     jsr         initDisplay
     lda         #STATE_GAME_OVER
@@ -946,16 +954,18 @@ switchTo1:
 menuNewGame:
     jmp         restart_loop
 :
-    cmp         #KEY_ASTERISK
-    bne         :+
-    jmp         monitor
-:
-    ; FIXME - remove from release
-    cmp         #KEY_RETURN
-    bne         :+
-    jsr         finishLevel
-    jmp         reset_loop
-:
+
+; Cheat keys turned off for release
+;    cmp         #KEY_ASTERISK
+;    bne         :+
+;    jmp         monitor
+;:
+;
+;    cmp         #KEY_RETURN
+;    bne         :+
+;    jsr         finishLevel
+;    jmp         reset_loop
+;:
 
     ; if game over, hit a key to restart
     ldx         playerState
@@ -1158,6 +1168,16 @@ erasePlayer1:
 
     inc         currentLevel
     lda         currentLevel
+    cmp         #BONUS_LEVEL
+    bne         :+
+    lda         gameMode
+    cmp         #MODE_CASUAL
+    bne         :+
+    ; if casual, skip bonus level(s)
+    inc         currentLevel
+:
+
+    ; following not needed, but useful for debug
     cmp         #MAX_LEVELS
     bne         :+
     lda         #0
@@ -1542,7 +1562,91 @@ doCasual:
     cmp         #STATE_LEVEL_RESTART
     bne         :+
     PlaySongPtr songDead
+:
     rts
+.endproc
+
+;-----------------------------------------------------------------------------
+; Check Done Game
+;   Special code for the very last level
+;-----------------------------------------------------------------------------
+
+.proc checkDoneGame
+    lda         currentLevel
+    cmp         #FINAL_LEVEL
+    beq         :+
+    rts
+:
+    lda         playerX
+    cmp         #FINAL_X
+    beq         :+
+    rts
+:
+    lda         #STATE_GAME_OVER
+    sta         playerState             ; don't play end song!
+
+    ; set string
+    SetStringTop        displayFinalLevel
+
+    ; sequal?
+    lda         #FINAL_Q_X
+    sta         tileX
+    lda         #FINAL_Q_Y
+    sta         tileY
+    lda         #'?'-$20
+    jsr         drawTile
+    lda         drawPage
+    eor         #$20
+    sta         drawPage
+    lda         #'?'-$20
+    jsr         drawTile
+    lda         drawPage
+    eor         #$20
+    sta         drawPage
+
+
+    ; fire rocket!
+    lda         #$50
+    sta         worldSpeed0
+
+    ; turn on flame
+    lda         #0
+    sta         tileX
+    sta         tileY
+    lda         #TILE_ROCKET_FLAME
+    jsr         copyTileToBuffers
+
+    ; erase "copy" of rocket
+    lda         #0
+    sta         bufferPtr0
+    lda         #>COLUMN_BUFFER_START
+    sta         bufferPtr0+1
+    jsr         erase
+    inc         bufferPtr0+1
+    jsr         erase
+    rts
+
+erase:
+    sta         RAMWRTON
+    lda         #0
+
+    ldy         #0
+eraseLoop0:
+    sta         (bufferPtr0),y
+    iny
+    cpy         #8
+    bne         eraseLoop0
+
+    ldy         #$88        ; past flame
+eraseLoop1:
+    sta         (bufferPtr0),y
+    iny
+    cpy         #$FD        ; Keep last 2 bytes
+    bne         eraseLoop1
+
+    sta         RAMWRTOFF
+    rts
+
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -1601,6 +1705,24 @@ doCasual:
     lda         playerState
     cmp         #STATE_GAME_OVER
     bne         :+
+
+    ; check if game finale
+    lda         currentLevel
+    cmp         #FINAL_LEVEL
+    bne         doneGameOver
+    lda         worldOffset1
+    and         #$7e
+    cmp         #$7e
+    bne         doneGameOver
+    jsr         playCredits
+
+    ; clean up return stack
+    pla
+    pla
+    jmp         main::skipSong
+
+
+doneGameOver:
     rts
 :
     cmp         #STATE_LEVEL_RESTART
@@ -1812,6 +1934,7 @@ doneRight:
     lda         #STATE_IDLE
     jsr         updateState
     jsr         setMovement
+    jsr         checkDoneGame
     rts
 :
     cmp         #STATE_START_UP
@@ -2097,6 +2220,9 @@ stringGameOver:     TileText "_ @  GAME  OVER  @ _"
 stringLevelRestart: TileText "_ TRY LEVEL AGAIN  _"
 stringPressKey:     TileText "_  PRESS ANY KEY   _"
 stringLevelComplete:TileText "_  LEVEL COMPLETE! _"
+stringFinalLevel:   TileText "_ CONGRATULATIONS! _"
+stringLevelBonus:   TileText "_   LEVEL: BONUS   _"
+stringLevelFinal:   TileText "_   LEVEL: FINAL   _"
 
 LEVEL_X = 12*TILE_WIDTH
 MODE_X = 9*TILE_WIDTH
@@ -2302,6 +2428,24 @@ displayLevelRestart0:
 displayLevelRestart1:
     .word       stringPressKey
     .byte       2,<displayLevelRestart0
+
+displayFinalLevel:
+    .word       stringFinalLevel
+    .byte       2,<displayFinalLevel
+
+displayBonusLevel0:
+    .word       stringLevelBonus
+    .byte       10,<displayBonusLevel1
+displayBonusLevel1:
+    .word       stringFroggo
+    .byte       2,<displayBonusLevel0
+
+displayFinalLevel0:
+    .word       stringLevelFinal
+    .byte       20,<displayFinalLevel1
+displayFinalLevel1:
+    .word       stringFroggo
+    .byte       4,<displayFinalLevel0
 
 ;-----------------------------------------------------------------------------
 ; Draw Cut Scene - image or quote (right/left styles)
@@ -3486,9 +3630,21 @@ drawLoop:
     jsr         initDisplay
 
     ; set initial text strings
-    SetStringTop        displayLevel0
     SetStringBottom     displayFroggo0
+    SetStringTop        displayLevel0
 
+    lda         currentLevel
+    cmp         #BONUS_LEVEL
+    bne         :+
+    ; alternate display for final level
+    SetStringTop        displayBonusLevel0
+    jmp         doneCurrentLevel
+:
+    cmp         #FINAL_LEVEL
+    bne         doneCurrentLevel
+    SetStringTop        displayFinalLevel0
+
+doneCurrentLevel:
     ; display map on both pages
     lda         #$20
     sta         drawPage
@@ -3509,8 +3665,6 @@ drawLoop:
     sta         LOWSCR
     lda         #$20
     sta         drawPage
-
-
     rts
 
 .endproc
@@ -4040,6 +4194,18 @@ worldOffset0:       .res    8           ; Display offset - Init when setting spe
 worldOffset1:       .res    8           ; Display offset - Init when setting speed
 
 ; 2tone Songs
+
+songTitle:
+    .byte   NOTE_8TH,   NOTE_A2,    NOTE_C2
+    .byte   NOTE_8TH,   NOTE_A2,    NOTE_D2
+    .byte   NOTE_8TH,   NOTE_A2,    NOTE_E2
+    .byte   NOTE_32ND,  NOTE_A2,    NOTE_E2
+    .byte   NOTE_32ND,  NOTE_A2,    NOTE_D2
+    .byte   NOTE_32ND,  NOTE_A2,    NOTE_E2
+    .byte   NOTE_32ND,  NOTE_A2,    NOTE_D2
+    .byte   NOTE_32ND,  NOTE_A2,    NOTE_E2
+    .byte   NOTE_DONE,  NOTE_REST,  NOTE_REST
+
 songGameStart:
     .byte   NOTE_16TH,  NOTE_C2,    NOTE_C4
     .byte   NOTE_16TH,  NOTE_D2,    NOTE_D4
@@ -4164,14 +4330,13 @@ tileTypeTable:
     .byte       TILE_TYPE_BUFFER6           ;96     - Active column + Animate
     .byte       TILE_TYPE_BUFFER7           ;97     - Active column + Animate
     .byte       TILE_TYPE_DEATH             ;98     - Robot
-    .byte       TILE_TYPE_FREE              ;99     - Unused
+    .byte       TILE_TYPE_BLOCKED           ;99     - Stairs
     .byte       TILE_TYPE_BLOCKED           ;9A     - Stairs
-    .byte       TILE_TYPE_BLOCKED           ;9B     - Stairs
-    .byte       TILE_TYPE_DEATH             ;9C     - Rocket A
-    .byte       TILE_TYPE_DEATH             ;9D     - Rocket B
-    .byte       TILE_TYPE_DEATH             ;9E     - Rocket C
-    .byte       TILE_TYPE_DEATH             ;9F     - Rocket (flames)
-
+    .byte       TILE_TYPE_DEATH             ;9B     - Rocket A
+    .byte       TILE_TYPE_DEATH             ;9C     - Rocket B
+    .byte       TILE_TYPE_DEATH             ;9D     - Rocket C
+    .byte       TILE_TYPE_DEATH             ;9E     - Rocket (flames)
+    .byte       TILE_TYPE_MOVEMENT          ;9F     - Rocket cabin
 
 ; pack lookup tables on page (192 + 24 + 24 = 240)
 
