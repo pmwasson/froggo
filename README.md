@@ -20,7 +20,8 @@ Froggo is a retro action game by Paul Wasson for the Apple // inspired by the or
   - Challenge - failure will restart the game from the beginning
 - A graphics editor is included on the disk to change any of the sprites, backgrounds or Froggo himself
 - Suitable for all ages
-* Complete challenge mode for additional bonus level!
+
+\* Complete challenge mode for an additional bonus level!
 
 # How to play
 Use the [A] and [Z] keys to hop up or down. Use [←] [→] to hop left or right.
@@ -52,3 +53,8 @@ Where Y is the offset into the buffer and X is the screen column.
 When completely unrolled, the scrolling code takes up over 24KB of extended memory of almost completely straight-line code with only a handful of branches. It doesn't need to use indirect addressing, calculate screen location or add buffer offsets since it is all baked into the code.
 
 Other data, like levels and images are also stored in the extended memory to reduce disk access.
+
+# Toolchain
+- Using ca65 (part of the cc65 compiler) for assembling. https://cc65.github.io/
+- AppleCommander to build disk images. https://applecommander.github.io/
+- AppleWin for emulation. https://github.com/AppleWin/AppleWin
