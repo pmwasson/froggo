@@ -866,11 +866,9 @@ LEVEL_DATA_END:
     sta         LOWSCR
     sta         HIRES
     sta         TXTCLR
-
-    ;PlaySongPtrInterrupt peasantSong
     PlaySongPtrInterrupt songTitle
-skipSong:
 
+skipSong:
     jsr         initDisplay
     lda         #STATE_GAME_OVER
     sta         playerState
@@ -4194,31 +4192,45 @@ worldOffset0:       .res    8           ; Display offset - Init when setting spe
 worldOffset1:       .res    8           ; Display offset - Init when setting speed
 
 ; 2tone Songs
+songTitle:             ;Right       Left
+    .byte   NOTE_32ND, NOTE_E3,    NOTE_C2
+    .byte   NOTE_32ND, NOTE_F3,    NOTE_REST
+    .byte   NOTE_16TH, NOTE_G3,    NOTE_REST
+    .byte   NOTE_16TH_DOT, NOTE_REST,  NOTE_G2
+    .byte   NOTE_64TH, NOTE_REST,  NOTE_REST
 
-songTitle:
-    .byte   NOTE_8TH,   NOTE_A2,    NOTE_C2
-    .byte   NOTE_8TH,   NOTE_A2,    NOTE_D2
-    .byte   NOTE_8TH,   NOTE_A2,    NOTE_E2
-    .byte   NOTE_32ND,  NOTE_A2,    NOTE_E2
-    .byte   NOTE_32ND,  NOTE_A2,    NOTE_D2
-    .byte   NOTE_32ND,  NOTE_A2,    NOTE_E2
-    .byte   NOTE_32ND,  NOTE_A2,    NOTE_D2
-    .byte   NOTE_32ND,  NOTE_A2,    NOTE_E2
-    .byte   NOTE_DONE,  NOTE_REST,  NOTE_REST
+    .byte   NOTE_32ND, NOTE_C3,    NOTE_A2
+    .byte   NOTE_32ND, NOTE_D3,    NOTE_REST
+    .byte   NOTE_16TH, NOTE_E3,    NOTE_REST
+    .byte   NOTE_16TH_DOT, NOTE_REST,  NOTE_E2
+    .byte   NOTE_64TH, NOTE_REST,  NOTE_REST
+
+    .byte   NOTE_16TH_DOT, NOTE_As3,   NOTE_As2
+    .byte   NOTE_32ND, NOTE_As3,   NOTE_REST
+    .byte   NOTE_32ND, NOTE_C3,    NOTE_F2
+    .byte   NOTE_32ND, NOTE_D3,    NOTE_REST
+    .byte   NOTE_64TH, NOTE_REST,  NOTE_REST
+
+    .byte   NOTE_16TH, NOTE_C3,    NOTE_F2
+    .byte   NOTE_32ND, NOTE_C3,    NOTE_C2
+    .byte   NOTE_32ND, NOTE_C3,    NOTE_C2
+    .byte   NOTE_32ND, NOTE_D2,    NOTE_REST
+    .byte   NOTE_32ND, NOTE_C3,    NOTE_E2
+    .byte   NOTE_DONE, NOTE_REST,  NOTE_REST
 
 songGameStart:
-    .byte   NOTE_16TH,  NOTE_C2,    NOTE_C4
-    .byte   NOTE_16TH,  NOTE_D2,    NOTE_D4
-    .byte   NOTE_16TH,  NOTE_E2,    NOTE_E4
-    .byte   NOTE_16TH,  NOTE_C2,    NOTE_C4
-    .byte   NOTE_16TH,  NOTE_D2,    NOTE_D4
-    .byte   NOTE_16TH,  NOTE_E2,    NOTE_E4
+    .byte   NOTE_16TH,  NOTE_E2,    NOTE_C3
+    .byte   NOTE_16TH,  NOTE_F2,    NOTE_D3
+    .byte   NOTE_16TH,  NOTE_G2,    NOTE_E3
+    .byte   NOTE_16TH,  NOTE_E2,    NOTE_C3
+    .byte   NOTE_16TH,  NOTE_F2,    NOTE_D3
+    .byte   NOTE_16TH,  NOTE_G2,    NOTE_E3
     .byte   NOTE_DONE,  NOTE_REST,  NOTE_REST
 
 songLevelComplete:
     .byte   NOTE_16TH,  NOTE_C2,    NOTE_REST
     .byte   NOTE_16TH,  NOTE_C3,    NOTE_A2
-    .byte   NOTE_16TH,  NOTE_C4,    NOTE_A3
+    .byte   NOTE_16TH,  NOTE_C4,    NOTE_E3
     .byte   NOTE_DONE,  NOTE_REST,  NOTE_REST
 
 songRestart:
@@ -4227,11 +4239,11 @@ songRestart:
     .byte   NOTE_DONE,  NOTE_REST,  NOTE_REST
 
 songDead:
-    .byte   NOTE_16TH,      NOTE_E3,    NOTE_REST
+    .byte   NOTE_32ND,      NOTE_E3,    NOTE_REST
     .byte   NOTE_32ND,      NOTE_REST,  NOTE_REST
-    .byte   NOTE_16TH,      NOTE_D3,    NOTE_REST
+    .byte   NOTE_32ND,      NOTE_D3,    NOTE_REST
     .byte   NOTE_32ND,      NOTE_REST,  NOTE_REST
-    .byte   NOTE_16TH,      NOTE_C3,    NOTE_C2
+    .byte   NOTE_16TH,      NOTE_A2,    NOTE_C2
     .byte   NOTE_DONE,      NOTE_REST,  NOTE_REST
 
 songOuch:
