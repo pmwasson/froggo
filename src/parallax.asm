@@ -21,15 +21,14 @@ TILE_HEIGHT                 = 1
 ;-----------------------------------------------------------------------------
 
 .proc main
-
-    jsr         testParallax
+    jsr         parallax
     jmp         quit
 .endproc
 
 ;-----------------------------------------------------------------------------
-; Testing generated parallax code
+; Parallax demo
 ;-----------------------------------------------------------------------------
-.proc testParallax
+.proc parallax
 
 offset0Mask     =   $FF     ; 1 out of 256
 offset1Mask     =   $0F     ; 1 out of 16
@@ -212,29 +211,6 @@ decOffset3:
 decOffset4:
     rts
 
-
-drawTitle:
-    lda         #0
-    sta         index
-    lda         #14
-    sta         tileY
-    lda         #12
-    sta         tileX
-titleLoop:
-    ldx         index
-    lda         parallaxTitle,x
-    bne         :+
-    rts
-:
-    jsr         drawTile
-
-    inc         index
-    lda         tileX
-    clc
-    adc         #TILE_WIDTH
-    sta         tileX
-    jmp         titleLoop
-
 sound:
     lda         music
     beq         done
@@ -412,78 +388,6 @@ loop:
     bmi         done
     jmp         loop
 done:
-    rts
-
-.endproc
-
-;-----------------------------------------------------------------------------
-; initTile
-;
-;-----------------------------------------------------------------------------
-.proc initTile
-
-    sta         tileIdx
-    asl
-    asl
-    asl
-    asl
-    sta         tilePtr0
-
-    lda         tileIdx
-    lsr
-    lsr
-    lsr
-    lsr
-    clc
-    adc         #>tileSheet
-    sta         tilePtr1
-
-    rts
-
-.endproc
-
-;-----------------------------------------------------------------------------
-; drawTile -- draw 2-byte x 8 row tile
-;
-;   tileY - row to start drawing 0..23
-;   tileX - column to start drawing 0..39
-;-----------------------------------------------------------------------------
-
-.proc drawTile
-
-    jsr         initTile
-
-    ldx         tileY
-    lda         tileX
-    clc
-    adc         lineOffset,x
-    sta         screenPtr0
-    lda         linePage,x
-    adc         drawPage
-    sta         screenPtr1
-
-    ldx         #8              ; 8 rows
-    ldy         #0
-
-drawLoop:
-    lda         (tilePtr0),y
-    sta         (screenPtr0),y
-    iny
-    lda         (tilePtr0),y
-    sta         (screenPtr0),y
-    dey
-
-    ; advance tile pointer
-    inc         tilePtr0
-    inc         tilePtr0
-
-    ; next row
-    lda         screenPtr1
-    adc         #4
-    sta         screenPtr1
-    dex
-    bne         drawLoop
-
     rts
 
 .endproc
