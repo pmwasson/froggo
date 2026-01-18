@@ -80,7 +80,7 @@
     sta     songPtr+1
     lda     #SONG_UNINTERRUPTIBLE
     jsr     electricDuetPlayer
-    sta     KBDSTRB                 ; kill any keystroke
+    ; Don't kill keystroke since player hitting key to advance game
 .endmacro
 
 .macro PlaySongPtrInterrupt song
@@ -1247,9 +1247,6 @@ erasePlayer1:
 .endproc
 
 .proc waitForKey
-    ; kill extra keypress
-    bit         KBDSTRB
-
     lda         #8          ; about 10 seconds
     sta         wait
     ldy         #0
