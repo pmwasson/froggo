@@ -4,7 +4,7 @@ Froggo is a retro action game by Paul Wasson for the Apple // inspired by the or
 # Download
 Disk image (released v1.0.2): https://github.com/pmwasson/froggo/raw/refs/tags/v1.0.2/disk/froggo.dsk
 
-Play on real hardwire, your favorite emulator, or online via [Apple2TS emulator](https://apple2ts.com/?theme=minimal&#https://github.com/pmwasson/froggo/raw/refs/heads/main/disk/froggo.dsk).
+Play on real hardwire, your favorite emulator, or online via [Apple2TS emulator](https://apple2ts.com/?theme=minimal&#https://github.com/pmwasson/froggo/raw/refs/tags/v1.0.2/disk/froggo.dsk).
 
 
 
