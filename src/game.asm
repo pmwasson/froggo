@@ -242,6 +242,7 @@ TILE_CARPET                 = $5F
 TILE_COIN                   = $70
 TILE_CONVEYOR               = $64
 TILE_FLOWER                 = $6C
+TILE_DOUBLE_LINE            = $7F
 
 TILE_BRICK_NW               = $68
 TILE_BRICK_N                = $69
@@ -639,10 +640,10 @@ draw1:
 
 ; Zero page usage
 currentColumn   := tempZP
-columnPtr       := mapPtr0
+columnPtr       := tilePtr0
 
 
-; Set up map pointer before calling
+; Set up level pointer before calling
 ; This read the column index and then copy of the referenced data to fixed locations
 ;   - column types (20 bytes)
 ;   - column tiles (20*16 bytes)
@@ -651,6 +652,12 @@ columnPtr       := mapPtr0
 copyLevelData:                          ; aka COPY_LEVEL_CODE
     lda         #0
     sta         currentColumn
+    sta         bufferPtr0              ; cache array page align
+    sta         bufferPtr1              ; type array page align
+    lda         #>tileCacheArray
+    sta         bufferPtr0+1
+    lda         #>tileTypeArray
+    sta         bufferPtr1+1
 
     sta         RAMRDON                 ; read from aux (including instructions)
 
@@ -677,19 +684,36 @@ columnLoop:
     sta         columnPtr+1
     ldx         currentColumn
 
-    ; Copy and transpose the column data
-    ; (Could also consider working with non-transposed data)
+    ; Copy column data
     ldy         #0
-columnTileLoop:
-.repeat 16,index
+
+rowLoop:
     lda         (columnPtr),y
-    sta         worldMap+index*20,x
+    sta         (bufferPtr0),y
+    tax
+    sta         RAMRDOFF
+    lda         tileTypeTable,x         ; could copy table to AUX to avoid switching
+    sta         RAMRDON
+    sta         (bufferPtr1),y
     iny
-.endrep
     cpy         #16
-    beq         :+
-    jmp         DISPATCH_CODE + (columnTileLoop-dispatchStart)      ; relocated jump!
-:
+    bne         rowLoop
+
+    lda         bufferPtr0
+    clc
+    adc         #16
+    sta         bufferPtr0
+    lda         bufferPtr0+1
+    adc         #0
+    sta         bufferPtr0+1
+
+    lda         bufferPtr1
+    clc
+    adc         #16
+    sta         bufferPtr1
+    lda         bufferPtr1+1
+    adc         #0
+    sta         bufferPtr1+1
 
     inc         currentColumn
     lda         currentColumn
@@ -697,6 +721,7 @@ columnTileLoop:
     beq         :+
     jmp         DISPATCH_CODE + (columnLoop-dispatchStart)          ; relocated jump!
 :
+
     ; expand speeds
     ldx         #0                          ; x = speed index
     ldy         #20                         ; currentColumn == 20
@@ -704,6 +729,7 @@ speedLoop:
     lda         (levelPtr),y
     and         #$F0
     sta         worldSpeed0,x               ; write lower byte
+    sta         worldSpeed0copy,x           ; duplicate for trains
 
     lda         (levelPtr),y
     and         #$08                        ; check if upper bit of nibble is set
@@ -717,6 +743,7 @@ positiveSign:
     and         #$0F
 speedContinue:
     sta         worldSpeed1,x               ; write upper byte
+    sta         worldSpeed1copy,x           ; duplicate for trains
     lda         #0
     sta         worldOffset0,x              ; init offset
     sta         worldOffset1,x              ; init offset
@@ -860,6 +887,7 @@ LEVEL_DATA_END:
 ; Main program
 ;-----------------------------------------------------------------------------
 
+
 .proc main
     ; display screen (again) incase jump here from monitor
     sta         MIXCLR
@@ -930,6 +958,16 @@ switchTo1:
     sta         drawPage
     jsr         erasePlayer1
 
+
+    ; Check if finished level
+    ;---------------------------
+    lda         playerX
+    cmp         #(MAP_RIGHT-TILE_WIDTH)
+    bne         :+
+    jsr         finishLevel
+    jmp         reset_loop
+:
+
     ; Check for user input
     ;---------------------------
 
@@ -953,25 +991,30 @@ menuNewGame:
     jmp         restart_loop
 :
 
-; Cheat keys turned off for release
-;    cmp         #KEY_ASTERISK
-;    bne         :+
-;    jmp         monitor
-;:
+; ; Cheat keys turned off for release
+;     cmp         #KEY_ASTERISK
+;     bne         :+
+;     jmp         monitor
+; :
 ;
-;    cmp         #KEY_RETURN
-;    bne         :+
-;    jsr         finishLevel
-;    jmp         reset_loop
-;:
+;     cmp         #KEY_RETURN
+;     bne         :+
+;     jsr         finishLevel
+;     jmp         reset_loop
+; :
 
     ; if game over, hit a key to restart
     ldx         playerState
     cpx         #STATE_GAME_OVER
-    bne         :+
+    bne         notGameOver
+    lda         currentLevel
+    cmp         #FINAL_LEVEL        ; if final level, ignore key
+    beq         :+
     jmp         restart_loop
 :
-    ldx         playerState
+    jmp         game_loop
+notGameOver:
+
     cpx         #STATE_LEVEL_RESTART
     bne         :+
     PlaySongPtr songRestart
@@ -1011,8 +1054,8 @@ menuNewGame:
 goRight:
     ; check if at right edge
     lda         playerX
-    cmp         #(MAP_RIGHT-TILE_WIDTH*2)
-    beq         atRightEdge
+    cmp         #(MAP_RIGHT-TILE_WIDTH)
+    beq         :+                  ; check for level finish elsewhere
     lda         playerX
     sta         tileX
     lda         playerTileY
@@ -1026,14 +1069,14 @@ goRight:
 :
     jmp         game_loop
 
-atRightEdge:
-    jsr         finishLevel
-    jmp         reset_loop
+;atRightEdge:
+;    jsr         finishLevel
+;    jmp         reset_loop
 
 goLeft:
     ; check if at left edge
     lda         playerX
-    cmp         #(MAP_LEFT+TILE_WIDTH)
+    cmp         #MAP_LEFT
     beq         :+
     lda         playerX
     sta         tileX
@@ -1109,22 +1152,24 @@ erasePlayer0:
     sta         tileX
     lda         eraseTileY0_0
     sta         tileY
-    jsr         eraseTile
-
+    jsr         eraseTile       ; erase player tile
     dec         tileY
-    jsr         eraseTile
+    jsr         eraseTile       ; and 1 above
     inc         tileY
     inc         tileY
-    lda         tileY
-    cmp         #MAP_BOTTOM-TILE_HEIGHT
-    beq         :+
-    jsr         eraseTile
-:
+    jsr         eraseTile       ; and 1 below
+
     lda         eraseTileX1_0
     sta         tileX
     lda         eraseTileY1_0
     sta         tileY
-    jsr         eraseTile
+    jsr         eraseTile       ; erase second player tile
+    dec         tileY
+    jsr         eraseTile       ; and 1 above
+    inc         tileY
+    inc         tileY
+    jsr         eraseTile       ; and 1 below
+
     rts
 
 erasePlayer1:
@@ -1133,21 +1178,23 @@ erasePlayer1:
     lda         eraseTileY0_1
     sta         tileY
     jsr         eraseTile
-
     dec         tileY
     jsr         eraseTile
     inc         tileY
     inc         tileY
-    lda         tileY
-    cmp         #MAP_BOTTOM-TILE_HEIGHT
-    beq         :+
     jsr         eraseTile
-:
+
     lda         eraseTileX1_1
     sta         tileX
     lda         eraseTileY1_1
     sta         tileY
     jsr         eraseTile
+    dec         tileY
+    jsr         eraseTile
+    inc         tileY
+    inc         tileY
+    jsr         eraseTile
+
     rts
 
 .endproc
@@ -1329,6 +1376,12 @@ image:
 ;-----------------------------------------------------------------------------
 .proc animateColumns
 
+    ; if dead, don't animate
+    lda         playerState
+    cmp         #STATE_DEAD
+    bne         :+
+    rts
+:
     lda         columnTimingEven            ; timing=0, do nothing
     beq         checkOdd
 even:
@@ -1446,6 +1499,7 @@ checkReplace:
 replaceColumnLoop:
     lda         #0
     sta         tileY
+    sta         madeChange
 
 replaceRowLoop:
     ldy         index
@@ -1454,6 +1508,7 @@ replaceRowLoop:
     beq         :+
 
     sta         SPEAKER                 ; train noise
+    inc         madeChange
 
     lda         index
     and         #$3                     ; 0..3
@@ -1473,6 +1528,33 @@ replaceRowLoop:
     lda         index
     and         #$f
     bne         replaceRowLoop
+
+    lda         madeChange
+    beq         noChange
+
+    ; calc speed offset
+    lda         tileX
+    lsr
+    tax
+
+    ; check if need to change speed
+    lda         action
+    cmp         #ACTION_REPLACE_TRAIN
+    bne         :+
+    lda         worldSpeed0copy,x
+    sta         worldSpeed0,x
+    lda         worldSpeed1copy,x
+    sta         worldSpeed1,x
+:
+    cmp         #ACTION_REPLACE_TRACKS
+    bne         :+
+    lda         #0
+    sta         worldSpeed0,x
+    sta         worldSpeed1,x
+    sta         worldOffset0,x
+    sta         worldOffset1,x
+:
+noChange:
 
     lda         tileX
     clc
@@ -1496,6 +1578,7 @@ tileB:      .byte   0
 state:      .byte   0
 action:     .byte   0
 base:       .byte   0
+madeChange: .byte   0
 
 ACTION_MORPH                = 1
 ACTION_REPLACE_WARNING      = 4
@@ -1750,22 +1833,24 @@ doneDead:
 
     ; Above the top?
     lda         playerY
-    cmp         #(MAP_TOP+TILE_HEIGHT)*8
+    cmp         #MAP_TOP*8
     bcs         :+
+    lda         #MAP_TOP*8
+    sta         playerY
     lda         #STATE_DEAD
     jmp         updateState
 :
 
     ; Below the bottom?
-    cmp         #(MAP_BOTTOM-1*TILE_HEIGHT)*8-7
+    cmp         #(MAP_BOTTOM-TILE_HEIGHT)*8+1
     bcc         :+
+    lda         #(MAP_BOTTOM-TILE_HEIGHT)*8
+    sta         playerY
     lda         #STATE_DEAD
     jmp         updateState
 :
 
-    jsr         tile2array
-    tax
-    lda         tileTypeArray,x
+    jsr         readType
     sta         currentTileType
     and         #TILE_TYPE_DEATH
     beq         :+
@@ -2033,6 +2118,51 @@ currentOffset:      .byte   0
 .endproc
 
 ;-----------------------------------------------------------------------------
+; Read Type / Cache
+;
+;   Read background type/cache (20x16) for tile at tilex,tiley
+;   Store type/cache as [y][x] to make mult easier
+;-----------------------------------------------------------------------------
+.proc readCache
+    lda         tileX               ; tileX * 8 (since already *2)
+    asl
+    asl
+    asl
+    sta         mapPtr0             ; remember lower bits
+    lda         #>tileCacheArray    ; add bit 5 to cache page
+    adc         #0
+    sta         mapPtr1
+    lda         mapPtr0
+    adc         tileY
+    clc
+    adc         #256-MAP_TOP        ; subtract top offset
+    sta         mapPtr0             ; assuming page aligned
+    ldy         #0
+    lda         (mapPtr0),y
+    rts
+.endproc
+
+.proc readType
+    lda         tileX               ; tileX * 8 (since already *2)
+    asl
+    asl
+    asl
+    sta         mapPtr0             ; remember lower bits
+    lda         #>tileTypeArray     ; add bit 5 to cache page
+    adc         #0
+    sta         mapPtr1
+    lda         mapPtr0
+    adc         tileY
+    clc
+    adc         #256-MAP_TOP        ; subtract top offset
+    sta         mapPtr0             ; assuming page aligned
+    ldy         #0
+    lda         (mapPtr0),y
+    rts
+.endproc
+
+
+;-----------------------------------------------------------------------------
 ; Tile 2 array
 ;
 ;   Convert (tileX,tileY) to an array index
@@ -2067,17 +2197,16 @@ mult18Table:    .byte   18*0, 18*1, 18*2, 18*3,  18*4,  18*5,  18*6
 .proc eraseTile
 
     lda         tileY
-    cmp         #MAP_TOP
-    beq         skip
-    cmp         #MAP_BOTTOM-TILE_HEIGHT
-    beq         skip
+    cmp         #MAP_TOP-1
+    beq         edge
+    cmp         #MAP_BOTTOM
+    beq         edge
 
-    jsr         tile2array
-    tax
-    lda         tileCacheArray,x
+    jsr         readCache
     jmp         drawTile            ; chain returns
-skip:
-    rts
+edge:
+    lda         #TILE_BLANK
+    jmp         drawTile            ; chain returns
 
 .endproc
 
@@ -2087,9 +2216,7 @@ skip:
 ;   Return 0 if not blocked
 ;-----------------------------------------------------------------------------
 .proc movementCheck
-    jsr         tile2array
-    tax
-    lda         tileTypeArray,x
+    jsr         readType
     and         #TILE_TYPE_BLOCKED
     rts
 .endproc
@@ -2151,43 +2278,43 @@ writeOffsetLoop:
 
 .proc drawMap
 
-    lda         #<worldMap
+    lda         #<tileCacheArray
     sta         mapPtr0
-    lda         #>worldMap
+    lda         #>tileCacheArray
     sta         mapPtr1
-    lda         #MAP_TOP
-    sta         tileY
-
-mapLoop:
-    lda         #0
-    sta         index
     lda         #MAP_LEFT
     sta         tileX
 
 rowLoop:
+    lda         #0
+    sta         index
+    lda         #MAP_TOP
+    sta         tileY
+
+colLoop:
     ldy         index
     lda         (mapPtr0),y
     jsr         drawTile
     inc         index
-    lda         tileX
-    clc
-    adc         #TILE_WIDTH
-    sta         tileX
-    cmp         #MAP_RIGHT
-    bne         rowLoop
+    inc         tileY
+    lda         tileY
+    cmp         #MAP_BOTTOM
+    bne         colLoop
 
     lda         mapPtr0
     clc
-    adc         #20
+    adc         #16
     sta         mapPtr0
     lda         mapPtr1
     adc         #0
     sta         mapPtr1
 
-    inc         tileY
-    lda         tileY
-    cmp         #MAP_BOTTOM
-    bne         mapLoop
+    inc         tileX
+    inc         tileX
+    lda         tileX
+
+    cmp         #MAP_RIGHT
+    bne         rowLoop
 
     rts
 
@@ -3778,6 +3905,10 @@ writeXLoop:
 ;-----------------------------------------------------------------------------
 .proc loadLevel
 
+; re-use zero page pointers
+tileCachePtr = levelPtr
+tileTypePtr  = songPtr
+
     ; Reset buffer X data
     ;-------------------------------------------
     ldx         #0
@@ -3816,6 +3947,16 @@ resetBufferXLoop:
     sta         worldColumn
     sta         tileX
 
+    lda         #<tileCacheArray
+    sta         tileCachePtr
+    lda         #>tileCacheArray
+    sta         tileCachePtr+1
+
+    lda         #<tileTypeArray
+    sta         tileTypePtr
+    lda         #>tileTypeArray
+    sta         tileTypePtr+1
+
 dynamicLoop:
     lda         #0
     sta         tileY
@@ -3834,13 +3975,48 @@ dynamicLoop:
     tya                             ; buffer#
     ora         worldColumnType,x   ; fill in buffer #
     sta         worldColumnType,x
+    and         #$87                ; just dynamic and buffer #
     sta         dynamicTileIndex
 
-.repeat 16,index
-    lda         worldMap+20*index,x
-    jsr         dynamicUpdate
-    sta         worldMap+20*index,x     ; overwrite with dynamic column #
-.endrep
+    ldy         #0
+    sty         row
+rowLoop:
+    lda         (tileCachePtr),y
+
+    sta         tileIndex
+    jsr         copyTileToBuffers
+    ldy         tileIndex
+    lda         tileTypeTable,y
+    ldy         dynamicIndex
+    sta         tileDynamicType,y
+    inc         dynamicIndex
+    lda         tileY
+    clc
+    adc         #8
+    sta         tileY
+    lda         dynamicTileIndex
+    ldy         row
+    sta         (tileCachePtr),y     ; overwrite with dynamic column #
+    tax
+    lda         tileTypeTable,x
+    sta         (tileTypePtr),y      ; overwrite with dynamic type
+
+    inc         row
+    ldy         row
+    cpy         #16
+    bne         rowLoop
+
+    ; special case for trains, zero out speed
+    ldx         worldColumn
+    lda         worldColumnType,x
+    and         #COLUMN_TYPE_TRAINS
+    beq         :+
+    ldx         activeColumns
+    lda         #0
+    sta         worldSpeed0,x
+    sta         worldSpeed1,x
+:
+
     ; point to next dynamic column
     inc         activeColumns
     inc         tileX
@@ -3854,6 +4030,24 @@ dynamicLoop:
 :
 
 nextDynamic:
+
+    ; go to next column
+    lda         tileCachePtr
+    clc
+    adc         #16
+    sta         tileCachePtr
+    lda         tileCachePtr+1
+    adc         #0
+    sta         tileCachePtr+1
+
+    lda         tileTypePtr
+    clc
+    adc         #16
+    sta         tileTypePtr
+    lda         tileTypePtr+1
+    adc         #0
+    sta         tileTypePtr+1
+
     inc         worldColumn
     lda         worldColumn
     cmp         #20
@@ -3864,74 +4058,9 @@ nextDynamic:
     ; init buffers
     ;-------------------------------------------
     jsr         setActiveBuffers
-
-    ; convert world map to static collision map
-    ;-------------------------------------------
-    ldx         #0
-staticLoop:
-.repeat 14,index
-    ldy         worldMap+1+20*(index+1),x
-    lda         tileTypeTable,y
-    sta         tileTypeArray+18*index,x
-.endrep
-    inx
-    cpx         #18
-    beq         :+
-    jmp         staticLoop
-:
-
-    ; copy worldMap to erase cache
-    ;-------------------------------------------
-    lda         #<worldMap
-    clc
-    adc         #20+1               ; start 1 row and 1 col over
-    sta         mapPtr0
-    lda         #>worldMap
-    adc         #0
-    sta         mapPtr1
-    ldx         #0                  ; x = indexing into tile cache
-cacheLoop:
-    ldy         #0                  ; y = world map row offset
-cacheRowLoop:
-    lda         (mapPtr0),y
-    sta         tileCacheArray,x
-    iny
-    inx
-    cpy         #18                 ; only 18 tiles per row
-    bne         cacheRowLoop
-
-    lda         mapPtr0
-    clc
-    adc         #20
-    sta         mapPtr0
-    lda         mapPtr1
-    adc         #0
-    sta         mapPtr1
-    cpx         #18*14
-    bne         cacheLoop
-
     rts
 
-    ; copy tiles to buffer
-    ;-------------------------------------------
-dynamicUpdate:
-    sta         tileIndex
-    jsr         copyTileToBuffers
-    ldy         tileIndex
-    lda         tileTypeTable,y
-    ldy         dynamicIndex
-    sta         tileDynamicType,y
-    inc         dynamicIndex
-    lda         tileY
-    clc
-    adc         #8
-    sta         tileY
-    ldx         worldColumn
-    lda         dynamicTileIndex
-
-    rts
-
-
+row:                .byte       $0
 tileIndex:          .byte       $0
 dynamicIndex:       .byte       $0
 worldColumn:        .byte       $0
@@ -4183,13 +4312,15 @@ cutSceneIndex:      .byte       (NUMBER_CUTSCENES-1)*4     ; start on last, so w
 
 
 ; Current level data
-worldMap:           .res    16*20       ; Tile map - Read from AUX memory
+;worldMap:           .res    16*20       ; Tile map - Read from AUX memory
 worldColumnType:    .res    20          ; Column types - Read from AUX memory
 worldBufferX:       .res    8           ; Dynamic column location - Calc for AUX memory column types
 worldSpeed0:        .res    8           ; Change in offset - Read from AUX memory
 worldSpeed1:        .res    8           ; Change in offset - Read from AUX memory
 worldOffset0:       .res    8           ; Display offset - Init when setting speed
 worldOffset1:       .res    8           ; Display offset - Init when setting speed
+worldSpeed0copy:    .res    8           ; Duplicate for trains
+worldSpeed1copy:    .res    8           ; Duplicate for trains
 
 ; 2tone Songs
 songTitle:             ;Right       Left
@@ -4251,13 +4382,15 @@ songOuch:
     .byte   NOTE_DONE,      NOTE_REST,  NOTE_REST
 
 .align 256
+tileTypeArray:      .res        320         ; collision detection (18x14 array)
 
-tileTypeArray:      .res        256         ; collision detection (18x14 array)
-tileCacheArray:     .res        256         ; track tile index for BG
+; tileDynamicType fits in second page of type array (320-256 + 8*16 = 192)
 tileDynamicType:    .res        MAX_COLUMN_PAIRS*COLUMN_ROWS/8  ; collision detection (dynamic columns)
 
 .align 256
+tileCacheArray:     .res        320         ; track tile index for BG
 
+; tileTypeTable fits in second page of cache array (320-256 + $A0 = 224)
 tileTypeTable:
     .res        $40,TILE_TYPE_BLOCKED       ;00..3F - ASCII characters, treat as "blocked"
     .byte       TILE_TYPE_DEATH             ;40     - Truck down A

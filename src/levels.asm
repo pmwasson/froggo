@@ -435,7 +435,7 @@ level_xx:
     .byte       COLUMN_ROCKET_T,COLUMN_ROCKET_H,COLUMN_ROCKET_E,COLUMN_ROCKET_SPACE
     .byte       COLUMN_ROCKET_E,COLUMN_ROCKET_N,COLUMN_ROCKET_D,COLUMN_ROCKET_SPACE
     .byte       COLUMN_ROCKET_SPACE,COLUMN_ROCKET_1,COLUMN_ROCKET_1,COLUMN_ROCKET_2
-    .byte       COLUMN_ROCKET_D_3,COLUMN_ROCKET_0,COLUMN_ROCKET_1,COLUMN_ROCKET_2
+    .byte       COLUMN_ROCKET_D_3,COLUMN_ROCKET_3,COLUMN_ROCKET_4,COLUMN_ROCKET_5
     ; dynamic speeds
     ConvertSpeeds   $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
     ; starting Y
@@ -520,6 +520,9 @@ COLUMN_BRICK_8              = (levelColumnDataB8   - levelColumnData)/16
 COLUMN_ROCKET_0             = (levelColumnRocket0  - levelColumnData)/16
 COLUMN_ROCKET_1             = (levelColumnRocket1  - levelColumnData)/16
 COLUMN_ROCKET_2             = (levelColumnRocket2  - levelColumnData)/16
+COLUMN_ROCKET_3             = (levelColumnRocket3  - levelColumnData)/16
+COLUMN_ROCKET_4             = (levelColumnRocket4  - levelColumnData)/16
+COLUMN_ROCKET_5             = (levelColumnRocket5  - levelColumnData)/16
 COLUMN_ROCKET_SPACE         = (levelColumnRocket_SPACE  - levelColumnData)/16
 COLUMN_ROCKET_T             = (levelColumnRocket_T - levelColumnData)/16
 COLUMN_ROCKET_H             = (levelColumnRocket_H - levelColumnData)/16
@@ -533,6 +536,7 @@ COLUMN_ROCKET_D_3           = (levelColumnRocketD3 - levelColumnData)/16
 
 COLUMN_TYPE_STATIC          = $00
 COLUMN_TYPE_TURTLES         = $10
+COLUMN_TYPE_TRAINS          = $20
 COLUMN_TYPE_DYNAMIC         = $80           ; $80..$87
 
 levelColumnInfo:
@@ -590,7 +594,7 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_DYNAMIC                             ; 1 robot
 
 ; train (dynamic)
-    .byte       COLUMN_TYPE_DYNAMIC                             ; train cars
+    .byte       COLUMN_TYPE_DYNAMIC+COLUMN_TYPE_TRAINS          ; train cars
 
 ; water (static)
     .byte       COLUMN_TYPE_STATIC                              ; rocks in middle
@@ -636,6 +640,9 @@ levelColumnInfo:
     .byte       COLUMN_TYPE_STATIC                              ; Rocket - west
     .byte       COLUMN_TYPE_STATIC                              ; Rocket - mid
     .byte       COLUMN_TYPE_STATIC                              ; Rocket - east
+    .byte       COLUMN_TYPE_STATIC                              ; Rocket - edge west
+    .byte       COLUMN_TYPE_STATIC                              ; Rocket - edge mid
+    .byte       COLUMN_TYPE_STATIC                              ; Rocket - edge east
     .byte       COLUMN_TYPE_STATIC                              ; Rocket - space
     .byte       COLUMN_TYPE_STATIC                              ; Rocket - t
     .byte       COLUMN_TYPE_STATIC                              ; Rocket - h
@@ -748,10 +755,10 @@ levelColumnDataRS2:
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
     .byte   TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_ROAD
 levelColumnDataRS3:
-    .byte   TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS
-    .byte   TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS
-    .byte   TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS
-    .byte   TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS,TILE_TRAIN_TRACKS
+    .byte   TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE
+    .byte   TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE
+    .byte   TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE
+    .byte   TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE,TILE_DOUBLE_LINE
 levelColumnDataRS4:
     .byte   TILE_ROAD,TILE_SINGLE_LINE,TILE_ROAD,TILE_ROAD,TILE_SINGLE_LINE,TILE_ROAD,TILE_ROAD,TILE_SINGLE_LINE
     .byte   TILE_ROAD,TILE_ROAD,TILE_SINGLE_LINE,TILE_ROAD,TILE_ROAD,TILE_SINGLE_LINE,TILE_ROAD,TILE_ROAD
@@ -917,6 +924,18 @@ levelColumnRocket1:
 levelColumnRocket2:
     .byte   TILE_BRICK_NE,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E
     .byte   TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_SE,TILE_ROAD,TILE_BRICK_NE,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_SE
+
+levelColumnRocket3:
+    .byte   TILE_BRICK_NW,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W
+    .byte   TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_W,TILE_BRICK_SW
+
+levelColumnRocket4:
+    .byte   TILE_BRICK_N,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK
+    .byte   TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK,TILE_BRICK_S
+
+levelColumnRocket5:
+    .byte   TILE_BRICK_NE,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E
+    .byte   TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_E,TILE_BRICK_SE
 
 levelColumnRocket_SPACE:
     .byte   TILE_BRICK_N,TILE_BRICK,TILE_BRICK,TILE_ROAD,TILE_ROAD,TILE_ROAD,TILE_BRICK,TILE_BRICK
