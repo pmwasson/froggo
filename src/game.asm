@@ -1748,17 +1748,71 @@ eraseLoop1:
 :
     ; Make Y align to tiles
     lda         playerY
+    sta         prevY
     clc
     adc         #4
     lsr
     lsr
     lsr
     sta         playerTileY
+    sta         tileY
+    asl
+    asl
+    asl
+    sta         playerY
+    lda         playerX
+    sta         tileX
+    jsr         movementCheck
+    bne         blocked
+    rts
+blocked:
+    ; check if previous Y was above or below
+    lda         prevY
+    cmp         playerY
+    bcs         below
+    ; try tile above
+    dec         playerTileY
+    lda         playerTileY
+    sta         tileY
+    asl
+    asl
+    asl
+    sta         playerY
+    jsr         movementCheck
+    bne         switchToBelow   ; guessed wrong
+    rts
+below:
+    ; try tile below
+    inc         playerTileY
+    lda         playerTileY
+    sta         tileY
+    asl
+    asl
+    asl
+    sta         playerY
+    jsr         movementCheck
+    bne         switchToAbove   ; guessed wrong
+    rts
+
+switchToBelow:
+    ; inc by 2 since already tried above
+    inc         playerTileY
+    inc         playerTileY
+    jmp         finish
+
+switchToAbove:
+    ; dec by 2 since already tried below
+    dec         playerTileY
+    dec         playerTileY
+finish:
+    lda         playerTileY
     asl
     asl
     asl
     sta         playerY
     rts
+
+prevY:          .byte   0
 
 .endproc
 
@@ -2322,6 +2376,8 @@ index:          .byte   0
 ;-----------------------------------------------------------------------------
 ; Draw text - add info to the screen
 ;-----------------------------------------------------------------------------
+stringVersion:      TileText "_  VERSION 1.2.1   _"
+
 stringBoxTop:       TileText "#==================\"
 stringLevel:        TileText "_    LEVEL:        _"
 stringMode:         TileText "_  MODE:           _"
@@ -2665,7 +2721,6 @@ menuItems:          QuoteText "newGame",     0,1
     jsr         drawTextBox
     jsr         drawMenuBox
     DrawStringCord  6, MAP_TOP+2,  menuItems
-    DrawStringCord  0, 1,  stringMainMenu
     DrawStringCord  0, 22, stringMenuFooter
 
     lda         #MAP_TOP+7
@@ -2681,6 +2736,7 @@ menuItems:          QuoteText "newGame",     0,1
     jmp         continue
 
 :
+    DrawStringCord  0, 1,  stringMainMenu
     lda         #MAP_TOP+2
 
 continue:
@@ -2726,8 +2782,8 @@ menu4:
 menu5:
     cmp         #MAP_TOP+5      ; info
     bne         menu6
-    DrawStringCord  0, 22, stringFroggo
-    jsr         showPause
+    DrawStringCord  0, 22, stringVersion
+    jsr         showInfo
     jmp         drawMenu
 menu6:
     cmp         #MAP_TOP+6      ; credits
@@ -2840,7 +2896,6 @@ stringNewGame:  QuoteText "newGame:",   4,2
     jsr         drawMenuBox
     DrawStringCord  2, MAP_TOP+2,  stringNewGame
 
-
     lda         #2
     sta         tileX
 
@@ -2947,9 +3002,9 @@ doLoad:
 .endproc
 
 ;-----------------------------------------------------------------------------
-; Show Pause
+; Show Info
 ;-----------------------------------------------------------------------------
-.proc showPause
+.proc showInfo
 
     jsr         drawMenuBox
     DrawImageParam  MAP_LEFT+TILE_WIDTH*4,(MAP_TOP+1)*8,18,64,PAUSE_IMAGE,aux

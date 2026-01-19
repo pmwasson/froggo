@@ -42,54 +42,6 @@ creditsString:
     QuoteText   "@  @  @  @",0,0
     .byte       $FF             ; done
 
-
-;                    ;
-;                    ;
-;                    ;
-;@ Froggo @          ;
-;--------------------;
-;Inspired by the     ;
-;classic Frogger game;
-;and the more recent ;
-;Crossy Road.        ;
-;--------------------;
-;Music and sound     ;
-;effects were        ;
-;generated using the ;
-;Electric Duet song  ;
-;player, created by  ;
-;Paul Lutus (c) 1981.;
-;arachnoid.com       ;
-;--------------------;
-;All other code was  ;
-;written by          ;
-;Paul Wasson.        ;
-;lasermego.com/a2sw  ;
-;--------------------;
-;Music composed by   ;
-;Ben Wasson.         ;
-;--------------------;
-;Thanks to the people;
-;behing the following;
-;tools that made     ;
-;Froggo possible     ;
-;* AppleWin          ;
-;* ca65 (cc65)       ;
-;* Apple Commander   ;
-;* Aseprite          ;
-;--------------------;
-;Thanks for playing! ;
-;                    ;
-;        @           ;
-;                    ;
-;                    ;
-;                    ;
-;                    ;
-;                    ;
-;                    ;
-;                    ;
-;--------------------------------------------------------------------------------
-
 ;-----------------------------------------------------------------------------
 
 CREDIT_DIVIDE   =   $3F
@@ -267,7 +219,6 @@ scrollCount:    .byte   0
 stopPage:       .byte   0
 
 .endproc
-
 
 ;-----------------------------------------------------------------------------
 ; Draw Blank Line
