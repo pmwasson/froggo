@@ -2376,7 +2376,7 @@ index:          .byte   0
 ;-----------------------------------------------------------------------------
 ; Draw text - add info to the screen
 ;-----------------------------------------------------------------------------
-stringVersion:      TileText "_  VERSION 1.2.1   _"
+stringVersion:      TileText "_  VERSION 1.2.2   _"
 
 stringBoxTop:       TileText "#==================\"
 stringLevel:        TileText "_    LEVEL:        _"
