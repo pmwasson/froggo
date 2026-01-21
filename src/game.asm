@@ -179,7 +179,7 @@ PLAYER_INIT_Y               = MAP_BOTTOM-TILE_HEIGHT*2
 PLAYER_INIT_STATE           = STATE_IDLE
 
 MOVE_DELAY                  = 5
-DEAD_DELAY                  = 150
+DEAD_DELAY                  = 30
 
 TILE_BLANK                  = $00
 TILE_PROMPT                 = $20
